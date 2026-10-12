@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grimoire d'aventurier — charte</title>
+<style>
+  html, body { margin: 0; }
+  body { padding: 18px 16px 40px; display: grid; gap: 22px; max-width: 460px; margin: 0 auto; }
+  section { display: grid; gap: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .sw { display: grid; justify-items: center; gap: 4px; width: 66px; text-align: center; }
+  .sw i { width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 0 0 0 2.5px var(--ink), 0 3px 0 rgba(59,36,20,.25); }
+  .sw b { font-family: var(--f-display); font-weight: 400; font-size: 13px; }
+  .sw small { font-size: 10px; color: var(--ink-soft); font-weight: 800; }
+  .icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; }
+  .icons div { display: grid; justify-items: center; gap: 3px; font-size: 11px; font-weight: 800; color: var(--ink-soft); text-align: center; }
+  .icons svg { width: 44px; height: 44px; }
+  .slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; justify-items: center; }
+  .slots figure { margin: 0; display: grid; justify-items: center; gap: 4px; font-size: 11px; font-weight: 800; }
+  .slots .gr-slot { width: 58px; }
+  .sep { height: 2px; background: repeating-linear-gradient(90deg, var(--ink-soft) 0 10px, transparent 10px 16px); opacity: .45; border-radius: 2px; }
+
+  /* Maquette HUD combat */
+  .phone { position: relative; width: 100%; aspect-ratio: 390 / 560; border-radius: 22px; overflow: hidden; box-shadow: inset 0 0 0 3px var(--ink), var(--shadow);
+    background: #c9ae78 url('/tools/crypt-scene.png') center 60% / 100% auto no-repeat; }
+  .hud-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; gap: 8px; align-items: flex-start; }
+  .avatar { width: 56px; height: 56px; border-radius: 50%; flex: none; position: relative;
+    background: url('/icon-192.png') center / cover;
+    box-shadow: inset 0 0 0 2.5px var(--ink), 0 0 0 3px var(--parchment), 0 0 0 5.5px var(--ink), 0 4px 10px rgba(0,0,0,.35); }
+  .avatar .lvl { position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: var(--turquoise); color: #fff; font-family: var(--f-display); font-size: 13px; padding: 0 7px; border-radius: 9px; box-shadow: inset 0 0 0 2px var(--ink); text-shadow: 0 1px 0 var(--ink); }
+  .phone .plaque { flex: 1; min-width: 0; padding: 6px 10px 8px; }
+  .plaque .gr-h3 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pips { display: flex; gap: 4px; margin-top: 4px; align-items: center; }
+  .pips i { width: 10px; height: 10px; border-radius: 50%; background: var(--parchment-3); box-shadow: inset 0 0 0 2px var(--ink); }
+  .pips i.d { background: var(--leaf); } .pips i.c { background: var(--gold); transform: scale(1.25); } .pips i.b { border-radius: 3px; background: var(--coral); }
+  .pips span { font-size: 11px; font-weight: 800; margin-left: 4px; }
+  .round { width: 44px; height: 44px; border-radius: 14px; flex: none; display: grid; place-items: center; background: linear-gradient(#fffaf0, var(--parchment-2)); box-shadow: inset 0 0 0 2.5px var(--ink), 0 3px 0 var(--ink); font-family: var(--f-display); font-size: 20px; }
+  .phone .hud-bottom { position: absolute; left: 8px; right: 8px; bottom: 8px; padding: 8px 10px 10px; display: grid; gap: 6px; }
+  .spells { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 2px; }
+  .spell { aspect-ratio: 1; border-radius: 14px; display: grid; place-items: center; position: relative;
+    background: radial-gradient(circle at 40% 30%, #fffaf0, var(--parchment-3)); box-shadow: inset 0 0 0 2.5px var(--ink), 0 3px 0 var(--ink); }
+  .spell svg { width: 64%; }
+  .spell .cd { position: absolute; inset: 0; border-radius: 14px; background: conic-gradient(rgba(59,36,20,.55) calc(var(--cd) * 1turn), transparent 0); }
+  .spell .pa { position: absolute; right: -4px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--turquoise); color: #fff; font-family: var(--f-display); font-size: 13px; display: grid; place-items: center; box-shadow: inset 0 0 0 2px var(--ink); text-shadow: 0 1px 0 var(--ink); }
+  .float { position: absolute; font-family: var(--f-display); font-size: 26px; -webkit-text-stroke: 5px var(--ink); paint-order: stroke fill; }
+
+  /* Maquette choix du donjon */
+  .dj { display: grid; grid-template-columns: 54px 1fr auto; gap: 10px; align-items: center; padding: 8px 4px; border-bottom: 2px dashed rgba(110,76,46,.35); }
+  .dj:last-child { border-bottom: 0; }
+  .dj .ill { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; box-shadow: inset 0 0 0 2.5px var(--ink); }
+  .dj .ill svg { width: 70%; }
+  .dj h4 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 17px; }
+  .dj p { margin: 2px 0 0; font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+  .lock { opacity: .55; filter: grayscale(.7); }
+</style>
+</head>
+<body class="gr-paper">
+<script type="module">
+import { installTheme } from '../src/ui/theme.ts';
+import { ICONS } from '../src/ui/grimoire-icons.ts';
+installTheme();
+const I = (k) => ICONS[k].svg;
+
+document.body.innerHTML = `
+<header style="text-align:center;display:grid;gap:6px">
+  <div class="gr-label">Charte graphique</div>
+  <h1 class="gr-title">Grimoire d’aventurier</h1>
+  <p style="margin:0;font-size:14px;color:var(--ink-soft)">Fantasy d’aventure chaleureuse et malicieuse, lisible avant tout.</p>
+</header>
+
+<section>
+  <h2 class="gr-h2">Palette</h2>
+  <div class="row" style="justify-content:space-between">
+    ${[['Parchemin','#f7eed6'],['Encre','#3b2414'],['Feuillage','#5d8c3a'],['Turquoise','#22a196'],['Corail','#e8664a'],['Or','#e3a838'],['Magie','#8b52c9'],['Nuit','#2a160c']].map(([n,c])=>`<div class="sw"><i style="background:${c}"></i><b>${n}</b><small>${c}</small></div>`).join('')}
+  </div>
+  <div class="gr-label" style="margin-top:4px">Raretés</div>
+  <div class="row">
+    ${[['Commun','var(--r-commun)'],['Rare','var(--r-rare)'],['Épique','var(--r-epique)'],['Légendaire','var(--r-legendaire)'],['Mythique','var(--r-mythique)']].map(([n,c])=>`<span class="gr-chip" style="--c:${c};color:${n==='Commun'?'var(--ink)':'#fff'};text-shadow:${n==='Commun'?'none':'0 1px 0 var(--ink)'}">${n}</span>`).join('')}
+  </div>
+</section>
+
+<div class="sep"></div>
+
+<section>
+  <h2 class="gr-h2">Typographie</h2>
+  <div class="gr-panel" style="display:grid;gap:6px">
+    <div class="gr-label">Titres · Lilita One</div>
+    <div class="gr-title" style="font-size:30px">Crypte de Kardorim</div>
+    <div class="gr-label" style="margin-top:6px">Texte · Nunito</div>
+    <p style="margin:0;font-size:15px;line-height:1.45">Les Chafers gardent la crypte depuis des siècles. Bats-les pour récupérer leurs os et forger la panoplie du squelette.</p>
+    <div class="row" style="margin-top:4px"><span class="gr-num" style="font-size:28px;color:var(--coral-dark)">-21</span><span class="gr-num" style="font-size:22px;color:var(--leaf)">+9</span><span class="gr-num" style="font-size:22px;color:var(--gold-dark)">Critique !</span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="gr-h2">Boutons</h2>
+  <div class="row">
+    <button class="gr-btn">Entrer dans la crypte</button>
+    <button class="gr-btn turquoise sm">Inventaire</button>
+    <button class="gr-btn magic sm">Forgemagie</button>
+    <button class="gr-btn leaf sm">Fabriquer</button>
+    <button class="gr-btn ghost sm">Retour</button>
+  </div>
+  <div class="gr-tabs"><div class="gr-tab on">Équipement</div><div class="gr-tab">Ressources</div><div class="gr-tab">Runes</div></div>
+</section>
+
+<section>
+  <h2 class="gr-h2">Jauges</h2>
+  <div class="gr-panel" style="display:grid;gap:8px">
+    <div class="gr-gauge"><span class="ico">${I('vie')}</span><span class="track"><span class="fill" style="--v:78%;--c:var(--coral)"></span></span><span class="val">101 / 130</span></div>
+    <div class="gr-gauge"><span class="ico">${I('pa')}</span><span class="track"><span class="fill" style="--v:66%;--c:var(--turquoise)"></span></span><span class="val">4 / 6 PA</span></div>
+    <div class="gr-gauge"><span class="ico">${I('souffrance')}</span><span class="track"><span class="fill" style="--v:40%;--c:var(--coral-dark)"></span></span><span class="val">4 / 10</span></div>
+    <div class="gr-gauge"><span class="ico">${I('xp')}</span><span class="track"><span class="fill" style="--v:62%;--c:var(--gold)"></span></span><span class="val">Niv. 12</span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="gr-h2">Icônes</h2>
+  <div class="gr-panel icons">
+    ${['vie','pa','pm','xp','force','intelligence','chance','agilite','sagesse','prospection','kamas','souffrance','sac','artisan','forgemagie','carte'].map(k=>`<div class="gr-wiggle">${I(k)}<span>${ICONS[k].label}</span></div>`).join('')}
+  </div>
+</section>
+
+<section>
+  <h2 class="gr-h2">Objets et raretés</h2>
+  <div class="slots">
+    <figure><div class="gr-slot">${I('os')}<span class="qty">12</span></div>Commun</figure>
+    <figure><div class="gr-slot rare">${I('coiffe')}</div>Rare</figure>
+    <figure><div class="gr-slot epique">${I('rune')}<span class="qty">3</span></div>Épique</figure>
+    <figure><div class="gr-slot legendaire">${I('anneau')}</div>Légendaire</figure>
+    <figure><div class="gr-slot mythique">${I('epee')}</div>Mythique</figure>
+  </div>
+  <div style="text-align:center;margin-top:6px"><span class="gr-toast">Salle terminée !</span></div>
+</section>
+
+<div class="sep"></div>
+
+<section>
+  <h2 class="gr-h2">Maquette : combat</h2>
+  <div class="phone">
+    <div class="hud-top">
+      <div class="avatar"><span class="lvl">12</span></div>
+      <div class="gr-panel plaque"><div class="gr-h3">Crypte de Kardorim</div><div class="pips"><i class="d"></i><i class="d"></i><i class="c"></i><i></i><i></i><i></i><i></i><i></i><i class="b"></i><span>Salle 3 / 9</span></div></div>
+      <div class="round">II</div>
+    </div>
+    <span class="float" style="left:56%;top:52%;color:#fff">-17</span>
+    <span class="float" style="left:66%;top:47%;color:var(--gold)">-26</span>
+    <div class="gr-panel hud-bottom">
+      <div class="gr-gauge"><span class="ico">${I('vie')}</span><span class="track"><span class="fill" style="--v:78%;--c:var(--coral)"></span></span><span class="val">101 / 130</span></div>
+      <div class="gr-gauge" style="grid-template-columns:34px 1fr auto"><span class="ico">${I('souffrance')}</span><span class="track" style="height:10px"><span class="fill" style="--v:40%;--c:var(--coral-dark)"></span></span><span class="val" style="font-size:13px">Souffrance</span></div>
+      <div class="spells">
+        <div class="spell">${I('force')}<span class="pa">3</span></div>
+        <div class="spell">${I('intelligence')}<div class="cd" style="--cd:.6"></div><span class="pa">3</span></div>
+        <div class="spell">${I('agilite')}<span class="pa">2</span></div>
+        <div class="spell">${I('souffrance')}<div class="cd" style="--cd:.25"></div><span class="pa">2</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="gr-h2">Maquette : choisir un donjon</h2>
+  <div class="gr-panel gold" style="padding:12px 14px">
+    <div class="row" style="justify-content:space-between"><h3 class="gr-h3">Incarnam · niv. 1 à 20</h3><span class="gr-chip" style="--c:var(--turquoise-light)">2 / 3</span></div>
+    <div class="dj"><div class="ill" style="background:#efe2c2">${I('os')}</div><div><h4>Crypte de Kardorim</h4><p>Niveau 10 · 9 salles · Boss : Kardorim</p></div><button class="gr-btn sm">Entrer</button></div>
+    <div class="dj"><div class="ill" style="background:#e8f0d2">${I('agilite')}</div><div><h4>Grange du Tournesol Affamé</h4><p>Niveau 20 · 8 salles · Boss : Tournesol Affamé</p></div><button class="gr-btn turquoise sm">Entrer</button></div>
+    <div class="dj lock"><div class="ill" style="background:#e4dfd2">${I('chance')}</div><div><h4>Château Ensablé</h4><p>Termine la Grange pour débloquer</p></div><span class="gr-chip">Verrouillé</span></div>
+  </div>
+</section>
+`;
+document.title = 'ready';
+</script>
+</body>
+</html>
