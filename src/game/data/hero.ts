@@ -25,6 +25,23 @@ export const EPEE_ROUILLEE: WeaponDef = {
   impactAt: 0.35,
 };
 
+/** Équipement porté : pour l'instant un bloc de stats fixe, en attendant l'inventaire (étape 6). */
+export interface GearDef {
+  name: string;
+  force: number;
+  vitalite: number;
+  critique: number;
+}
+
+/**
+ * Équipement de niveau 10 : jets moyens de la Panoplie du Piou Vert (DofusDB, niv. 12, 6 objets,
+ * jets max Force 60, Vitalité 60, Critique 3), sans bonus de panoplie.
+ */
+export const STUFF_NIVEAU_10: GearDef = { name: 'Équipement de niveau 10', force: 40, vitalite: 40, critique: 2 };
+
+/** Points de caractéristique gagnés par niveau (Dofus : 5, à partir du niveau 2). */
+export const POINTS_PER_LEVEL = 5;
+
 /** Sacrieur de l'étape 2 : caractéristiques fixes (les niveaux viennent à l'étape 5). */
 export interface HeroDef {
   level: number;
@@ -34,10 +51,14 @@ export interface HeroDef {
   speed: number;
   radius: number;
   weapon: WeaponDef;
+  gear: GearDef;
 }
 
+/** Sacrieur niveau 10, tous ses points en Force, avec l'équipement de niveau 10. */
 export function startingHero(): HeroDef {
-  const stats = baseStats({ vitalite: 20, force: 60, critique: 5, dommagesCritiques: 2 });
+  const level = 10, gear = STUFF_NIVEAU_10;
+  const points = (level - 1) * POINTS_PER_LEVEL;
+  const stats = baseStats({ force: points + gear.force, vitalite: gear.vitalite, critique: gear.critique, dommagesCritiques: 2 });
   const pm = 3;
-  return { level: 12, stats, hp: maxHp(12, stats.vitalite), speed: 300 + pm * 40, radius: 22, weapon: EPEE_ROUILLEE };
+  return { level, stats, hp: maxHp(level, stats.vitalite), speed: 300 + pm * 40, radius: 22, weapon: EPEE_ROUILLEE, gear };
 }

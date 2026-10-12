@@ -46,7 +46,7 @@ export class Hud {
       <div class="top">
         <div class="medal">
           <div class="face">${portraitSvg()}</div>
-          <div class="level gr-num">12</div>
+          <div class="level gr-num">10</div>
         </div>
         <div class="plaque gr-panel">
           <div class="dj">Crypte de Kardorim</div>
@@ -119,6 +119,9 @@ export class Hud {
     return (this.root.querySelector('.top') as HTMLElement).getBoundingClientRect().bottom;
   }
 
+  setLevel(level: number) {
+    this.root.querySelector('.medal .level')!.textContent = String(level);
+  }
   setHp(hp: number, max: number) {
     const k = Math.max(0, hp) / max;
     this.hpFill.style.setProperty('--v', `${100 * k}%`);

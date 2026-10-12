@@ -1,7 +1,8 @@
 import { rng } from '../iso';
 import { resolveHit } from './formulas';
 import { startingHero, type HeroDef } from './data/hero';
-import { CRYPT_POOL, MONSTERS, type MonsterDef } from './data/monsters';
+import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterDef } from './data/monsters';
+import type { Stats } from './formulas';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
 
 /**
@@ -26,11 +27,25 @@ export interface Vec { x: number; y: number }
 /** Distance au sol, corrigée de la perspective. */
 export const flatDist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, (ay - by) / PERSP);
 
+/**
+ * Grade des monstres selon la salle : grade 1-2 au début, 4-5 à la fin du donjon
+ * (comme les groupes plus forts au fond d'un donjon de Dofus).
+ */
+export function roomGrade(index: number, r: number): number {
+  const base = 1 + Math.floor((index * 4) / (TOTAL_ROOMS - 2));
+  return Math.min(5, base + (r < 0.35 ? 1 : 0));
+}
+
 export type MonsterState = 'spawn' | 'chase' | 'windup' | 'recover' | 'dead';
 
 export interface Monster {
   uid: number;
   def: MonsterDef;
+  /** Grade Dofus (1 à 5) et ce qui en découle. */
+  grade: number;
+  level: number;
+  maxHp: number;
+  stats: Stats;
   x: number;
   y: number;
   hp: number;
@@ -94,7 +109,7 @@ export class World {
   hitstop = 0;
   bounds = { x0: 76, x1: ROOM_W - 76, y0: FLOOR_TOP + 24, y1: 1500 };
   /** Deuxième vague : monstres en réserve, et temps écoulé dans la salle. */
-  reserve: MonsterDef[] = [];
+  reserve: { def: MonsterDef; grade: number }[] = [];
   roomT = 0;
   private events: WorldEvent[] = [];
   private uid = 1;
@@ -142,12 +157,15 @@ export class World {
     this.roomT = 0;
     // 5 monstres en salle 1, jusqu'à 10 ; à partir de la salle 4, une partie arrive en deuxième vague
     const count = Math.min(10, 5 + Math.floor(index * 0.75));
-    const defs = [...Array(count)].map(() => MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]]);
+    const defs = [...Array(count)].map(() => ({
+      def: MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]],
+      grade: roomGrade(index, this.rnd()),
+    }));
     const second = index >= 3 ? Math.round(count * 0.4) : 0;
     this.reserve = defs.splice(defs.length - second, second);
-    for (const def of defs) {
+    for (const { def, grade } of defs) {
       const p = this.findSpawn();
-      this.monsters.push(this.makeMonster(def, p.x, p.y));
+      this.monsters.push(this.makeMonster(def, grade, p.x, p.y));
     }
     this.events.push({ type: 'roomStart', index });
   }
@@ -164,9 +182,10 @@ export class World {
     return { x: ROOM_W / 2, y: this.bounds.y0 + 120 };
   }
 
-  private makeMonster(def: MonsterDef, x: number, y: number): Monster {
+  private makeMonster(def: MonsterDef, grade: number, x: number, y: number): Monster {
+    const g = gradeStats(def, grade);
     return {
-      uid: this.uid++, def, x, y, hp: def.hp, state: 'spawn', t: 0,
+      uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
     };
@@ -188,9 +207,9 @@ export class World {
     if (this.reserve.length && this.phase === 'fight') {
       const alive = this.monsters.filter((m) => m.state !== 'dead').length;
       if (alive <= 2 || this.roomT >= 10) {
-        for (const def of this.reserve) {
+        for (const { def, grade } of this.reserve) {
           const p = this.findSpawn();
-          this.monsters.push(this.makeMonster(def, p.x, p.y));
+          this.monsters.push(this.makeMonster(def, grade, p.x, p.y));
         }
         this.reserve = [];
         this.events.push({ type: 'wave' });
@@ -284,7 +303,7 @@ export class World {
       if (d - m.def.radius > w.reach + 6) continue;
       const ang = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / (d || 1))));
       if (d > 30 && ang > w.arc) continue;
-      const hit = resolveHit(w.roll, h.def.stats, m.def.stats, this.rnd);
+      const hit = resolveHit(w.roll, h.def.stats, m.stats, this.rnd);
       m.hp -= hit.damage;
       m.hurtT = 0.18;
       m.knock.x += (dx / (d || 1)) * 34;
@@ -395,7 +414,7 @@ export class World {
 
   private hurtHero(m: Monster) {
     const h = this.hero;
-    const hit = resolveHit(m.def.attack.roll, m.def.stats, h.def.stats, this.rnd);
+    const hit = resolveHit(m.def.attack.roll, m.stats, h.def.stats, this.rnd);
     h.hp = Math.max(0, h.hp - hit.damage);
     h.hurtT = 0.25;
     h.invulnT = 0.35;

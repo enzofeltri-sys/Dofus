@@ -119,6 +119,7 @@ async function main() {
 
   // ---------- Monde ----------
   const game = new World(Math.floor(Math.random() * 1e6));
+  hud.setLevel(game.hero.def.level);
   (window as unknown as { __game: World }).__game = game;
   const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
   game.setPlayBottom(playBottom());
@@ -539,11 +540,11 @@ async function main() {
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
       poseChafer(v.rig, a, CHAR_SCALE);
-      v.hpBar.visible = m.state !== 'dead' && !m.hidden && m.hp < m.def.hp;
+      v.hpBar.visible = m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
       if (v.hpBar.visible) {
         const w = 46;
         v.hpBar.clear().roundRect(-w / 2 - 2, -2, w + 4, 9, 4).fill({ color: 0x1a0e0a, alpha: 0.85 })
-          .roundRect(-w / 2, 0, (w * Math.max(0, m.hp)) / m.def.hp, 5, 2.5).fill({ color: m.def.behavior === 'brute' ? 0xff8a2a : 0xe8343c });
+          .roundRect(-w / 2, 0, (w * Math.max(0, m.hp)) / m.maxHp, 5, 2.5).fill({ color: m.def.behavior === 'brute' ? 0xff8a2a : 0xe8343c });
       }
       if (m.state === 'windup') drawTelegraph(m, Math.min(1, m.t / m.def.attack.windup));
     }
