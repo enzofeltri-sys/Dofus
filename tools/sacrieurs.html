@@ -8,10 +8,10 @@ img{height:300px}
 import { sacrieurSvg as a } from '../src/art/sacrieur-variants/a.ts';
 import { sacrieurSvg as b } from '../src/art/sacrieur-variants/b.ts';
 import { sacrieurSvg as c } from '../src/art/sacrieur-variants/c.ts';
-import { variantD as d, variantE as e } from '../src/art/sacrieur-variants/official-cartoon.ts';
+import { variantD as d, variantE as e, variantD1 as d1, variantD2 as d2, variantD3 as d3, variantD4 as d4 } from '../src/art/sacrieur-variants/official-cartoon.ts';
 const only = new URLSearchParams(location.search).get('only');
-const all = [['A', a, 'Le tout premier'], ['B', b, 'Moins mignon'], ['C', c, 'Juste milieu'], ['D', d, 'Tenue officielle, yeux blancs'], ['E', e, 'Tenue officielle, plus berserker']];
-const list = only ? all.filter(([k]) => only.includes(k)) : all;
+const all = [['A', a, 'Le tout premier'], ['B', b, 'Moins mignon'], ['C', c, 'Juste milieu'], ['D', d, 'Tenue officielle, yeux blancs'], ['E', e, 'Tenue officielle, plus berserker'], ['D1', d1, 'Bras fins, tout bandés'], ['D2', d2, 'Avant-bras bandés'], ['D3', d3, 'Larges bandes rouges'], ['D4', d4, 'Fines bandes enroulées']];
+const list = only ? all.filter(([k]) => only.split(',').includes(k)) : all;
 for (const [k, f, t] of list) {
   const fig = document.createElement('figure');
   fig.innerHTML = `<img src="${URL.createObjectURL(new Blob([f()], {type:'image/svg+xml'}))}"><figcaption>${k}</figcaption><small>${t}</small>`;
