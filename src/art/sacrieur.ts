@@ -1,124 +1,137 @@
-import { cel, ellipse, gloss, line, shape, svg, tube } from './kit';
+import { ellipse as kEllipse, eye, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from './kit';
+
+// Ce dessin garde son trait d'origine (contours épais et colorés), choisi par Enzo.
+const W = 3;
+const ink = (fill: string, k = -0.55) => kInk(fill, k);
+const shape = (d: string, fill: string, outline = ink(fill), w = W) => kShape(d, fill, outline, w);
+const ellipse = (cx: number, cy: number, rx: number, ry: number, fill: string, outline = ink(fill), w = W) => kEllipse(cx, cy, rx, ry, fill, outline, w);
+const tube = (pts: [number, number][], width: number, fill: string, outline = ink(fill)) => kTube(pts, width, fill, outline, W);
 
 /**
- * Le Sacrieur (mâle), de trois quarts tourné vers la GAUCHE comme les personnages Dofus.
- * Proportions Dofus (tête ≈ 1/3 de la hauteur), torse puissant, crinière sauvage,
- * tatouages tribaux rouges, cicatrices recousues, pantalon ample, pieds bandés.
- * Couleurs par défaut de la classe (DofusDB) : peau #e59b68, tissus olive / bordeaux / brun.
+ * Le Sacrieur (mâle), couleurs par défaut de la classe (DofusDB) :
+ * peau #e59b68, cheveux orangés, tissus olive / bordeaux / brun.
+ * Berserker torse nu, couturé de cicatrices, bandeau rouge.
+ * Point d'ancrage (pieds) : (70, 160).
  */
 const SKIN = '#e59b68';
-const SKIN_INK = '#5e2e14';
-const HAIR = '#a8401c';
-const PANTS = '#6a5e28';
+const SKIN_SH = '#c97c4c';
+const HAIR = '#de6a26';
+const HAIR_HI = '#f59a45';
+const OLIVE = '#7e752a';
 const BLOOD = '#852a34';
 const LEATHER = '#76422c';
-const TATTOO = '#9a1c26';
+const SCAR = '#a3333a';
 
-export const SACRIEUR_W = 150;
-export const SACRIEUR_H = 182;
-export const SACRIEUR_FOOT: [number, number] = [76, 172];
-/** Poing qui tient l'arme (coordonnées du SVG). */
-export const SACRIEUR_HAND: [number, number] = [36, 110];
+export const SACRIEUR_W = 140;
+export const SACRIEUR_H = 170;
+export const SACRIEUR_FOOT: [number, number] = [70, 160];
+/** Poing qui tient l'arme (coordonnées du SVG). Ce dessin regarde vers la DROITE. */
+export const SACRIEUR_HAND: [number, number] = [100, 123];
+export const SACRIEUR_FACES_LEFT = false;
 
 export function sacrieurSvg(): string {
   const defs = [
-    cel('sk', SKIN, 'diag'),
-    cel('skB', '#c97a4c', 'diag'),
-    cel('hr', HAIR, 'diag'),
-    cel('pt', PANTS, 'horiz'),
-    cel('bl', BLOOD, 'vert'),
-    cel('lt', LEATHER, 'vert'),
+    vgrad('sk', '#f1b285', SKIN_SH),
+    vgrad('hr', HAIR_HI, '#b84a16'),
+    vgrad('ol', '#958a37', '#5f5820'),
+    vgrad('bl', '#a33642', '#6a1f28'),
   ].join('');
 
-  const p: string[] = [];
+  const backArm = tube([[48, 92], [38, 108], [40, 124]], 11, SKIN_SH, ink(SKIN));
+  const backFist = ellipse(41, 126, 7, 6.5, SKIN_SH, ink(SKIN));
 
-  // Crinière arrière (derrière la tête et la nuque).
-  p.push(shape('M70,14 C88,8 104,16 108,30 L116,34 L108,40 L114,50 L104,52 L106,64 L96,60 L94,72 L84,62 Z', 'url(#hr)', '#3e1206'));
+  // Jambes : pantalon olive puis bandes de cuir et pieds.
+  const legs = [
+    shape('M54,118 L50,145 Q58,149 66,145 L69,122 Z', 'url(#ol)', ink(OLIVE)),
+    shape('M72,122 L75,145 Q83,149 91,145 L88,117 Z', 'url(#ol)', ink(OLIVE)),
+    shape('M50,141 L49,154 Q58,158 66,154 L66,141 Q58,145 50,141 Z', LEATHER),
+    shape('M75,141 L75,154 Q83,158 92,154 L91,141 Q83,145 75,141 Z', LEATHER),
+    line('M51,146 Q58,149 65,146 M51,150 Q58,153 65,150', ink(LEATHER, -0.3), 1.5),
+    line('M76,146 Q83,149 90,146 M76,150 Q83,153 90,150', ink(LEATHER, -0.3), 1.5),
+    ellipse(56, 157, 10, 4.5, '#5a3020'),
+    ellipse(85, 157, 10, 4.5, '#5a3020'),
+  ].join('');
 
-  // Bras arrière (gauche du personnage, côté droit de l'image).
-  p.push(tube([[96, 80], [108, 98], [104, 116]], 13, 'url(#skB)', SKIN_INK));
-  p.push(ellipse(104, 119, 7.5, 7, 'url(#skB)', SKIN_INK));
-  p.push(line('M100,88 Q106,92 104,100 M103,86 Q110,94 107,102', TATTOO, 1.8, 0.8));
+  // Torse en V, musclé, couvert de cicatrices recousues.
+  const torso = [
+    shape('M46,86 C50,74 90,74 95,86 L91,113 C86,124 55,124 50,113 Z', 'url(#sk)', ink(SKIN)),
+    line('M56,93 Q63,100 70,95 Q77,100 85,93', ink(SKIN, -0.25), 2, 0.8),
+    line('M64,104 L64,110 M76,104 L76,110 M70,102 L70,113', ink(SKIN, -0.25), 1.6, 0.55),
+    // cicatrice principale + points de couture
+    line('M56,108 L84,86', SCAR, 2.6),
+    line('M60,101 L63,107 M66,97 L69,103 M72,92 L75,98 M78,88 L81,94', '#5c1418', 1.5),
+    // tatouage tribal sur l'épaule
+    line('M86,82 Q92,86 90,94 M88,84 Q86,90 89,96', BLOOD, 2, 0.9),
+  ].join('');
 
-  // Jambe arrière : pantalon ample, bandes, pied nu.
-  p.push(shape('M80,112 L100,110 Q106,132 102,150 L88,152 Q86,132 80,112 Z', 'url(#pt)', '#2a2408'));
-  p.push(shape('M88,146 L102,145 L103,160 L89,161 Z', 'url(#lt)', '#2e160c'));
-  p.push(line('M89,150 L102,149 M89,155 L103,154', '#3a1c0e', 1.3));
-  p.push(ellipse(100, 166, 11, 5, 'url(#skB)', SKIN_INK));
+  // Ceinture-écharpe bordeaux avec un pan qui pend.
+  const sash = [
+    shape('M48,111 Q70,121 93,111 L94,121 Q70,132 47,121 Z', 'url(#bl)', ink(BLOOD)),
+    shape('M84,121 Q92,134 87,146 L80,144 Q83,133 77,124 Z', 'url(#bl)', ink(BLOOD)),
+    ellipse(70, 121, 5, 4.5, '#d9a441', '#7a5418', 2),
+  ].join('');
 
-  // Torse de trois quarts, musclé.
-  p.push(shape('M50,82 C52,70 92,68 99,78 L95,108 C89,118 62,120 56,110 Z', 'url(#sk)', SKIN_INK));
-  p.push(line('M56,88 Q66,97 77,90 Q84,95 92,88', '#a8582e', 1.8, 0.8));
-  p.push(line('M66,100 L66,108 M75,100 L75,110', '#a8582e', 1.4, 0.6));
-  p.push(gloss(62, 80, 9, 4, -15, 0.35));
-  // tatouage tribal sur le flanc et la poitrine
-  p.push(line('M86,82 Q94,88 90,98 Q86,104 90,110 M82,86 Q86,92 83,98', TATTOO, 2, 0.85));
-  // grande cicatrice recousue
-  p.push(line('M58,104 L82,84', '#b0343c', 2.4));
-  p.push(line('M61,98 L65,103 M66,94 L70,99 M71,90 L75,95 M76,86 L80,91', '#4a0c10', 1.2));
+  const frontArm = tube([[93, 90], [104, 106], [100, 121]], 12, SKIN, ink(SKIN));
+  const frontFist = ellipse(100, 123, 7.5, 7, SKIN, ink(SKIN));
+  const wrist = shape('M93,114 L106,114 L105,119 L94,119 Z', LEATHER, ink(LEATHER), 2);
 
-  // Ceinture-écharpe et pan qui pend devant.
-  p.push(shape('M54,106 Q76,116 97,106 L98,116 Q76,126 53,116 Z', 'url(#bl)', '#3a0c12'));
-  p.push(ellipse(74, 116, 5, 4.5, '#d9a441', '#6a4410', 1.4));
+  // Tête : grosse, ronde, de trois quarts vers la droite.
+  const headTails = shape('M40,44 Q26,36 15,44 Q25,47 17,58 Q30,54 41,53 Z', 'url(#bl)', ink(BLOOD));
+  const head = [
+    ellipse(42, 58, 6, 8, SKIN_SH, ink(SKIN)),
+    shape(
+      'M39,52 C38,30 56,22 72,23 C92,24 104,36 103,54 C102,70 94,82 76,84 C58,86 41,76 39,52 Z',
+      'url(#sk)',
+      ink(SKIN),
+    ),
+    // joues
+    `<ellipse cx="92" cy="66" rx="6" ry="3.5" fill="#e8705a" opacity="0.35"/>`,
+    eye(69, 57, 4.2, 5.8),
+    eye(89, 56, 3.8, 5.5),
+    // sourcils froncés (berserker)
+    line('M60,46 L75,51', '#7a2d10', 4),
+    line('M83,50 L96,45', '#7a2d10', 4),
+    // nez
+    line('M82,62 Q86,65 82,67', ink(SKIN, -0.3), 2),
+    // rictus avec dents
+    shape('M70,72 Q81,79 92,70 Q82,74 70,72 Z', '#fff7ee', ink(SKIN, -0.4), 2),
+    line('M76,73.5 L76,76 M82,74 L82,76.5 M87,72.5 L87,75', ink(SKIN, -0.4), 1.1),
+    // balafre recousue sur la joue
+    line('M55,61 L62,72', SCAR, 2.2),
+    line('M56,66 L60,64 M58,69 L62,67', '#5c1418', 1.3),
+  ].join('');
 
-  // Jambe avant.
-  p.push(shape('M56,114 L82,116 Q80,136 72,152 L54,152 Q52,132 56,114 Z', 'url(#pt)', '#2a2408'));
-  p.push(line('M64,120 Q66,134 62,148', '#4a4214', 1.4, 0.7));
-  p.push(shape('M53,146 L72,146 L72,160 L53,161 Z', 'url(#lt)', '#2e160c'));
-  p.push(line('M53,150 L72,150 M53,155 L72,155', '#3a1c0e', 1.3));
-  p.push(ellipse(58, 167, 13, 5.5, 'url(#sk)', SKIN_INK));
-  p.push(shape('M58,118 Q50,132 54,146 L62,144 Q60,132 66,120 Z', 'url(#bl)', '#3a0c12'));
+  // Bandeau rouge + cheveux hérissés.
+  const hair = shape(
+    smoothPath([
+      [38, 50], [34, 36], [26, 30], [40, 28], [38, 16], [52, 22], [56, 8], [66, 19], [76, 6], [82, 20], [96, 12], [94, 27], [108, 28], [100, 38], [104, 48],
+    ]) + ' Q72,30 38,50 Z',
+    'url(#hr)',
+    ink(HAIR, -0.6),
+  );
+  const hairLines = line('M54,24 Q58,30 56,36 M74,18 Q76,26 72,32 M90,24 Q88,30 92,36', '#a8410f', 1.6, 0.8);
+  const band = shape('M38,47 Q70,32 104,43 L104,51 Q70,40 39,55 Z', 'url(#bl)', ink(BLOOD));
 
-  // Bras avant (droit du personnage) tendu vers l'avant, tient l'arme.
-  p.push(tube([[54, 82], [42, 98], [36, 108]], 14, 'url(#sk)', SKIN_INK));
-  p.push(line('M50,88 Q44,92 44,100 M47,86 Q40,92 40,98', TATTOO, 1.8, 0.85));
-  p.push(shape('M30,102 L42,100 L44,108 L32,110 Z', 'url(#lt)', '#2e160c', 1.4));
-  p.push(ellipse(SACRIEUR_HAND[0], SACRIEUR_HAND[1] + 2, 8, 7.5, 'url(#sk)', SKIN_INK));
-
-  // Tête : menton en avant, oreille vers l'arrière.
-  p.push(ellipse(92, 48, 5.5, 7.5, 'url(#skB)', SKIN_INK));
-  p.push(shape('M46,46 C44,26 58,16 72,17 C88,18 96,30 94,46 C93,58 86,66 74,68 L60,70 C52,68 47,58 46,46 Z', 'url(#sk)', SKIN_INK));
-  p.push(gloss(60, 26, 9, 4, -20, 0.35));
-  // yeux en amande, regard furieux
-  p.push(`<path d="M50,44 Q56,39 63,43 Q57,48 50,44 Z" fill="#fff" stroke="${SKIN_INK}" stroke-width="1.2"/>`);
-  p.push(`<circle cx="56.5" cy="43.6" r="2.5" fill="#2a120a"/><circle cx="57.3" cy="42.8" r="0.8" fill="#fff"/>`);
-  p.push(`<path d="M70,42 Q75,38 80,42 Q75,46 70,42 Z" fill="#fff" stroke="${SKIN_INK}" stroke-width="1.2"/>`);
-  p.push(`<circle cx="74.6" cy="42.2" r="2.2" fill="#2a120a"/>`);
-  p.push(line('M47,36 L64,40 M69,39 L82,34', '#3e1206', 3.4));
-  p.push(line('M51,50 Q48,54 52,56', '#a8582e', 1.6));
-  // rictus : dents serrées et canine
-  p.push(shape('M50,60 Q58,65 68,59 Q60,63 50,60 Z', '#fffaf0', SKIN_INK, 1.4));
-  p.push(`<path d="M54,61 l1.5,3.5 l1.5,-3" fill="#fffaf0" stroke="${SKIN_INK}" stroke-width="0.8"/>`);
-  p.push(line('M58,61.6 L58,63.6 M62,61.4 L62,63.4', SKIN_INK, 0.9));
-  // marques tribales sur le visage + balafre
-  p.push(line('M64,50 Q70,52 72,58 M80,48 Q84,52 84,58', TATTOO, 1.8, 0.85));
-  p.push(line('M82,26 L88,36', '#b0343c', 2));
-  p.push(line('M83,30 L86,29 M85,33 L88,32', '#4a0c10', 1));
-
-  // Mèches avant hérissées + bandeau rouge noué.
-  p.push(shape('M44,36 L40,22 L50,26 L50,12 L60,20 L66,6 L72,18 L82,8 L84,22 L96,16 L92,30 Q72,22 44,36 Z', 'url(#hr)', '#3e1206'));
-  p.push(line('M56,22 Q58,26 56,30 M72,16 Q74,22 70,26', '#6a1e0a', 1.4, 0.8));
-  p.push(shape('M44,34 Q70,24 94,30 L94,36 Q70,30 45,40 Z', 'url(#bl)', '#3a0c12'));
-  p.push(shape('M94,32 Q108,26 118,34 Q108,36 114,46 Q104,40 95,37 Z', 'url(#bl)', '#3a0c12'));
-
-  return svg(SACRIEUR_W, SACRIEUR_H, defs, p.join('\n'));
+  const body = [backArm, backFist, legs, torso, sash, frontArm, wrist, frontFist, headTails, head, hair, hairLines, band].join('\n');
+  return svg(SACRIEUR_W, SACRIEUR_H, defs, body);
 }
 
-/** Épée grossière du Sacrieur (verticale, pointe en haut). Poignée en SWORD_GRIP. */
+/** Épée grossière du Sacrieur. Poignée (point de prise) en (20, 74). */
 export const SWORD_W = 40;
 export const SWORD_H = 96;
 export const SWORD_GRIP: [number, number] = [20, 74];
 
 export function sacrieurSwordSvg(): string {
-  const defs = cel('bladeG', '#c4d0da', 'horiz') + cel('guardG', '#b07a30', 'vert');
-  const b = [
-    shape('M15,64 L13,22 Q14,8 22,2 Q29,10 28,24 L26,64 Z', 'url(#bladeG)', '#2e3a46'),
-    line('M17,58 L17,16', '#ffffff', 1.6, 0.8),
-    shape('M13,38 L17,41 L13,44 Z', '#7a8a98', '#2e3a46', 1.2),
-    shape('M8,62 Q20,58 33,62 L32,68 Q20,65 9,68 Z', 'url(#guardG)', '#4a300c'),
-    shape('M16,68 L25,68 L25,86 L16,86 Z', LEATHER, '#2e160c'),
-    line('M16,72 L25,74 M16,77 L25,79 M16,82 L25,84', '#2e160c', 1.2),
-    ellipse(20.5, 89, 5, 4.5, 'url(#guardG)', '#4a300c', 1.6),
+  const defs = vgrad('bladeG', '#eef3f7', '#9fb0bf');
+  const body = [
+    shape('M15,64 L13,22 Q14,8 22,2 Q29,10 28,24 L26,64 Z', 'url(#bladeG)', '#465565'),
+    line('M20,60 L20,14', '#ffffff', 2, 0.7),
+    // encoches de lame usée
+    shape('M13,38 L17,41 L13,44 Z', '#8a9aa8', '#465565', 1.5),
+    shape('M8,62 Q20,58 33,62 L32,68 Q20,65 9,68 Z', '#a8742e', '#4f3510'),
+    shape('M16,68 L25,68 L25,86 L16,86 Z', LEATHER),
+    line('M16,72 L25,74 M16,77 L25,79 M16,82 L25,84', '#3f2114', 1.5),
+    ellipse(20.5, 89, 5, 4.5, '#a8742e', '#4f3510', 2),
   ].join('');
-  return svg(SWORD_W, SWORD_H, defs, b);
+  return svg(SWORD_W, SWORD_H, defs, body);
 }

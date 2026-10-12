@@ -32,9 +32,9 @@ export function smoothPath(pts: Pt[]): string {
  * Membre « tube » (bras, jambe, os) : un trait épais avec un contour coloré.
  * On dessine le trait de contour plus large, puis le trait de couleur par-dessus.
  */
-export function tube(pts: Pt[], width: number, fill: string, outline = ink(fill)): string {
+export function tube(pts: Pt[], width: number, fill: string, outline = ink(fill), ow = OUTLINE): string {
   const d = smoothPath(pts);
-  return `<path d="${d}" fill="none" stroke="${outline}" stroke-width="${width + OUTLINE * 2}" stroke-linecap="round" stroke-linejoin="round"/>
+  return `<path d="${d}" fill="none" stroke="${outline}" stroke-width="${width + ow * 2}" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="${d}" fill="none" stroke="${fill}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
 }
 
