@@ -118,7 +118,15 @@ function arm(o: Opts, skin: string, skInk: string, side: 'back' | 'front'): stri
   return limb(pts, w0, w1, SKIN_FILL, skInk, { color: '#a3283a', step: 5.5, width: 2, slant: 5 }) + fist;
 }
 
-function build(o: Opts): string {
+/** Morceaux articulés du Sacrieur, dans l'ordre de dessin (du fond vers l'avant). */
+export const SACRI_PARTS = ['legB', 'legF', 'armB', 'torso', 'armF', 'head'] as const;
+export type SacriPart = (typeof SACRI_PARTS)[number];
+/** Points de rotation (coordonnées du SVG 140×170) : hanches, épaules, cou. */
+export const SACRI_PIVOTS: Record<SacriPart, [number, number]> = {
+  legB: [60, 108], legF: [81, 108], armB: [46, 74], torso: [70, 104], armF: [93, 73], head: [72, 72],
+};
+
+function build(o: Opts, part?: SacriPart): string {
   uid = 0;
   const SKIN = o.skin;
   const SK_INK = ink(SKIN, -0.6);
@@ -134,41 +142,40 @@ function build(o: Opts): string {
     `<linearGradient id="limbShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.28"/></linearGradient>`,
   ].join('');
 
-  const p: string[] = [];
+  const legB: string[] = [], legF: string[] = [], armB: string[] = [], torso: string[] = [], armF: string[] = [];
 
   /* ---------- Jambes ---------- */
-  const leg = (hipX: number, footX: number, dir: number) => {
+  const leg = (arr: string[], hipX: number, footX: number, dir: number) => {
     const hemY = 140;
     // bandage du tibia + pied nu
-    p.push(bandaged([[footX, hemY - 8], [footX, 153]], 10, 9, SKIN, 5.5, 3));
+    arr.push(bandaged([[footX, hemY - 8], [footX, 153]], 10, 9, SKIN, 5.5, 3));
     // pantalon ample, ourlet effiloché qui s'évase
-    p.push(shape(`M${hipX - 9},104 Q${hipX - 12},${hemY - 14} ${footX - 11},${hemY} L${footX - 7},${hemY + 4} L${footX - 3},${hemY - 1} L${footX + 1},${hemY + 5} L${footX + 5},${hemY} L${footX + 9},${hemY + 3} L${footX + 11},${hemY - 2} Q${hipX + 12},${hemY - 18} ${hipX + 9},106 Z`, 'url(#pants)', CAP_INK));
-    p.push(line(`M${hipX + dir * 2},112 Q${hipX + dir * 4},124 ${footX + dir * 3},136`, shade(PANTS, -0.4), D, 0.6));
-    p.push(shape(`M${footX - 9},152 Q${footX},148 ${footX + 11},152 Q${footX + 13},158 ${footX + 6},158 L${footX - 8},158 Q${footX - 11},155 ${footX - 9},152 Z`, 'url(#sk)', SK_INK));
-    p.push(line(`M${footX + 4},155 l0,2.4 M${footX + 7.5},154.5 l0,2.4`, SK_INK, 0.9, 0.8));
+    arr.push(shape(`M${hipX - 9},104 Q${hipX - 12},${hemY - 14} ${footX - 11},${hemY} L${footX - 7},${hemY + 4} L${footX - 3},${hemY - 1} L${footX + 1},${hemY + 5} L${footX + 5},${hemY} L${footX + 9},${hemY + 3} L${footX + 11},${hemY - 2} Q${hipX + 12},${hemY - 18} ${hipX + 9},106 Z`, 'url(#pants)', CAP_INK));
+    arr.push(line(`M${hipX + dir * 2},112 Q${hipX + dir * 4},124 ${footX + dir * 3},136`, shade(PANTS, -0.4), D, 0.6));
+    arr.push(shape(`M${footX - 9},152 Q${footX},148 ${footX + 11},152 Q${footX + 13},158 ${footX + 6},158 L${footX - 8},158 Q${footX - 11},155 ${footX - 9},152 Z`, 'url(#sk)', SK_INK));
+    arr.push(line(`M${footX + 4},155 l0,2.4 M${footX + 7.5},154.5 l0,2.4`, SK_INK, 0.9, 0.8));
   };
-  leg(60, 56, -1);
-  leg(81, 85, 1);
-  p.push(`<g fill="#a8423a" opacity="0.85"><circle cx="59" cy="120" r="1.2"/><circle cx="57.5" cy="125.5" r="1.2"/><circle cx="56.5" cy="131" r="1.2"/></g>`);
+  leg(legB, 60, 56, -1);
+  leg(legF, 81, 85, 1);
+  legB.push(`<g fill="#a8423a" opacity="0.85"><circle cx="59" cy="120" r="1.2"/><circle cx="57.5" cy="125.5" r="1.2"/><circle cx="56.5" cy="131" r="1.2"/></g>`);
 
   /* ---------- Haut du corps (remonté : jambes plus longues) ---------- */
-  const up: string[] = [];
   // bras arrière
-  up.push(arm(o, SKIN, SK_INK, 'back'));
+  armB.push(arm(o, SKIN, SK_INK, 'back'));
   // torse
-  up.push(shape('M43,86 C47,73 93,73 98,86 L92,112 C86,122 56,122 50,112 Z', 'url(#sk)', SK_INK));
-  up.push(`<path d="M86,80 Q98,84 98,86 L92,112 C89,118 84,120 79,121 Q88,104 86,80 Z" fill="${shade(SKIN, -0.35)}" opacity="0.35"/>`);
-  up.push(line('M56,93 Q63,99 70,95 Q77,99 85,93', SK_INK, D, 0.45));
-  up.push(line('M66,103 L66,109 M75,103 L75,109', SK_INK, D, 0.35));
-  up.push(gloss(55, 82, 9, 3, -12, 0.3));
-  up.push(`<path d="M74,86 q-3.5,-5 -7,-1 q-2,5 7,10 q9,-5 7,-10 q-3.5,-4 -7,1 Z" fill="#b8243a" stroke="#5a0a14" stroke-width="${D}"/>`);
+  torso.push(shape('M43,86 C47,73 93,73 98,86 L92,112 C86,122 56,122 50,112 Z', 'url(#sk)', SK_INK));
+  torso.push(`<path d="M86,80 Q98,84 98,86 L92,112 C89,118 84,120 79,121 Q88,104 86,80 Z" fill="${shade(SKIN, -0.35)}" opacity="0.35"/>`);
+  torso.push(line('M56,93 Q63,99 70,95 Q77,99 85,93', SK_INK, D, 0.45));
+  torso.push(line('M66,103 L66,109 M75,103 L75,109', SK_INK, D, 0.35));
+  torso.push(gloss(55, 82, 9, 3, -12, 0.3));
+  torso.push(`<path d="M74,86 q-3.5,-5 -7,-1 q-2,5 7,10 q9,-5 7,-10 q-3.5,-4 -7,1 Z" fill="#b8243a" stroke="#5a0a14" stroke-width="${D}"/>`);
   // pagne jaune + nœud de cuir
-  up.push(shape('M47,109 Q70,116 94,109 L95,120 L90,118 L88,126 L82,119 L76,128 L71,119 L64,127 L61,118 L54,123 L47,119 Z', 'url(#cloth)', '#6a4208'));
-  up.push(line('M49,112 Q70,119 92,112', '#fff2c0', 1.4, 0.5));
-  up.push(shape('M66,112 Q72,108 77,114 Q72,119 66,116 Z', '#6a3a1a', '#2a1408', 1.8));
-  up.push(shape('M68,116 Q66,127 69,135 L73,134 Q71,126 73,117 Z', '#6a3a1a', '#2a1408', 1.8));
+  torso.push(shape('M47,109 Q70,116 94,109 L95,120 L90,118 L88,126 L82,119 L76,128 L71,119 L64,127 L61,118 L54,123 L47,119 Z', 'url(#cloth)', '#6a4208'));
+  torso.push(line('M49,112 Q70,119 92,112', '#fff2c0', 1.4, 0.5));
+  torso.push(shape('M66,112 Q72,108 77,114 Q72,119 66,116 Z', '#6a3a1a', '#2a1408', 1.8));
+  torso.push(shape('M68,116 Q66,127 69,135 L73,134 Q71,126 73,117 Z', '#6a3a1a', '#2a1408', 1.8));
   // bras avant (tient l'arme)
-  up.push(arm(o, SKIN, SK_INK, 'front'));
+  armF.push(arm(o, SKIN, SK_INK, 'front'));
 
   /* ---------- Tête ---------- */
   const h: string[] = [];
@@ -214,8 +221,17 @@ function build(o: Opts): string {
   h.push(`<ellipse cx="76" cy="31" rx="6.2" ry="3.6" fill="none" stroke="#6a3a1a" stroke-width="1.3" stroke-dasharray="1.6 1.8" transform="rotate(-6 76 31)"/>`);
 
   const head = `<g transform="translate(70,84) scale(0.86) translate(-70,-84)">${h.join('\n')}</g>`;
-  p.push(`<g transform="translate(0,-14)">${up.join('\n')}\n${head}</g>`);
-  return svg(140, 170, defs, p.join('\n'));
+  const upper = (x: string) => `<g transform="translate(0,-14)">${x}</g>`;
+  const parts: Record<SacriPart, string> = {
+    legB: legB.join('\n'),
+    legF: legF.join('\n'),
+    armB: upper(armB.join('\n')),
+    torso: upper(torso.join('\n')),
+    armF: upper(armF.join('\n')),
+    head: upper(head),
+  };
+  const body = part ? parts[part] : SACRI_PARTS.map((k) => parts[k]).join('\n');
+  return svg(140, 170, defs, body);
 }
 
 /** D : fidèle à la tenue officielle — yeux blancs, bouche fermée, cheveux blond-orangé. */
@@ -225,6 +241,6 @@ export const variantE = () => build({ skin: '#e59b68', hair: '#d9662a', whiteEye
 
 const D_BASE: Opts = { skin: '#e8ac78', hair: '#eba23a', whiteEyes: true, snarl: false, arm: 13 };
 export const variantD1 = () => build({ ...D_BASE, armStyle: 'slim' });
-export const variantD2 = () => build({ ...D_BASE, armStyle: 'forearm' });
+export const variantD2 = (part?: SacriPart) => build({ ...D_BASE, armStyle: 'forearm' }, part);
 export const variantD3 = () => build({ ...D_BASE, armStyle: 'bands' });
 export const variantD4 = () => build({ ...D_BASE, armStyle: 'spiral' });

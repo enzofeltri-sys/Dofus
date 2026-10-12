@@ -50,8 +50,10 @@ export class Hud {
           <div class="hpbar"><div class="track"><div class="fill"></div><div class="label">--</div></div><div class="suffering"><div class="drops"></div></div></div>
           <div class="star">${ICON_STAR}<div class="val">6</div></div>
         </div>
-        <div class="spells"></div>
-      </div>`;
+        <div class="spells"><div class="lock">Sorts : étape 3</div></div>
+      </div>
+      <div class="toast" hidden></div>
+      <div class="overlay" hidden><div class="card"><h2></h2><p></p><button type="button" class="btn"></button></div></div>`;
     this.hpVal = root.querySelector('.heart .val')!;
     this.hpFill = root.querySelector('.hpbar .fill')!;
     this.hpLabel = root.querySelector('.hpbar .label')!;
@@ -61,7 +63,7 @@ export class Hud {
     this.hint = root.querySelector('.hint')!;
     this.bar = root.querySelector('.bar')!;
 
-    this.setRooms(3, 9);
+    this.setRooms(1, 9);
     const drops = root.querySelector('.suffering .drops')!;
     for (let i = 0; i < 10; i++) {
       const d = document.createElement('i');
@@ -116,5 +118,47 @@ export class Hud {
   }
   placeHint(y: number) {
     this.hint.style.top = `${y}px`;
+  }
+
+  /** Barre de sorts verrouillée (les sorts arrivent à l'étape 3). */
+  lockSpells(locked: boolean) {
+    this.root.querySelector('.spells')!.classList.toggle('locked', locked);
+  }
+
+  get pauseButton(): HTMLButtonElement {
+    return this.root.querySelector('.pause')!;
+  }
+
+  private toastTimer = 0;
+  /** Message court au centre de l'écran (« Salle terminée ! »). */
+  toast(text: string, ms = 1600) {
+    const el = this.root.querySelector<HTMLElement>('.toast')!;
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.remove('show');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => (el.hidden = true), ms);
+  }
+
+  /** Écran plein (défaite, pause, fin de démo) avec un bouton. Retourne une promesse résolue au clic. */
+  overlay(title: string, text: string, button: string): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.overlay')!;
+    el.querySelector('h2')!.textContent = title;
+    el.querySelector('p')!.textContent = text;
+    const btn = el.querySelector<HTMLButtonElement>('.btn')!;
+    btn.textContent = button;
+    el.hidden = false;
+    return new Promise((resolve) => {
+      btn.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
+  get overlayOpen(): boolean {
+    return !this.root.querySelector<HTMLElement>('.overlay')!.hidden;
   }
 }

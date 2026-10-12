@@ -1,27 +1,26 @@
 import '@fontsource/baloo-2/latin-700.css';
 import '@fontsource/baloo-2/latin-800.css';
 import { Application, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
-import { chaferSvg, CHAFER_FOOT, CHAFER_H, CHAFER_W, type ChaferKind } from './art/chafer';
-import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, lootBone, rubble, sarcophagus, type PropArt } from './art/props';
-import { sacrieurSvg, sacrieurSwordSvg, SACRIEUR_FACES_LEFT, SACRIEUR_FOOT, SACRIEUR_H, SACRIEUR_HAND, SACRIEUR_W, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
-import { BOUNDS, cryptRoomSvg, EXIT, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
+import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } from './art/chafer';
+import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
+import { SACRIEUR_FOOT, SACRIEUR_HAND, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
+import { SACRI_PARTS, SACRI_PIVOTS, variantD2 } from './art/sacrieur-variants/official-cartoon';
+import type { PropKind } from './game/rooms';
+import { GATE, PERSP, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
+import { poseChafer, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
+import { Rig } from './render/rig';
+import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
-import { Hud, SPELL_BAR } from './ui/hud';
+import { Hud } from './ui/hud';
 
 /**
- * TEST DE STYLE — une salle de la Crypte de Kardorim, portrait plein écran, vue 3/4.
- * But : valider la direction artistique (personnages, décor, lumière, interface).
- * Le combat est une démonstration, pas encore le vrai moteur.
+ * Étape 2 — moteur de combat : le monde de jeu (src/game) tourne à pas fixe,
+ * ce fichier l'affiche (personnages articulés, décor, lumières, effets) et gère l'interface.
  */
 
 const DEMO = new URLSearchParams(location.search).has('demo');
 const CHAR_SCALE = 0.8;
-/** Écrasement des formes au sol (cercles vus en 3/4). */
-const PERSP = 0.62;
-
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
-type P = { x: number; y: number };
-const dist = (a: P, b: P) => Math.hypot(a.x - b.x, (a.y - b.y) / PERSP);
 
 function glowTexture(size = 128): Texture {
   const c = document.createElement('canvas');
@@ -36,43 +35,24 @@ function glowTexture(size = 128): Texture {
   return new Texture({ source: new ImageSource({ resource: c }) });
 }
 
-/** Vignettage chaud et léger (assombrit les bords sans aller au noir). */
-function vignetteTexture(w: number, h: number): Texture {
+function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): Texture {
   const c = document.createElement('canvas');
   c.width = Math.max(2, Math.round(w / 2));
   c.height = Math.max(2, Math.round(h / 2));
   const g = c.getContext('2d')!;
   const r = Math.hypot(c.width, c.height) / 2;
   const grd = g.createRadialGradient(c.width / 2, c.height * 0.45, r * 0.45, c.width / 2, c.height * 0.45, r);
-  grd.addColorStop(0, 'rgba(40,20,8,0)');
-  grd.addColorStop(1, 'rgba(40,20,8,0.5)');
+  grd.addColorStop(0, `rgba(${color},0)`);
+  grd.addColorStop(1, `rgba(${color},${alpha})`);
   g.fillStyle = grd;
   g.fillRect(0, 0, c.width, c.height);
   return new Texture({ source: new ImageSource({ resource: c }) });
 }
 
-interface Actor {
-  c: Container;
-  /** Calque retourné horizontalement selon l'orientation. */
-  rig: Container;
-  /** Sens dans lequel l'art est dessiné. */
-  facesLeft: boolean;
-  body: Sprite;
-  flash: Sprite;
-  x: number;
-  y: number;
-  hp: number;
-  maxHp: number;
-  kind: ChaferKind | 'sacrieur';
-  flashT: number;
-  phase: number;
-  hpBar?: Graphics;
-  atkT: number;
-  tele?: { t: number; dur: number; dx: number; dy: number; shape: 'circle' | 'cone' | 'line' };
-  knock: P;
-  dead: number;
-  alpha: number;
-}
+const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles };
+
+interface HeroView { rig: Rig; c: Container; sword: Sprite; anim: HeroAnim; deadT: number }
+interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
 interface Floater { t: Text; life: number; vy: number; x: number; y: number }
 interface Fx { g: Graphics; life: number; max: number; draw: (g: Graphics, k: number) => void }
 interface Particle { s: Sprite; vx: number; vy: number; life: number; max: number; a0: number; grav: number }
@@ -84,28 +64,38 @@ async function main() {
   await app.init({ resizeTo: window, background: '#2a160c', antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 3), autoDensity: true });
   document.getElementById('game')!.appendChild(app.canvas);
   const hud = new Hud(document.getElementById('hud')!);
+  hud.lockSpells(true);
 
-  // La salle remplit toute la largeur de l'écran.
   let zoom = window.innerWidth / ROOM_W;
   const RES = Math.min(3.2, Math.max(1, (window.devicePixelRatio || 1) * zoom * 1.1));
+  const CR = RES * CHAR_SCALE;
 
-  const [roomTex, sacriTex, swordTex, lootTex, ...rest] = await Promise.all([
-    svgTexture(cryptRoomSvg(), RES),
-    svgTexture(sacrieurSvg(), RES * CHAR_SCALE),
-    svgTexture(sacrieurSwordSvg(), RES * CHAR_SCALE),
-    svgTexture(lootBone().svg, RES),
-    ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => svgTexture(chaferSvg(k), RES * CHAR_SCALE)),
+  // ---------- Textures ----------
+  const [sacriTex, swordTex, gateTex, ...chaferFlat] = await Promise.all([
+    Promise.all(SACRI_PARTS.map((p) => svgTexture(variantD2(p), CR))),
+    svgTexture(sacrieurSwordSvg(), CR),
+    svgTexture(gateBarsSvg(), RES),
+    ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
   ]);
-  const chaferTex: Record<ChaferKind, Texture> = { debutant: rest[0], furtif: rest[1], piquier: rest[2], sergent: rest[3] };
+  const chaferTex: Record<ChaferKind, Texture[]> = { debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3] };
+  const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
+  await Promise.all(
+    (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
+      const art = PROP_ART[k]();
+      propTex.set(k, { tex: await svgTexture(art.svg, RES), art });
+    }),
+  );
   const glow = glowTexture();
 
-  // ---- Calques ----
+  // ---------- Calques ----------
   const world = new Container();
   app.stage.addChild(world);
-  const roomSprite = new Sprite(roomTex);
-  roomSprite.tint = 0xe6d6c4; // pénombre chaude de la crypte
-  world.addChild(roomSprite);
-  const ground = new Graphics();
+  const bg = new Sprite();
+  bg.tint = 0xe6d6c4;
+  world.addChild(bg);
+  const wallFx = new Container(); // flammes murales, grille
+  world.addChild(wallFx);
+  const ground = new Graphics(); // annonces d'attaque, auras
   world.addChild(ground);
   const actors = new Container();
   actors.sortableChildren = true;
@@ -117,142 +107,22 @@ async function main() {
   world.addChild(lights);
   const floatLayer = new Container();
   world.addChild(floatLayer);
-  const vignette = new Sprite(vignetteTexture(window.innerWidth, window.innerHeight));
+  const vignette = new Sprite();
   app.stage.addChild(vignette);
+  const hurtVignette = new Sprite();
+  hurtVignette.alpha = 0;
+  app.stage.addChild(hurtVignette);
+  const fade = new Graphics();
+  app.stage.addChild(fade);
+  let fadeA = 1;
 
-  const place = (o: Container, x: number, y: number) => {
-    o.position.set(x, y);
-    o.zIndex = y;
-  };
+  // ---------- Monde ----------
+  const game = new World(Math.floor(Math.random() * 1e6));
+  (window as unknown as { __game: World }).__game = game;
+  const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
+  game.setPlayBottom(playBottom());
 
-  // ---- Lumières ----
-  const glows: { s: Sprite; base: number; ph: number; spd: number }[] = [];
-  const addGlow = (x: number, y: number, color: number, scale: number, alpha: number, sy = 1) => {
-    const s = new Sprite(glow);
-    s.anchor.set(0.5);
-    s.position.set(x, y);
-    s.tint = color;
-    s.scale.set(scale, scale * sy);
-    s.alpha = alpha;
-    lights.addChild(s);
-    glows.push({ s, base: alpha, ph: Math.random() * 10, spd: rand(7, 11) });
-    return s;
-  };
-  const flames: { g: Graphics; x: number; y: number; s: number; ph: number }[] = [];
-  const addFlame = (parent: Container, x: number, y: number, s: number) => {
-    const g = new Graphics();
-    parent.addChild(g);
-    flames.push({ g, x, y, s, ph: Math.random() * 10 });
-  };
-  const wallFlames = new Container();
-  world.addChildAt(wallFlames, world.getChildIndex(ground));
-  for (const l of LIGHTS) {
-    addFlame(wallFlames, l.x, l.y, 1.0);
-    addGlow(l.x, l.y - 6, 0xffa040, 2.2, 0.24);
-    addGlow(l.x, l.y + 80, 0xff9030, 2.6, 0.06, 0.6);
-  }
-  addGlow(EXIT.x, EXIT.y, 0xffc060, 3.0, 0.2);
-  addGlow(EXIT.x, EXIT.y + 120, 0xffb050, 3.2, 0.08, 0.5);
-
-  // ---- Décor posé (volumes, triés en profondeur avec les personnages) ----
-  const colliders: { x: number; y: number; r: number }[] = [];
-  async function addProp(art: PropArt, x: number, y: number, r: number, scale = 1) {
-    const tex = await svgTexture(art.svg, RES * scale);
-    const s = new Sprite(tex);
-    s.anchor.set(art.foot[0] / tex.width / scale, art.foot[1] / tex.height / scale);
-    s.scale.set(scale);
-    const c = new Container();
-    c.addChild(s);
-    place(c, x, y);
-    actors.addChild(c);
-    if (r > 0) colliders.push({ x, y, r });
-    return c;
-  }
-  const [col1, col2] = await Promise.all([addProp(column(), 186, 700, 46), addProp(column(), 534, 700, 46)]);
-  void col1; void col2;
-  await Promise.all([
-    addProp(sarcophagus(), 360, 1010, 0),
-    addProp(bones(), 128, 930, 0),
-    addProp(bones(), 560, 1360, 0),
-    addProp(boneBowl(), 600, 880, 36),
-    addProp(rubble(), 200, 1420, 40),
-    addProp(rubble(), 610, 470, 36, 0.8),
-  ]);
-  colliders.push({ x: 290, y: 1000, r: 56 }, { x: 360, y: 1000, r: 56 }, { x: 430, y: 1000, r: 56 });
-  for (const [bx, by] of [[150, 1200], [570, 1200]] as const) {
-    const c = await addProp(brazier(), bx, by, 42);
-    addFlame(c, BRAZIER_FIRE[0], BRAZIER_FIRE[1] + 30, 1.5);
-    addGlow(bx, by - 46, 0xffb040, 2.4, 0.3);
-    addGlow(bx, by + 10, 0xffa030, 3.4, 0.08, 0.55);
-  }
-  for (const [cx, cy] of [[118, 560], [606, 600]] as const) {
-    const c = await addProp(candles(), cx, cy, 0, 0.9);
-    for (const [fx, fy] of CANDLE_FLAMES) addFlame(c, fx * 0.9, fy * 0.9, 0.5);
-    addGlow(cx, cy - 26, 0xffb050, 1.3, 0.26);
-  }
-  const sarcoGlow = addGlow(360, 980, 0x6dff8a, 3.2, 0.12, 0.6);
-
-  // ---- Personnages ----
-  const mkActor = (tex: Texture, foot: [number, number], w: number, h: number, kind: Actor['kind'], x: number, y: number, hp: number): Actor => {
-    const c = new Container();
-    c.addChild(new Graphics().ellipse(0, 0, 32 * CHAR_SCALE, 32 * CHAR_SCALE * PERSP * 0.6).fill({ color: 0x2a1404, alpha: 0.38 }));
-    const rig = new Container();
-    c.addChild(rig);
-    const body = new Sprite(tex);
-    body.anchor.set(foot[0] / w, foot[1] / h);
-    body.scale.set(CHAR_SCALE);
-    rig.addChild(body);
-    const flash = new Sprite(tex);
-    flash.anchor.copyFrom(body.anchor);
-    flash.scale.set(CHAR_SCALE);
-    flash.blendMode = 'add';
-    flash.alpha = 0;
-    rig.addChild(flash);
-    const a: Actor = { c, rig, facesLeft: kind !== 'sacrieur' || SACRIEUR_FACES_LEFT, body, flash, x, y, hp, maxHp: hp, kind, flashT: 0, phase: Math.random() * 10, atkT: rand(1, 3), knock: { x: 0, y: 0 }, dead: 0, alpha: 1 };
-    if (kind !== 'sacrieur') {
-      a.hpBar = new Graphics();
-      a.hpBar.position.set(0, -h * CHAR_SCALE * 0.98);
-      c.addChild(a.hpBar);
-    }
-    place(c, x, y);
-    actors.addChild(c);
-    return a;
-  };
-
-  const player = mkActor(sacriTex, SACRIEUR_FOOT, SACRIEUR_W, SACRIEUR_H, 'sacrieur', 360, 1290, 180);
-  player.hp = 148;
-  const sword = new Sprite(swordTex);
-  sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
-  sword.scale.set(CHAR_SCALE);
-  const HAND = { x: (SACRIEUR_HAND[0] - SACRIEUR_FOOT[0]) * CHAR_SCALE, y: (SACRIEUR_HAND[1] - SACRIEUR_FOOT[1]) * CHAR_SCALE };
-  sword.position.set(HAND.x, HAND.y);
-  player.rig.addChildAt(sword, SACRIEUR_FACES_LEFT ? 0 : 1);
-
-  const spawnSpots: [ChaferKind, number, number][] = [
-    ['debutant', 300, 1120],
-    ['furtif', 470, 860],
-    ['piquier', 560, 1080],
-    ['sergent', 190, 1060],
-  ];
-  const enemies: Actor[] = spawnSpots.map(([k, x, y]) => mkActor(chaferTex[k], CHAFER_FOOT, CHAFER_W, CHAFER_H, k, x, y, k === 'sergent' ? 70 : 46));
-  enemies[0].hp = 30;
-  enemies[3].hp = 52;
-
-  // ---- Butin ----
-  const loots: { s: Sprite; x: number; y: number; t: number }[] = [];
-  const dropLoot = (x: number, y: number) => {
-    const s = new Sprite(lootTex);
-    s.anchor.set(0.5, 0.8);
-    const c = new Container();
-    c.addChild(s);
-    place(c, x, y);
-    actors.addChild(c);
-    addGlow(x, y - 8, 0xfff0a0, 0.8, 0.5);
-    loots.push({ s, x, y, t: 0 });
-  };
-  dropLoot(450, 1230);
-
-  // ---- Particules ----
+  // ---------- Effets ----------
   const particles: Particle[] = [];
   const emit = (x: number, y: number, color: number, o: Partial<{ vx: number; vy: number; life: number; size: number; alpha: number; add: boolean; grav: number }> = {}) => {
     const s = new Sprite(glow);
@@ -265,18 +135,6 @@ async function main() {
     fxLayer.addChild(s);
     particles.push({ s, vx: o.vx ?? 0, vy: o.vy ?? 0, life: o.life ?? 1, max: o.life ?? 1, a0: o.alpha ?? 1, grav: o.grav ?? 60 });
   };
-  const dust: { s: Sprite; x: number; y: number; vx: number; vy: number; ph: number }[] = [];
-  for (let i = 0; i < 50; i++) {
-    const s = new Sprite(glow);
-    s.anchor.set(0.5);
-    s.scale.set(rand(0.03, 0.07));
-    s.tint = 0xfff1d0;
-    s.blendMode = 'add';
-    lights.addChild(s);
-    dust.push({ s, x: rand(60, ROOM_W - 60), y: rand(200, ROOM_H), vx: rand(-6, 6), vy: rand(-10, -3), ph: rand(0, 10) });
-  }
-
-  // ---- Effets ----
   const fxs: Fx[] = [];
   const addFx = (max: number, draw: Fx['draw'], x = 0, y = 0) => {
     const g = new Graphics();
@@ -284,6 +142,8 @@ async function main() {
     fxLayer.addChild(g);
     fxs.push({ g, life: max, max, draw });
   };
+  const timers: { t: number; fn: () => void }[] = [];
+  const later = (t: number, fn: () => void) => timers.push({ t, fn });
   const floaters: Floater[] = [];
   const numberAt = (x: number, y: number, txt: string, color: string, big = false) => {
     const t = new Text({
@@ -299,47 +159,148 @@ async function main() {
     floatLayer.addChild(t);
     floaters.push({ t, life: 1, vy: -80, x: x + rand(-12, 12), y });
   };
-
   let shake = 0;
-  const buff = { power: 0, t: 0 };
-  let suffering = 3;
-  let sufferDecay = 0;
-  const HEAD = 120 * CHAR_SCALE;
 
-  const hitEnemy = (e: Actor, base: number, o: { crit?: boolean; knock?: number } = {}) => {
-    const crit = o.crit ?? Math.random() < 0.15;
-    const dmg = Math.round(base * (1 + buff.power / 100) * (1 + suffering * 0.04) * (crit ? 1.5 : 1));
-    e.hp -= dmg;
-    e.flashT = 0.16;
-    const dx = e.x - player.x, dy = e.y - player.y, d = Math.hypot(dx, dy) || 1;
-    const k = o.knock ?? 26;
-    e.knock.x += (dx / d) * k;
-    e.knock.y += (dy / d) * k;
-    numberAt(e.x, e.y - HEAD, `-${dmg}`, crit ? '#ffb02e' : '#ff4a3d', crit);
-    for (let i = 0; i < 6; i++) emit(e.x, e.y - 50 * CHAR_SCALE, crit ? 0xffd070 : 0xffffff, { vx: rand(-120, 120), vy: rand(-160, -40), life: 0.35, size: 0.08 });
-    if (crit) shake = Math.max(shake, 6);
-    if (e.hp <= 0) {
-      e.dead = 0.001;
-      for (let i = 0; i < 16; i++) emit(e.x, e.y - 40, 0xe8dcc0, { vx: rand(-140, 140), vy: rand(-200, -40), life: 0.6, size: 0.1, add: false, grav: 300 });
-      dropLoot(e.x + 20, e.y + 10);
+  // ---------- Décor de la salle (reconstruit à chaque salle) ----------
+  type Glow = { s: Sprite; base: number; ph: number; spd: number };
+  type Flame = { g: Graphics; x: number; y: number; s: number; ph: number };
+  let roomGlows: Glow[] = [];
+  let roomFlames: Flame[] = [];
+  let roomProps: Container[] = [];
+  let gateBars: Sprite;
+  let gateGlow: Sprite;
+  let dust: { s: Sprite; x: number; y: number; vx: number; vy: number; ph: number }[] = [];
+
+  const addGlow = (x: number, y: number, color: number, scale: number, alpha: number, sy = 1) => {
+    const s = new Sprite(glow);
+    s.anchor.set(0.5);
+    s.position.set(x, y);
+    s.tint = color;
+    s.scale.set(scale, scale * sy);
+    s.alpha = alpha;
+    lights.addChild(s);
+    const g = { s, base: alpha, ph: Math.random() * 10, spd: rand(7, 11) };
+    roomGlows.push(g);
+    return g;
+  };
+  const addFlame = (parent: Container, x: number, y: number, s: number) => {
+    const g = new Graphics();
+    parent.addChild(g);
+    roomFlames.push({ g, x, y, s, ph: Math.random() * 10 });
+  };
+
+  async function buildRoom(index: number) {
+    // 1) la partie lente d'abord (la boucle d'affichage continue de tourner pendant ce temps)
+    const newBg = await svgTexture(cryptRoomSvg(1000 + index * 17), RES);
+    // 2) puis remplacement synchrone de l'ancienne salle
+    // nettoyage
+    for (const g of roomGlows) g.s.destroy();
+    for (const f of roomFlames) f.g.destroy();
+    for (const c of roomProps) c.destroy({ children: true });
+    for (const d of dust) d.s.destroy();
+    wallFx.removeChildren();
+    roomGlows = [];
+    roomFlames = [];
+    roomProps = [];
+    dust = [];
+    for (const v of monsterViews.values()) v.c.destroy({ children: true });
+    monsterViews.clear();
+    for (const p of particles.splice(0)) p.s.destroy();
+    for (const f of fxs.splice(0)) f.g.destroy();
+    for (const f of floaters.splice(0)) f.t.destroy();
+
+    const old = bg.texture;
+    bg.texture = newBg;
+    if (old && old !== Texture.EMPTY) old.destroy(true);
+
+    for (const l of LIGHTS) {
+      addFlame(wallFx, l.x, l.y, 1.0);
+      addGlow(l.x, l.y - 6, 0xffa040, 2.2, 0.24);
+      addGlow(l.x, l.y + 80, 0xff9030, 2.6, 0.06, 0.6);
     }
-  };
-  const heal = (n: number) => {
-    const real = Math.min(n, player.maxHp - player.hp);
-    if (real <= 0) return;
-    player.hp += real;
-    numberAt(player.x + 22, player.y - HEAD - 30, `+${real}`, '#5ee86a');
-  };
-  const hurtPlayer = (n: number) => {
-    player.hp = Math.max(25, player.hp - n); // test de style : on ne meurt pas
-    player.flashT = 0.2;
-    suffering = Math.min(10, suffering + 1);
-    sufferDecay = 0;
-    numberAt(player.x - 20, player.y - HEAD - 30, `-${n}`, '#ff4a3d');
-    shake = Math.max(shake, 7);
-  };
+    gateGlow = addGlow(EXIT.x, EXIT.y, 0xffc060, 3.0, 0.2).s;
+    addGlow(EXIT.x, EXIT.y + 120, 0xffb050, 3.2, 0.08, 0.5);
+    gateBars = new Sprite(gateTex);
+    gateBars.anchor.set(0.5, 1);
+    gateBars.position.set(GATE.x, FLOOR_TOP + 2);
+    const gateMask = new Graphics().rect(GATE.x - 80, FLOOR_TOP - 200, 160, 202).fill(0xffffff);
+    wallFx.addChild(gateMask, gateBars);
+    gateBars.mask = gateMask;
 
-  // ---- Entrées ----
+    for (const p of game.layout) {
+      const { tex, art } = propTex.get(p.kind)!;
+      const sc = p.scale ?? 1;
+      const s = new Sprite(tex);
+      s.anchor.set(art.foot[0] / tex.width, art.foot[1] / tex.height);
+      s.scale.set(sc);
+      const c = new Container();
+      c.addChild(s);
+      c.position.set(p.x, p.y);
+      c.zIndex = p.y;
+      actors.addChild(c);
+      roomProps.push(c);
+      if (p.kind === 'brazier') {
+        addFlame(c, BRAZIER_FIRE[0], BRAZIER_FIRE[1] + 30, 1.5);
+        addGlow(p.x, p.y - 46, 0xffb040, 2.4, 0.3);
+        addGlow(p.x, p.y + 10, 0xffa030, 3.4, 0.08, 0.55);
+      } else if (p.kind === 'candles') {
+        for (const [fx, fy] of CANDLE_FLAMES) addFlame(c, fx * sc, fy * sc, 0.5);
+        addGlow(p.x, p.y - 26, 0xffb050, 1.3, 0.26);
+      } else if (p.kind === 'sarcophagus') {
+        addGlow(p.x, p.y - 30, 0x6dff8a, 3.2, 0.1, 0.6);
+      }
+    }
+    for (let i = 0; i < 40; i++) {
+      const s = new Sprite(glow);
+      s.anchor.set(0.5);
+      s.scale.set(rand(0.03, 0.07));
+      s.tint = 0xfff1d0;
+      s.blendMode = 'add';
+      lights.addChild(s);
+      dust.push({ s, x: rand(60, ROOM_W - 60), y: rand(200, ROOM_H), vx: rand(-6, 6), vy: rand(-10, -3), ph: rand(0, 10) });
+    }
+    for (const m of game.monsters) monsterViews.set(m.uid, makeMonsterView(m));
+    hud.setRooms(index + 1, TOTAL_ROOMS);
+    heroView.anim.dead = null;
+  }
+
+  // ---------- Personnages ----------
+  const shadowOf = (r: number) => new Graphics().ellipse(0, 0, r, r * PERSP * 0.6).fill({ color: 0x2a1404, alpha: 0.38 });
+
+  const heroRig = new Rig(
+    SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRI_PIVOTS[p] })),
+    SACRIEUR_FOOT, CHAR_SCALE, false,
+  );
+  const sword = new Sprite(swordTex);
+  sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
+  const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'épée suit sa rotation
+  sword.position.set(SACRIEUR_HAND[0] - SACRI_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRI_PIVOTS.armF[1]);
+  armF.addChild(sword);
+  const heroC = new Container();
+  heroC.addChild(shadowOf(28 * CHAR_SCALE), heroRig.root);
+  actors.addChild(heroC);
+  const heroView: HeroView = { rig: heroRig, c: heroC, sword, deadT: 0, anim: { t: 0, moving: false, walkPh: 0, swing: null, hurt: 0, dead: null } };
+
+  const monsterViews = new Map<number, MonsterView>();
+  function makeMonsterView(m: Monster): MonsterView {
+    const kind = m.def.art;
+    const rig = new Rig(
+      CHAFER_PARTS.map((p, i) => ({ name: p, tex: chaferTex[kind][i], pivot: CHAFER_PIVOTS[p] })),
+      CHAFER_FOOT, CHAR_SCALE, true,
+    );
+    const c = new Container();
+    const hpBar = new Graphics();
+    const height = 150 * CHAR_SCALE;
+    hpBar.position.set(0, -height);
+    c.addChild(shadowOf(m.def.radius * 1.2), rig.root, hpBar);
+    actors.addChild(c);
+    return {
+      rig, c, hpBar, height,
+      anim: { t: 0, moving: false, walkPh: Math.random() * 6, windup: null, strike: null, hurt: 0, spawn: 0, dead: null, hidden: false, baseAlpha: 1, seed: m.uid },
+    };
+  }
+
+  // ---------- Entrées ----------
   const input = { x: 0, y: 0, active: false };
   let joyOrigin = { x: 0, y: 0 };
   const JOY_R = 50;
@@ -359,6 +320,7 @@ async function main() {
     hud.joy.style.left = `${ev.clientX}px`;
     hud.joy.style.top = `${ev.clientY}px`;
     hud.hint.style.opacity = '0';
+    hud.root.classList.add('touched'); // le joystick fantôme n'est plus utile
     app.canvas.setPointerCapture(ev.pointerId);
   });
   app.canvas.addEventListener('pointermove', (ev) => {
@@ -384,295 +346,237 @@ async function main() {
   addEventListener('keydown', (e) => keys.add(e.key.toLowerCase()));
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 
-  // ---- Combat de démonstration ----
-  let pa = 6;
-  const PA_MAX = 6;
-  let weaponT = 0.4, swingT = 0, facing = 1, time = 0;
-  const cds = [0, 1.2, 2.4, 6];
-  const CD = [2.6, 3.2, 5.5, 14];
-  const MELEE = 120;
-
-  const nearest = (maxD: number, minD = 0) => {
-    let best: Actor | null = null, bd = Infinity;
-    for (const e of enemies) {
-      if (e.dead) continue;
-      const d = dist(e, player);
-      if (d >= minD && d <= maxD && d < bd) { bd = d; best = e; }
+  /** Pilote automatique (?demo) : sert aux captures et aux essais automatiques. */
+  function autopilot(): { x: number; y: number } {
+    const h = game.hero;
+    if (game.phase === 'cleared') {
+      const dx = GATE.x - h.x, dy = game.bounds.y0 - 20 - h.y, d = Math.hypot(dx, dy) || 1;
+      return { x: dx / d, y: dy / d };
     }
-    return best;
-  };
-
-  const castSpells = () => {
-    for (let i = 0; i < SPELL_BAR.length; i++) {
-      if (cds[i] > 0 || pa < SPELL_BAR[i].cost) continue;
-      if (i === 0) {
-        // Supplice : pics de pierre en couronne sous la cible (vol de vie Terre)
-        const t = nearest(MELEE + 20);
-        if (!t) continue;
-        const spikes = [...Array(7)].map((_, j) => ({ a: (j / 7) * Math.PI * 2 + rand(-0.2, 0.2), h: rand(24, 38) })).sort((p, q) => Math.sin(p.a) - Math.sin(q.a));
-        addFx(0.5, (g, k) => {
-          g.clear();
-          const rise = Math.min(1, (1 - k) * 4), fade = k > 0.3 ? 1 : k / 0.3;
-          g.ellipse(0, 0, 46, 46 * PERSP).fill({ color: 0x3e2410, alpha: 0.35 * fade });
-          for (const sp of spikes) {
-            const ox = Math.cos(sp.a) * 40, oy = Math.sin(sp.a) * 40 * PERSP, h = sp.h * rise * fade;
-            g.poly([ox - 8, oy, ox - 1, oy - h, ox + 8, oy]).fill({ color: 0xb8925a }).stroke({ width: 2.5, color: 0x4e3418, join: 'round' });
-            g.poly([ox - 1, oy - h, ox + 8, oy, ox + 2, oy]).fill({ color: 0x8a6a3a });
-          }
-        }, t.x, t.y);
-        for (let j = 0; j < 10; j++) emit(t.x + rand(-40, 40), t.y + rand(-10, 10), 0xa08050, { vy: rand(-140, -60), vx: rand(-40, 40), life: 0.5, size: 0.07, add: false, grav: 300 });
-        hitEnemy(t, rand(15, 20));
-        heal(5);
-      } else if (i === 1) {
-        // Absorption : orbe de sang lancée sur la cible (vol de vie Feu)
-        const target = nearest(520, 140);
-        if (!target) continue;
-        const start = { x: player.x, y: player.y - 80 * CHAR_SCALE };
-        addFx(0.42, (g, k) => {
-          const u = 1 - k;
-          const x = start.x + (target.x - start.x) * u, y = start.y + (target.y - 70 * CHAR_SCALE - start.y) * u - Math.sin(u * Math.PI) * 50;
-          g.clear().circle(x, y, 9).fill({ color: 0xff3a2a }).circle(x - 2, y - 3, 3.5).fill({ color: 0xffd0a0 });
-          emit(x, y, 0xff5030, { life: 0.3, size: 0.16, vx: rand(-20, 20), vy: rand(-20, 20), grav: 0 });
-          if (k <= 0.03 && !target.dead) { hitEnemy(target, rand(18, 24), { knock: 10 }); heal(9); }
-        });
-      } else if (i === 2) {
-        // Attirance : chaîne qui ramène un ennemi éloigné
-        const target = nearest(620, 220);
-        if (!target) continue;
-        const from = { x: target.x, y: target.y };
-        const dx = player.x - from.x, dy = player.y - from.y, d = Math.hypot(dx, dy);
-        const to = { x: from.x + (dx / d) * (d - 100), y: from.y + (dy / d) * (d - 100) };
-        addFx(0.4, (g, k) => {
-          const u = 1 - k, e = u < 0.4 ? 0 : (u - 0.4) / 0.6;
-          target.x = from.x + (to.x - from.x) * e * e;
-          target.y = from.y + (to.y - from.y) * e * e;
-          const reach = u < 0.4 ? u / 0.4 : 1;
-          const ax = player.x, ay = player.y - 50, bx = ax + (target.x - ax) * reach, by = ay + (target.y - 50 - ay) * reach;
-          g.clear().moveTo(ax, ay).lineTo(bx, by).stroke({ width: 5, color: 0x3a4450 }).moveTo(ax, ay).lineTo(bx, by).stroke({ width: 2, color: 0xd8e2ea });
-          g.circle(bx, by, 6).fill({ color: 0xc4202a });
-        });
-        numberAt(target.x, target.y - HEAD - 10, 'Attiré !', '#e8eef2');
-      } else if (i === 3) {
-        // Mutilation : sacrifie de la vie contre de la Puissance
-        if (player.hp < 60) continue;
-        player.hp -= 12;
-        buff.power = 40;
-        buff.t = 6;
-        numberAt(player.x, player.y - HEAD - 30, '-12', '#ff4a3d');
-        numberAt(player.x, player.y - HEAD - 66, '+40 Puissance', '#ffb02e');
-        addFx(0.6, (g, k) => { g.clear().ellipse(0, 0, 90 * (1 - k) + 20, (90 * (1 - k) + 20) * PERSP).stroke({ width: 8 * k, color: 0xff2a3a, alpha: k }); }, player.x, player.y);
-        for (let j = 0; j < 18; j++) emit(player.x + rand(-30, 30), player.y - rand(20, 100), 0xff2030, { vy: rand(-120, -40), life: 0.7, size: 0.09 });
-        suffering = Math.min(10, suffering + 2);
+    let best: Monster | null = null, bd = Infinity;
+    for (const m of game.monsters) {
+      if (m.state === 'dead') continue;
+      const d = Math.hypot(m.x - h.x, (m.y - h.y) / PERSP);
+      // fuir une attaque annoncée
+      if (m.state === 'windup' && game.inAttack(m)) {
+        const ax = h.x - m.x, ay = (h.y - m.y) / PERSP, n = Math.hypot(ax, ay) || 1;
+        return { x: ax / n, y: ay / n };
       }
-      pa -= SPELL_BAR[i].cost;
-      cds[i] = CD[i];
-      hud.flashCast(i);
+      if (d < bd) { bd = d; best = m; }
+    }
+    if (!best) return { x: 0, y: 0 };
+    const dx = best.x - h.x, dy = (best.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
+    if (d > 105) return { x: dx / d, y: dy / d };
+    if (d < 70) return { x: -dx / d, y: -dy / d };
+    return { x: -dy / d * 0.4, y: dx / d * 0.4 };
+  }
+
+  // ---------- Événements du monde ----------
+  let paused = false;
+  let busy = false; // transition ou écran en cours
+
+  function handle(ev: WorldEvent) {
+    switch (ev.type) {
+      case 'swing': {
+        const h = game.hero, w = h.def.weapon;
+        const dir = ev.dir;
+        later(Math.min(0.42, 0.8 / w.speed) * w.impactAt, () => {
+          const ang = Math.atan2(dir.y * PERSP, dir.x);
+          addFx(0.2, (g, k) => {
+            g.clear();
+            const r = 84;
+            const a0 = ang - 1.25, a1 = ang + 1.1, head = a0 + (a1 - a0) * Math.min(1, (1 - k) * 2.4);
+            for (let j = 0; j < 4; j++) g.arc(0, 0, r - j * 5, a0 + (head - a0) * (j * 0.18), head).stroke({ width: 9 - j * 2, color: j < 2 ? 0xffffff : 0xffe9a0, alpha: k * (1 - j * 0.2) });
+            g.scale.y = PERSP + 0.15;
+          }, h.x, h.y - 34);
+        });
+        break;
+      }
+      case 'hit': {
+        const y = ev.target === 'hero' ? ev.y - 130 * CHAR_SCALE : ev.y - 120 * CHAR_SCALE;
+        numberAt(ev.x, y, `-${ev.damage}`, ev.target === 'hero' ? '#ff5a4a' : ev.crit ? '#ffb02e' : '#ffffff', ev.crit);
+        for (let i = 0; i < (ev.crit ? 12 : 6); i++) emit(ev.x, ev.y - 50 * CHAR_SCALE, ev.crit ? 0xffd070 : 0xffffff, { vx: rand(-140, 140), vy: rand(-170, -40), life: 0.35, size: 0.08 });
+        if (ev.target === 'hero') {
+          shake = Math.max(shake, 8);
+          hurtVignette.alpha = 0.85;
+        } else if (ev.crit) shake = Math.max(shake, 6);
+        else shake = Math.max(shake, 2.5);
+        break;
+      }
+      case 'strike': {
+        const m = game.monsters.find((x) => x.uid === ev.uid);
+        if (m) for (let i = 0; i < 8; i++) emit(m.x + m.dir.x * 60, m.y + m.dir.y * 60 * PERSP, 0xc8b89a, { vx: rand(-80, 80), vy: rand(-90, -20), life: 0.4, size: 0.07, add: false, grav: 260 });
+        shake = Math.max(shake, 2);
+        break;
+      }
+      case 'death':
+        for (let i = 0; i < 18; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-150, 150), vy: rand(-210, -40), life: 0.6, size: 0.1, add: false, grav: 320 });
+        break;
+      case 'heal':
+        numberAt(ev.x + 22, ev.y - 150 * CHAR_SCALE, `+${ev.amount}`, '#5ee86a');
+        break;
+      case 'roomCleared':
+        hud.toast('Salle terminée !');
+        break;
+      case 'exit':
+        void nextRoom();
+        break;
+      case 'heroDied':
+        busy = true;
+        later(1.3, async () => {
+          await hud.overlay('Le Sacrieur est tombé', `Tu as atteint la salle ${game.roomIndex + 1} sur ${TOTAL_ROOMS}.`, 'Recommencer');
+          await transition(() => {
+            game.restart();
+            return buildRoom(0);
+          });
+          busy = false;
+        });
+        break;
+      case 'roomStart':
+      case 'telegraph':
+        break;
+    }
+  }
+
+  async function transition(work: () => Promise<void>) {
+    busy = true;
+    // fondu au noir en un temps fixe (0,25 s), quelle que soit la vitesse de l'appareil
+    const start = performance.now(), from = fadeA;
+    await new Promise<void>((res) => {
+      const step = () => {
+        fadeA = Math.min(1, from + (performance.now() - start) / 250);
+        if (fadeA >= 1) res();
+        else requestAnimationFrame(step);
+      };
+      step();
+    });
+    await work();
+    busy = false;
+  }
+
+  async function nextRoom() {
+    const next = game.roomIndex + 1;
+    if (next >= TOTAL_ROOMS - 1) {
+      await transition(async () => {});
+      await hud.overlay('La salle du boss', 'Kardorim t’attend derrière cette grille. Il arrivera à l’étape 3, avec les sorts du Sacrieur.', 'Recommencer le donjon');
+      await transition(() => {
+        game.restart();
+        return buildRoom(0);
+      });
       return;
     }
-  };
+    await transition(() => {
+      game.startRoom(next);
+      return buildRoom(next);
+    });
+  }
 
-  // ---- Caméra : largeur fixe, défilement vertical ----
+  hud.pauseButton.addEventListener('click', async () => {
+    if (paused || busy) return;
+    paused = true;
+    await hud.overlay('Pause', 'Le combat est en pause.', 'Reprendre');
+    paused = false;
+  });
+
+  // ---------- Caméra ----------
   let camY = 0;
   const camTarget = () => {
     const top = hud.topInset(), bottom = window.innerHeight - hud.bottomInset();
     const focus = top + (bottom - top) * 0.6;
-    const y = focus - (player.y - 50) * zoom;
+    const y = focus - (game.hero.y - 50) * zoom;
     return Math.min(0, Math.max(window.innerHeight - ROOM_H * zoom, y));
   };
-  camY = camTarget();
-  /** Limite basse jouable : le joueur ne descend pas sous la barre d'interface. */
-  const playY1 = () => Math.min(BOUNDS.y1, ROOM_H - hud.bottomInset() / zoom - 30);
 
+  // ---------- Premier affichage ----------
+  game.startRoom(0);
+  await buildRoom(0);
+  camY = camTarget();
+  document.getElementById('loading')?.classList.add('done');
+
+  let acc = 0;
+  let time = 0;
   app.ticker.add((tk) => {
     const dt = Math.min(0.05, tk.deltaMS / 1000);
     time += dt;
 
-    // Déplacement
-    let ix = input.x, iy = input.y;
-    if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) ix -= 1;
-    if (keys.has('arrowright') || keys.has('d')) ix += 1;
-    if (keys.has('arrowup') || keys.has('z') || keys.has('w')) iy -= 1;
-    if (keys.has('arrowdown') || keys.has('s')) iy += 1;
-    if (DEMO && !input.active && keys.size === 0) {
-      const tx = 360 + Math.cos(time * 0.55) * 150, ty = 1150 + Math.sin(time * 0.55) * 110;
-      const dx = tx - player.x, dy = ty - player.y, m = Math.hypot(dx, dy);
-      if (m > 6) { ix = (dx / m) * 0.7; iy = (dy / m) * 0.7; }
-    }
-    const im = Math.hypot(ix, iy);
-    const moving = im > 0.05;
-    if (moving) {
-      if (im > 1) { ix /= im; iy /= im; }
-      const SPEED = 320;
-      let nx = player.x + ix * SPEED * dt, ny = player.y + iy * SPEED * dt * 0.85;
-      nx = Math.max(BOUNDS.x0, Math.min(BOUNDS.x1, nx));
-      ny = Math.max(BOUNDS.y0, Math.min(playY1(), ny));
-      for (const c of colliders) {
-        const dx = nx - c.x, dy = (ny - c.y) / PERSP, d = Math.hypot(dx, dy), r = c.r + 22;
-        if (d < r && d > 0.001) { nx = c.x + (dx / d) * r; ny = c.y + (dy / d) * r * PERSP; }
+    // Simulation à pas fixe
+    if (!paused && !hud.overlayOpen) {
+      let ix = input.x, iy = input.y;
+      if (keys.has('arrowleft') || keys.has('q') || keys.has('a')) ix -= 1;
+      if (keys.has('arrowright') || keys.has('d')) ix += 1;
+      if (keys.has('arrowup') || keys.has('z') || keys.has('w')) iy -= 1;
+      if (keys.has('arrowdown') || keys.has('s')) iy += 1;
+      if (DEMO && !input.active && keys.size === 0) ({ x: ix, y: iy } = autopilot());
+      acc += dt;
+      while (acc >= STEP) {
+        game.step({ x: ix, y: iy });
+        acc -= STEP;
       }
-      player.x = nx;
-      player.y = ny;
-      if (Math.abs(ix) > 0.15) facing = ix > 0 ? 1 : -1;
+      for (const ev of game.drain()) handle(ev);
+      for (let i = timers.length - 1; i >= 0; i--) {
+        timers[i].t -= dt;
+        if (timers[i].t <= 0) {
+          const t = timers.splice(i, 1)[0];
+          t.fn();
+        }
+      }
     }
+    const frozen = game.hitstop > 0;
 
-    // PA, cooldowns, Souffrance, sorts
-    pa = Math.min(PA_MAX, pa + dt * 1.7);
-    for (let i = 0; i < cds.length; i++) { cds[i] = Math.max(0, cds[i] - dt); hud.setCooldown(i, cds[i] / CD[i]); }
-    sufferDecay += dt;
-    if (sufferDecay > 2.5 && suffering > 0) { suffering--; sufferDecay = 0; }
-    if (buff.t > 0) { buff.t -= dt; if (buff.t <= 0) buff.power = 0; }
-    castSpells();
+    // Héros
+    const h = game.hero;
+    heroView.c.position.set(h.x, h.y);
+    heroView.c.zIndex = h.y;
+    heroView.rig.face(h.facing);
+    const ha = heroView.anim;
+    ha.t = time;
+    ha.moving = h.moving;
+    if (h.moving && !frozen) ha.walkPh += dt * 11;
+    ha.swing = h.swing ? h.swing.t / h.swing.dur : null;
+    ha.hurt = h.hurtT / 0.25;
+    if (!h.alive) ha.dead = Math.min(1, (ha.dead ?? 0) + dt / 0.6);
+    poseHero(heroView.rig, ha, heroView.sword);
 
-    // Arme : attaque automatique, même en mouvement
-    weaponT -= dt;
-    const target = nearest(MELEE);
-    if (target) facing = target.x >= player.x ? 1 : -1;
-    if (weaponT <= 0 && target) {
-      weaponT = 0.72;
-      swingT = 0.24;
-      const ang = Math.atan2((target.y - player.y) / PERSP, target.x - player.x);
-      addFx(0.2, (g, k) => {
-        g.clear();
-        const r = 76;
-        const a0 = ang - 1.3, a1 = ang + 1.1, head = a0 + (a1 - a0) * Math.min(1, (1 - k) * 2.2);
-        for (let j = 0; j < 4; j++) g.arc(0, 0, r - j * 5, a0 + (head - a0) * (j * 0.18), head).stroke({ width: 9 - j * 2, color: j < 2 ? 0xffffff : 0xffe9a0, alpha: k * (1 - j * 0.2) });
-        g.scale.y = PERSP + 0.15;
-      }, player.x, player.y - 34);
-      hitEnemy(target, rand(14, 20));
-    }
-    swingT = Math.max(0, swingT - dt);
-    const sw = swingT > 0 ? 1 - swingT / 0.24 : 0;
-    // dans le repère de l'art : la pointe part vers l'avant du personnage
-    const fwd = SACRIEUR_FACES_LEFT ? -1 : 1;
-    sword.rotation = fwd * (swingT > 0 ? -1.9 + sw * 3.2 : 0.45 + Math.sin(time * 2.2) * 0.05);
-
-    // Ennemis
+    // Monstres + annonces au sol
     ground.clear();
-    for (const e of enemies) {
-      if (e.dead) {
-        e.dead += dt;
-        e.alpha = Math.max(0, 1 - e.dead * 1.6);
-        if (e.dead > 3.2) {
-          const [, sx, sy] = spawnSpots[enemies.indexOf(e)];
-          Object.assign(e, { x: sx, y: sy, hp: e.maxHp, dead: 0, alpha: 0, tele: undefined });
-        }
-        continue;
+    for (const m of game.monsters) {
+      const v = monsterViews.get(m.uid);
+      if (!v) continue;
+      v.c.position.set(m.x, m.y);
+      v.c.zIndex = m.state === 'dead' ? m.y - 60 : m.y; // les tas d'os passent derrière
+      v.rig.face(m.facing);
+      const a = v.anim;
+      a.t = time;
+      a.moving = m.moving;
+      if (m.moving && !frozen) a.walkPh += dt * 9;
+      a.windup = m.state === 'windup' ? m.t / m.def.attack.windup : null;
+      a.strike = m.state === 'recover' && m.t < 0.35 ? m.t / 0.35 : null;
+      a.hurt = m.hurtT / 0.18;
+      a.spawn = m.state === 'spawn' ? m.t / 0.7 : 1;
+      a.dead = m.state === 'dead' ? m.t : null;
+      a.hidden = m.hidden;
+      poseChafer(v.rig, a, CHAR_SCALE);
+      v.hpBar.visible = m.state !== 'dead' && !m.hidden && m.hp < m.def.hp;
+      if (v.hpBar.visible) {
+        const w = 46;
+        v.hpBar.clear().roundRect(-w / 2 - 2, -2, w + 4, 9, 4).fill({ color: 0x1a0e0a, alpha: 0.85 })
+          .roundRect(-w / 2, 0, (w * Math.max(0, m.hp)) / m.def.hp, 5, 2.5).fill({ color: m.def.behavior === 'brute' ? 0xff8a2a : 0xe8343c });
       }
-      e.alpha = Math.min(1, e.alpha + dt * 2);
-      e.x += e.knock.x * dt * 8;
-      e.y += e.knock.y * dt * 8;
-      e.knock.x *= 1 - dt * 8;
-      e.knock.y *= 1 - dt * 8;
-      const d = dist(e, player);
-      const reach = e.kind === 'piquier' ? 190 : 104;
-      if (!e.tele) {
-        if (d > reach * 0.9) {
-          const sp = e.kind === 'furtif' ? 120 : 80;
-          const dx = player.x - e.x, dy = player.y - e.y, m = Math.hypot(dx, dy);
-          e.x += (dx / m) * sp * dt;
-          e.y += (dy / m) * sp * dt;
-        }
-        e.atkT -= dt;
-        if (e.atkT <= 0 && d < reach + 40) {
-          const dx = player.x - e.x, dy = (player.y - e.y) / PERSP, m = Math.hypot(dx, dy);
-          e.tele = { t: 0, dur: e.kind === 'sergent' ? 1.0 : 0.8, dx: dx / m, dy: dy / m, shape: e.kind === 'sergent' ? 'cone' : e.kind === 'piquier' ? 'line' : 'circle' };
-        }
-      } else {
-        const tl = e.tele;
-        tl.t += dt;
-        const k = Math.min(1, tl.t / tl.dur);
-        const ang = Math.atan2(tl.dy, tl.dx);
-        const col = 0xff2a2a;
-        // zones d'attaque au sol (repère « plat », écrasé par PERSP)
-        const flat = (pts: number[]) => pts.map((v, i) => (i % 2 ? e.y + v * PERSP : e.x + v));
-        if (tl.shape === 'circle') {
-          const cx = tl.dx * 70, cy = tl.dy * 70, R = 72;
-          ground.ellipse(e.x + cx, e.y + cy * PERSP, R, R * PERSP).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
-          ground.ellipse(e.x + cx, e.y + cy * PERSP, R * k, R * k * PERSP).fill({ color: col, alpha: 0.28 });
-        } else if (tl.shape === 'cone') {
-          const cone = (R: number) => { const a = [0, 0]; for (let j = 0; j <= 12; j++) { const t = ang - 0.75 + (1.5 * j) / 12; a.push(Math.cos(t) * R, Math.sin(t) * R); } return flat(a); };
-          ground.poly(cone(170)).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
-          ground.poly(cone(170 * k)).fill({ color: col, alpha: 0.28 });
-        } else {
-          const W = 26, nx = -Math.sin(ang) * W, ny = Math.cos(ang) * W;
-          const ln = (l: number) => flat([nx, ny, Math.cos(ang) * l + nx, Math.sin(ang) * l + ny, Math.cos(ang) * l - nx, Math.sin(ang) * l - ny, -nx, -ny]);
-          ground.poly(ln(210)).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
-          ground.poly(ln(210 * k)).fill({ color: col, alpha: 0.28 });
-        }
-        if (k >= 1) {
-          const hitR = tl.shape === 'cone' ? 175 : tl.shape === 'line' ? 215 : 150;
-          const px = player.x - e.x, py = (player.y - e.y) / PERSP;
-          const along = px * tl.dx + py * tl.dy;
-          const side = Math.abs(px * tl.dy - py * tl.dx);
-          const inside = Math.hypot(px, py) < hitR && along > -20 && (tl.shape !== 'line' || side < 40) && (tl.shape !== 'cone' || side < along * 0.95 + 10);
-          e.knock.x += tl.dx * 50;
-          e.knock.y += tl.dy * 50 * PERSP;
-          if (inside) hurtPlayer(e.kind === 'sergent' ? 14 : 9);
-          e.tele = undefined;
-          e.atkT = rand(2.2, 3.5);
-        }
-      }
-      if (e.kind === 'furtif') e.alpha *= 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * 1.7 + e.phase));
-      for (const o of enemies) {
-        if (o === e || o.dead) continue;
-        const dx = e.x - o.x, dy = e.y - o.y, dd = Math.hypot(dx, dy);
-        if (dd < 80 && dd > 0.001) { e.x += (dx / dd) * (80 - dd) * 0.5; e.y += (dy / dd) * (80 - dd) * 0.5; }
-      }
-      for (const c of colliders) {
-        const dx = e.x - c.x, dy = (e.y - c.y) / PERSP, dd = Math.hypot(dx, dy), r = c.r + 22;
-        if (dd < r && dd > 0.001) { e.x = c.x + (dx / dd) * r; e.y = c.y + (dy / dd) * r * PERSP; }
-      }
-      e.x = Math.max(BOUNDS.x0, Math.min(BOUNDS.x1, e.x));
-      e.y = Math.max(BOUNDS.y0, Math.min(playY1(), e.y));
+      if (m.state === 'windup') drawTelegraph(m, Math.min(1, m.t / m.def.attack.windup));
     }
 
-    // Aura de Souffrance
-    {
-      const pulse = 0.5 + 0.5 * Math.sin(time * 5), k = suffering / 10;
-      if (k > 0) {
-        const R = 44 + pulse * 6;
-        ground.ellipse(player.x, player.y, R, R * PERSP).stroke({ width: 3, color: 0xff3040, alpha: 0.25 + k * 0.5 });
-        ground.ellipse(player.x, player.y, 40, 40 * PERSP).fill({ color: 0xc01020, alpha: 0.08 + k * 0.18 });
-        if (Math.random() < k * 0.5) emit(player.x + rand(-30, 30), player.y - rand(0, 20), 0xff2a3a, { vy: rand(-90, -40), life: 0.8, size: 0.06 });
-      }
-      if (buff.power > 0) ground.ellipse(player.x, player.y, 54, 54 * PERSP).stroke({ width: 2, color: 0xffb02e, alpha: 0.7 });
+    // Grille de sortie
+    const gate = game.gate;
+    gateBars.y = FLOOR_TOP + 2 - gate * (GATE_BARS_H - 8);
+    gateGlow.scale.set(3 + gate * 1.6);
+    if (game.phase === 'cleared' && gate >= 1) {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 4);
+      ground.ellipse(GATE.x, game.bounds.y0 + 14, 64 + pulse * 6, 22 + pulse * 2).fill({ color: 0xffd27a, alpha: 0.18 + pulse * 0.12 });
     }
+    void GATE_BARS_W;
 
-    // Acteurs
-    for (const a of [player, ...enemies]) {
-      place(a.c, a.x, a.y);
-      a.phase += dt;
-      const isMoving = a === player ? moving : !a.tele && !a.dead;
-      const bob = isMoving ? Math.abs(Math.sin(a.phase * 9)) * 5 : 0;
-      const breath = Math.sin(a.phase * 2.6) * 0.022;
-      const f = a === player ? facing : player.x >= a.x ? 1 : -1;
-      const sx = CHAR_SCALE * (1 - breath * 0.6), sy = CHAR_SCALE * (1 + breath);
-      a.rig.scale.x = a.facesLeft ? -f : f;
-      a.body.scale.set(sx, sy);
-      a.flash.scale.set(sx, sy);
-      a.body.y = a.flash.y = -bob;
-      a.body.x = a.flash.x = a.tele ? Math.sin(time * 60) * 1.5 : 0;
-      a.flashT = Math.max(0, a.flashT - dt);
-      a.flash.alpha = a.flashT > 0 ? 0.85 : 0;
-      a.c.alpha = a.alpha;
-      if (a.hpBar) {
-        const w = 50;
-        a.hpBar.clear().roundRect(-w / 2 - 2, -2, w + 4, 9, 4).fill({ color: 0x1a0e0a, alpha: 0.85 })
-          .roundRect(-w / 2, 0, (w * Math.max(0, a.hp)) / a.maxHp, 5, 2.5).fill({ color: a.kind === 'sergent' ? 0xff8a2a : 0xe8343c });
-        a.hpBar.visible = !a.dead;
-      }
-    }
-    sword.y = HAND.y - (moving ? Math.abs(Math.sin(player.phase * 9)) * 5 : 0);
-
-    // Butin
-    for (const l of loots) {
-      l.t += dt;
-      l.s.y = -6 - Math.sin(l.t * 3) * 4;
-      if (Math.random() < 0.04) emit(l.x + rand(-14, 14), l.y - rand(10, 30), 0xfff0a0, { vy: -30, life: 0.6, size: 0.07, grav: 0 });
-    }
-
-    // Flammes, halos, poussière, feux follets
-    for (const fl of flames) {
+    // Flammes, halos, poussière
+    for (const fl of roomFlames) {
       fl.ph += dt * 12;
       const s = fl.s * (1 + Math.sin(fl.ph) * 0.08 + Math.sin(fl.ph * 2.3) * 0.05);
       const { g, x, y } = fl;
@@ -680,8 +584,7 @@ async function main() {
       g.moveTo(x, y - 30 * s).bezierCurveTo(x + 12 * s, y - 14 * s, x + 11 * s, y, x, y).bezierCurveTo(x - 11 * s, y, x - 12 * s, y - 14 * s, x, y - 30 * s).fill({ color: 0xff7a1a });
       g.moveTo(x, y - 20 * s).bezierCurveTo(x + 7 * s, y - 9 * s, x + 6 * s, y, x, y).bezierCurveTo(x - 6 * s, y, x - 7 * s, y - 9 * s, x, y - 20 * s).fill({ color: 0xffe07a });
     }
-    for (const gl of glows) gl.s.alpha = gl.base * (0.86 + 0.14 * Math.sin(time * gl.spd + gl.ph) * Math.sin(time * gl.spd * 0.37 + gl.ph));
-    sarcoGlow.alpha = 0.1 + 0.07 * Math.sin(time * 1.3);
+    for (const gl of roomGlows) gl.s.alpha = gl.base * (0.86 + 0.14 * Math.sin(time * gl.spd + gl.ph) * Math.sin(time * gl.spd * 0.37 + gl.ph));
     for (const d of dust) {
       d.x += d.vx * dt;
       d.y += d.vy * dt;
@@ -689,8 +592,8 @@ async function main() {
       d.s.position.set(d.x + Math.sin(time + d.ph) * 8, d.y);
       d.s.alpha = 0.25 + 0.25 * Math.sin(time * 1.5 + d.ph);
     }
-    if (Math.random() < dt * 1.4) emit(360 + rand(-90, 90), 990 - rand(10, 40), 0x7dff9a, { vy: rand(-40, -20), vx: rand(-10, 10), life: 2.2, size: 0.13, alpha: 0.5, grav: 0 });
 
+    // Particules, effets, chiffres
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.life -= dt;
@@ -717,28 +620,60 @@ async function main() {
       if (f.life <= 0) { f.t.destroy(); floaters.splice(i, 1); }
     }
 
-    // Caméra
+    // Caméra, tremblement, fondu
     camY += (camTarget() - camY) * Math.min(1, dt * 6);
     shake = Math.max(0, shake - dt * 30);
     world.scale.set(zoom);
     world.position.set(rand(-shake, shake), camY + rand(-shake, shake));
+    hurtVignette.alpha = Math.max(0, hurtVignette.alpha - dt * 2.5);
+    if (!busy) fadeA = Math.max(0, fadeA - dt * 3);
+    fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
-    hud.setHp(player.hp, player.maxHp);
-    hud.setPa(pa);
-    hud.setSuffering(suffering);
+    hud.setHp(h.hp, h.maxHp);
+    hud.setPa(6);
+    hud.setSuffering(0);
   });
 
-  const fitVignette = () => {
+  function drawTelegraph(m: Monster, k: number) {
+    const a = m.def.attack, col = 0xff2a2a;
+    const flat = (pts: number[]) => pts.map((v, i) => (i % 2 ? m.y + v * PERSP : m.x + v));
+    const ang = Math.atan2(m.dir.y, m.dir.x);
+    if (a.shape === 'circle') {
+      const cx = m.x + m.dir.x * a.offset, cy = m.y + m.dir.y * a.offset * PERSP;
+      ground.ellipse(cx, cy, a.size, a.size * PERSP).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
+      ground.ellipse(cx, cy, a.size * k, a.size * k * PERSP).fill({ color: col, alpha: 0.28 });
+    } else if (a.shape === 'cone') {
+      const cone = (R: number) => {
+        const p = [0, 0];
+        for (let j = 0; j <= 12; j++) {
+          const t = ang - a.spread + (2 * a.spread * j) / 12;
+          p.push(Math.cos(t) * R, Math.sin(t) * R);
+        }
+        return flat(p);
+      };
+      ground.poly(cone(a.size)).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
+      ground.poly(cone(a.size * k)).fill({ color: col, alpha: 0.28 });
+    } else {
+      const W = a.spread, nx = -Math.sin(ang) * W, ny = Math.cos(ang) * W;
+      const ln = (l: number) => flat([nx, ny, Math.cos(ang) * l + nx, Math.sin(ang) * l + ny, Math.cos(ang) * l - nx, Math.sin(ang) * l - ny, -nx, -ny]);
+      ground.poly(ln(a.size)).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
+      ground.poly(ln(a.size * k)).fill({ color: col, alpha: 0.28 });
+    }
+  }
+
+  const fit = () => {
+    zoom = window.innerWidth / ROOM_W;
     vignette.texture = vignetteTexture(window.innerWidth, window.innerHeight);
     vignette.width = window.innerWidth;
     vignette.height = window.innerHeight;
-  };
-  fitVignette();
-  addEventListener('resize', () => {
-    zoom = window.innerWidth / ROOM_W;
-    fitVignette();
+    hurtVignette.texture = vignetteTexture(window.innerWidth, window.innerHeight, '200,20,20', 0.6);
+    hurtVignette.width = window.innerWidth;
+    hurtVignette.height = window.innerHeight;
+    game.setPlayBottom(playBottom());
     placeJoyIdle();
-  });
+  };
+  fit();
+  addEventListener('resize', fit);
 }
 
 main();

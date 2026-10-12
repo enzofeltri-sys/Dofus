@@ -128,7 +128,7 @@ export class World {
     this.layout = roomLayout(index);
     this.obstacles = roomObstacles(this.layout);
     this.hero.x = ROOM_W / 2;
-    this.hero.y = this.bounds.y1 - 30;
+    this.hero.y = this.bounds.y1 - 150;
     this.hero.swing = null;
     this.monsters = [];
     const count = Math.min(7, 3 + Math.floor(index * 0.7));

@@ -1,0 +1,12 @@
+<!doctype html><html><body><script type="module">
+import { cryptRoomSvg } from '../src/scene/cryptRoom.ts';
+import { chaferSvg, CHAFER_PARTS } from '../src/art/chafer.ts';
+import { variantD2, SACRI_PARTS } from '../src/art/sacrieur-variants/official-cartoon.ts';
+import { svgTexture } from '../src/svg.ts';
+const out = {};
+let t = performance.now(); const s = cryptRoomSvg(5); out.roomSvgBuild = performance.now() - t; out.roomSvgKB = Math.round(s.length/1024);
+t = performance.now(); await svgTexture(s, 2.4); out.roomRaster = performance.now() - t;
+t = performance.now(); await Promise.all(SACRI_PARTS.map(p => svgTexture(variantD2(p), 1.9))); out.sacriParts = performance.now() - t;
+t = performance.now(); await Promise.all(['debutant','furtif','piquier','sergent'].flatMap(k => CHAFER_PARTS.map(p => svgTexture(chaferSvg(k, p), 1.9)))); out.chaferParts = performance.now() - t;
+document.title = JSON.stringify(out);
+</script></body></html>

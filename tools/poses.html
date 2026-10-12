@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>body{margin:0;background:#3a2a20}</style></head>
+<body><script type="module">
+// Planche de poses : vérifie visuellement les articulations (marche, coup, préparation, frappe, chute).
+import { Application, Container, Sprite, Text } from 'pixi.js';
+import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg } from '../src/art/chafer.ts';
+import { SACRIEUR_FOOT, SACRIEUR_HAND, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from '../src/art/sacrieur.ts';
+import { SACRI_PARTS, SACRI_PIVOTS, variantD2 } from '../src/art/sacrieur-variants/official-cartoon.ts';
+import { poseChafer, poseHero } from '../src/render/anims.ts';
+import { Rig } from '../src/render/rig.ts';
+import { svgTexture } from '../src/svg.ts';
+
+const app = new Application();
+await app.init({ width: 1200, height: 520, background: '#c9ae78', antialias: true, resolution: 2, autoDensity: true });
+document.body.appendChild(app.canvas);
+const S = 1.0, R = 2;
+const sacri = await Promise.all(SACRI_PARTS.map((p) => svgTexture(variantD2(p), R * S)));
+const swordT = await svgTexture(sacrieurSwordSvg(), R * S);
+const chafer = await Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg('sergent', p), R * S)));
+
+const label = (t, x, y) => { const l = new Text({ text: t, style: { fontFamily: 'sans-serif', fontSize: 13, fill: '#3a2410', fontWeight: '700' } }); l.anchor.set(0.5, 0); l.position.set(x, y); app.stage.addChild(l); };
+
+const heroPoses = [
+  ['repos', { moving: false, swing: null }], ['marche A', { moving: true, walkPh: Math.PI / 2 }], ['marche B', { moving: true, walkPh: -Math.PI / 2 }],
+  ['coup : élan', { swing: 0.3 }], ['coup : impact', { swing: 0.5 }], ['coup : fin', { swing: 0.8 }], ['chute', { dead: 1 }],
+];
+heroPoses.forEach(([name, o], i) => {
+  const rig = new Rig(SACRI_PARTS.map((p, k) => ({ name: p, tex: sacri[k], pivot: SACRI_PIVOTS[p] })), SACRIEUR_FOOT, S, false);
+  const sw = new Sprite(swordT); sw.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
+  sw.position.set(SACRIEUR_HAND[0] - SACRI_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRI_PIVOTS.armF[1]);
+  rig.parts.get('armF').addChild(sw);
+  rig.root.position.set(90 + i * 160, 230); app.stage.addChild(rig.root);
+  poseHero(rig, { t: 0, moving: false, walkPh: 0, swing: null, hurt: 0, dead: null, ...o }, sw);
+  label(name, 90 + i * 160, 240);
+});
+const chaferPoses = [
+  ['repos', {}], ['marche', { moving: true, walkPh: Math.PI / 2 }], ['préparation', { windup: 1 }], ['frappe', { strike: 0.3 }],
+  ['touché', { hurt: 1 }], ['mort 0,2 s', { dead: 0.2 }], ['tas d’os', { dead: 2 }],
+];
+chaferPoses.forEach(([name, o], i) => {
+  const rig = new Rig(CHAFER_PARTS.map((p, k) => ({ name: p, tex: chafer[k], pivot: CHAFER_PIVOTS[p] })), CHAFER_FOOT, S, true);
+  rig.root.position.set(90 + i * 160, 490); app.stage.addChild(rig.root);
+  poseChafer(rig, { t: 0, moving: false, walkPh: 0, windup: null, strike: null, hurt: 0, spawn: 1, dead: null, hidden: false, baseAlpha: 1, seed: 3, ...o }, S);
+  label(name, 90 + i * 160, 498);
+});
+document.title = 'ready';
+</script></body></html>

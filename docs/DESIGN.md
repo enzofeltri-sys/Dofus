@@ -233,10 +233,13 @@ Un objet en double : **le briser** (runes de forgemagie) **ou le garder pour une
 
 Chaque étape est validée par Enzo avant de passer à la suivante.
 
-1. ⏳ **Test de style** : une salle de la Crypte de Kardorim (Sacrieur, Chafers, interface).
-2. Cœur du combat : déplacement, joystick, arme automatique, 1 type de monstre.
-3. Sorts automatiques du Sacrieur, comportements des monstres, boss Kardorim.
-4. Structure d'un run : salles, bonus, mini-boss, boss, mort.
+1. ✅ **Test de style** : salle portrait de la Crypte de Kardorim, Sacrieur « D2 » (tenue officielle), Chafers, interface.
+2. 🔎 **Moteur de combat** (à valider) : monde à pas fixe testé, formule de dégâts Dofus, arme automatique en arc,
+   IA des 4 Chafers (contact, furtif, lancier, brute) avec attaques annoncées au sol, glissement autour des obstacles,
+   salles enchaînées et grille de sortie, défaite / pause / fin de démo, personnages articulés
+   (marche, coup, préparation, frappe, recul, chute, effondrement en tas d'os). Sorts verrouillés jusqu'à l'étape 3.
+3. Sorts automatiques du Sacrieur (Souffrance), boss Kardorim.
+4. Structure d'un run : bonus entre les salles, mini-boss, mort.
 5. Stats, niveaux, répartition des points.
 6. Drop, inventaire, équipement, panoplies.
 7. Artisan (craft).

@@ -186,13 +186,29 @@ function sconce(u: number): string {
 }
 
 function exitGate(u: number): string {
-  const o: string[] = [];
+  // Arche de sortie : seule l'ouverture lumineuse est dans le décor fixe,
+  // les barreaux sont dessinés à part (gateBarsSvg) pour pouvoir se lever.
   const b = FLOOR_TOP;
-  o.push(`<path d="M${u - 70},${b} L${u - 70},${b - 120} Q${u},${b - 196} ${u + 70},${b - 120} L${u + 70},${b} Z" fill="url(#gateLight)" stroke="#2a1a0c" stroke-width="4"/>`);
-  for (let i = -4; i <= 4; i++) o.push(`<path d="M${u + i * 15},${b} L${u + i * 15},${b - 160 + i * i * 3}" stroke="#2e2a26" stroke-width="5"/>`);
-  for (const y of [b - 36, b - 92]) o.push(`<path d="M${u - 70},${y} L${u + 70},${y}" stroke="#2e2a26" stroke-width="6"/>`);
+  return `<path d="M${u - 70},${b} L${u - 70},${b - 120} Q${u},${b - 196} ${u + 70},${b - 120} L${u + 70},${b} Z" fill="url(#gateLight)" stroke="#2a1a0c" stroke-width="4"/>`;
+}
+
+/** Barreaux de la grille de sortie (calque animé). Origine en bas au centre de l'arche. */
+export const GATE_BARS_W = 150;
+export const GATE_BARS_H = 172;
+export function gateBarsSvg(): string {
+  const u = GATE_BARS_W / 2, b = GATE_BARS_H - 2;
+  const o: string[] = [];
+  for (let i = -4; i <= 4; i++) {
+    o.push(`<path d="M${u + i * 15},${b} L${u + i * 15},${b - 160 + i * i * 3}" stroke="#1c1a18" stroke-width="7" stroke-linecap="round"/>`);
+    o.push(`<path d="M${u + i * 15},${b} L${u + i * 15},${b - 160 + i * i * 3}" stroke="#4a4640" stroke-width="4" stroke-linecap="round"/>`);
+    o.push(`<path d="M${u + i * 15},${b + 2} l-4,-8 l8,0 Z" fill="#4a4640" stroke="#1c1a18" stroke-width="1.5"/>`);
+  }
+  for (const y of [b - 36, b - 92]) {
+    o.push(`<path d="M${u - 68},${y} L${u + 68},${y}" stroke="#1c1a18" stroke-width="8"/>`);
+    o.push(`<path d="M${u - 68},${y} L${u + 68},${y}" stroke="#4a4640" stroke-width="5"/>`);
+  }
   o.push(`<circle cx="${u}" cy="${b - 132}" r="16" fill="none" stroke="#2e2a26" stroke-width="5"/><circle cx="${u}" cy="${b - 132}" r="5" fill="#c9a24a"/>`);
-  return o.join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GATE_BARS_W} ${GATE_BARS_H}" width="${GATE_BARS_W}" height="${GATE_BARS_H}">${o.join('')}</svg>`;
 }
 
 function cobweb(x: number, y: number, dir: 1 | -1): string {
