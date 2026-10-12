@@ -1,8 +1,8 @@
-import { ellipse as kEllipse, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from './kit';
+import { cel, gloss, ellipse as kEllipse, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from './kit';
 
 // Ce dessin garde son trait d'origine (contours épais et colorés), choisi par Enzo.
-const W = 3;
-const ink = (fill: string, k = -0.55) => kInk(fill, k);
+const W = 2.4;
+const ink = (fill: string, k = -0.62) => kInk(fill, k);
 const shape = (d: string, fill: string, outline = ink(fill), w = W) => kShape(d, fill, outline, w);
 const ellipse = (cx: number, cy: number, rx: number, ry: number, fill: string, outline = ink(fill), w = W) => kEllipse(cx, cy, rx, ry, fill, outline, w);
 const tube = (pts: [number, number][], width: number, fill: string, outline = ink(fill)) => kTube(pts, width, fill, outline, W);
@@ -15,8 +15,7 @@ const tube = (pts: [number, number][], width: number, fill: string, outline = in
  */
 const SKIN = '#e59b68';
 const SKIN_SH = '#c97c4c';
-const HAIR = '#de6a26';
-const HAIR_HI = '#f59a45';
+const HAIR = '#c4501e';
 const OLIVE = '#7e752a';
 const BLOOD = '#852a34';
 const LEATHER = '#76422c';
@@ -26,15 +25,15 @@ export const SACRIEUR_W = 140;
 export const SACRIEUR_H = 170;
 export const SACRIEUR_FOOT: [number, number] = [70, 160];
 /** Poing qui tient l'arme (coordonnées du SVG). Ce dessin regarde vers la DROITE. */
-export const SACRIEUR_HAND: [number, number] = [100, 123];
+export const SACRIEUR_HAND: [number, number] = [100, 113];
 export const SACRIEUR_FACES_LEFT = false;
 
 export function sacrieurSvg(): string {
   const defs = [
-    vgrad('sk', '#f1b285', SKIN_SH),
-    vgrad('hr', HAIR_HI, '#b84a16'),
-    vgrad('ol', '#958a37', '#5f5820'),
-    vgrad('bl', '#a33642', '#6a1f28'),
+    cel('sk', SKIN, 'diag'),
+    cel('hr', HAIR, 'diag'),
+    cel('ol', OLIVE, 'horiz'),
+    cel('bl', BLOOD, 'vert'),
   ].join('');
 
   const backArm = tube([[45, 90], [36, 108], [40, 124]], 12, SKIN_SH, ink(SKIN));
@@ -42,8 +41,8 @@ export function sacrieurSvg(): string {
 
   // Jambes : pantalon olive puis bandes de cuir et pieds.
   const legs = [
-    shape('M54,118 L50,145 Q58,149 66,145 L69,122 Z', 'url(#ol)', ink(OLIVE)),
-    shape('M72,122 L75,145 Q83,149 91,145 L88,117 Z', 'url(#ol)', ink(OLIVE)),
+    shape('M54,108 L50,145 Q58,149 66,145 L69,112 Z', 'url(#ol)', ink(OLIVE)),
+    shape('M72,112 L75,145 Q83,149 91,145 L88,107 Z', 'url(#ol)', ink(OLIVE)),
     shape('M50,141 L49,154 Q58,158 66,154 L66,141 Q58,145 50,141 Z', LEATHER),
     shape('M75,141 L75,154 Q83,158 92,154 L91,141 Q83,145 75,141 Z', LEATHER),
     line('M51,146 Q58,149 65,146 M51,150 Q58,153 65,150', ink(LEATHER, -0.3), 1.5),
@@ -119,9 +118,12 @@ export function sacrieurSvg(): string {
   const hairLines = line('M54,24 Q58,30 56,36 M74,18 Q76,26 72,32 M90,24 Q88,30 92,36', '#a8410f', 1.6, 0.8);
   const band = shape('M38,47 Q70,32 104,43 L104,51 Q70,40 39,55 Z', 'url(#bl)', ink(BLOOD));
 
+  const shine = [gloss(58, 34, 9, 3.5, -20, 0.4), gloss(54, 82, 8, 3, -15, 0.35), gloss(60, 18, 8, 3, -25, 0.35)].join('');
   // tête un peu réduite : moins « bébé », plus guerrier
-  const headGroup = `<g transform="translate(70,84) scale(0.9) translate(-70,-84)">${[headTails, head, hair, hairLines, band].join('\n')}</g>`;
-  const body = [backArm, backFist, legs, torso, sash, frontArm, wrist, frontFist, headGroup].join('\n');
+  const headGroup = `<g transform="translate(70,84) scale(0.85) translate(-70,-84)">${[headTails, head, hair, hairLines, band, shine].join('\n')}</g>`;
+  // le haut du corps est remonté de 10 px : jambes plus longues, silhouette moins « bébé »
+  const upper = `<g transform="translate(0,-10)">${[backArm, backFist, torso, sash, frontArm, wrist, frontFist, headGroup].join('\n')}</g>`;
+  const body = [legs, upper].join('\n');
   return svg(SACRIEUR_W, SACRIEUR_H, defs, body);
 }
 
