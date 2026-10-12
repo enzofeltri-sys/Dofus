@@ -1,0 +1,73 @@
+import { baseStats, type DamageRoll, type Stats } from '../formulas';
+
+/**
+ * Fiches des monstres. Niveau, PV et caractéristiques : grade 1 de DofusDB.
+ * Le reste (vitesse, attaque, télégraphe) est l'adaptation au temps réel.
+ */
+
+export type Behavior = 'melee' | 'stealth' | 'lancer' | 'brute';
+export type AttackShape = 'circle' | 'cone' | 'line';
+
+export interface MonsterAttack {
+  shape: AttackShape;
+  /** Distance à laquelle le monstre déclenche son attaque (px, sol « à plat »). */
+  trigger: number;
+  /** Rayon (cercle/cône) ou longueur (ligne), en px. */
+  size: number;
+  /** Demi-largeur de la ligne ou demi-angle du cône (radians). */
+  spread: number;
+  /** Décalage du centre du cercle devant le monstre. */
+  offset: number;
+  /** Durée de l'annonce au sol avant la frappe (s). */
+  windup: number;
+  /** Temps de récupération après la frappe (s). */
+  recover: number;
+  /** Délai entre deux attaques (s), tiré entre min et max. */
+  cooldown: [number, number];
+  roll: DamageRoll;
+}
+
+export interface MonsterDef {
+  id: string;
+  name: string;
+  /** Identifiant DofusDB (pour les drops et l'illustration). */
+  dofusId: number;
+  level: number;
+  hp: number;
+  stats: Stats;
+  behavior: Behavior;
+  /** Vitesse de déplacement (px/s). */
+  speed: number;
+  /** Rayon de collision au sol (px). */
+  radius: number;
+  attack: MonsterAttack;
+  /** Art utilisé (variante de Chafer). */
+  art: 'debutant' | 'furtif' | 'piquier' | 'sergent';
+}
+
+const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
+
+export const MONSTERS: Record<string, MonsterDef> = {
+  chaferDebutant: {
+    id: 'chaferDebutant', name: 'Chafer Débutant', dofusId: 4046, level: 5, hp: 28,
+    stats: baseStats({ force: 20 }), behavior: 'melee', speed: 92, radius: 24, art: 'debutant',
+    attack: { shape: 'circle', trigger: 105, size: 66, spread: 0, offset: 62, windup: 0.7, recover: 0.45, cooldown: [1.6, 2.4], roll: neutre(3, 6) },
+  },
+  chaferFurtif: {
+    id: 'chaferFurtif', name: 'Chafer Furtif', dofusId: 4047, level: 6, hp: 32,
+    stats: baseStats({ force: 30 }), behavior: 'stealth', speed: 118, radius: 24, art: 'furtif',
+    attack: { shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 58, windup: 0.6, recover: 0.4, cooldown: [1.8, 2.6], roll: neutre(3, 6) },
+  },
+  chaferPiquier: {
+    id: 'chaferPiquier', name: 'Chafer Piquier', dofusId: 4049, level: 7, hp: 36,
+    stats: baseStats({ force: 20 }), behavior: 'lancer', speed: 80, radius: 26, art: 'piquier',
+    attack: { shape: 'line', trigger: 200, size: 215, spread: 24, offset: 0, windup: 0.85, recover: 0.5, cooldown: [2.0, 2.8], roll: neutre(4, 7) },
+  },
+  sergentChafer: {
+    id: 'sergentChafer', name: 'Sergent Chafer', dofusId: 4050, level: 7, hp: 36,
+    stats: baseStats({ force: 60 }), behavior: 'brute', speed: 74, radius: 28, art: 'sergent',
+    attack: { shape: 'cone', trigger: 130, size: 165, spread: 0.72, offset: 0, windup: 1.0, recover: 0.6, cooldown: [2.2, 3.0], roll: neutre(4, 7) },
+  },
+};
+
+export const CRYPT_POOL = ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', 'chaferPiquier', 'sergentChafer'];
