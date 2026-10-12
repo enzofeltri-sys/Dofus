@@ -17,7 +17,7 @@ export const FLOOR_TOP = 300;
 export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
 /** Durée de l'apparition d'un monstre (s). */
-export const SPAWN_TIME = 0.45;
+export const SPAWN_TIME = 0.4;
 /** Soin en fin de salle (fraction des PV max). */
 export const ROOM_HEAL = 0.05;
 

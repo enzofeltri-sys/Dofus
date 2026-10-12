@@ -19,7 +19,7 @@ export const EPEE_ROUILLEE: WeaponDef = {
   id: 'epeeRouillee',
   name: 'Épée rouillée',
   roll: { min: 7, max: 11, critBonus: 3, critBase: 5, element: 'neutre' },
-  speed: 1.8,
+  speed: 2.1,
   reach: 120,
   arc: 1.25,
   impactAt: 0.35,
@@ -39,5 +39,5 @@ export interface HeroDef {
 export function startingHero(): HeroDef {
   const stats = baseStats({ vitalite: 20, force: 60, critique: 5, dommagesCritiques: 2 });
   const pm = 3;
-  return { level: 12, stats, hp: maxHp(12, stats.vitalite), speed: 260 + pm * 35, radius: 22, weapon: EPEE_ROUILLEE };
+  return { level: 12, stats, hp: maxHp(12, stats.vitalite), speed: 300 + pm * 40, radius: 22, weapon: EPEE_ROUILLEE };
 }
