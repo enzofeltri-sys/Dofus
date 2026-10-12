@@ -19,8 +19,6 @@ export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
 /** Durée de l'apparition d'un monstre (s). */
 export const SPAWN_TIME = 0.4;
-/** Soin en fin de salle (fraction des PV max). */
-export const ROOM_HEAL = 0.05;
 
 export interface Vec { x: number; y: number }
 
@@ -219,12 +217,6 @@ export class World {
     if (this.phase === 'fight' && !this.reserve.length && this.monsters.every((m) => m.state === 'dead')) {
       this.phase = 'cleared';
       this.events.push({ type: 'roomCleared' });
-      // petit soin en fin de salle
-      const heal = Math.min(this.hero.maxHp - this.hero.hp, Math.round(this.hero.maxHp * ROOM_HEAL));
-      if (heal > 0 && this.hero.alive) {
-        this.hero.hp += heal;
-        this.events.push({ type: 'heal', x: this.hero.x, y: this.hero.y, amount: heal });
-      }
     }
     if (this.phase === 'cleared') {
       this.gate = Math.min(1, this.gate + STEP / 0.6);
