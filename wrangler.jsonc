@@ -1,0 +1,10 @@
+// Mise en ligne sur Cloudflare Workers (fichiers statiques du jeu, construits dans dist/).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dofus",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
