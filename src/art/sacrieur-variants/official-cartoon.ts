@@ -1,15 +1,15 @@
-import { cel, ellipse as kEllipse, gloss, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from '../kit';
+import { gloss, ink as kInk, line, shape as kShape, smoothPath, svg, vgrad } from '../kit';
+import { shade } from '../../svg';
 
 /**
- * Propositions D et E : la silhouette cartoon du « juste milieu » (C),
- * habillée avec la tenue officielle du Sacrieur (bandana olive à pièce jaune,
- * bras bandés de rouge et moufles, pagne jaune, pantalon olive effiloché, tibias bandés, pieds nus).
+ * Propositions D et E (version finie) : silhouette cartoon, tenue officielle du Sacrieur.
+ * Trait uniforme, membres effilés, bandages enroulés en diagonale, ombres douces.
  * Regarde vers la DROITE. Pieds en (70, 160).
  */
-const W = 2.4;
+const W = 2.2; // épaisseur unique du contour extérieur
+const D = 1.3; // épaisseur des détails intérieurs
 const ink = (fill: string, k = -0.62) => kInk(fill, k);
 const shape = (d: string, fill: string, outline = ink(fill), w = W) => kShape(d, fill, outline, w);
-const ellipse = (cx: number, cy: number, rx: number, ry: number, fill: string, outline = ink(fill), w = W) => kEllipse(cx, cy, rx, ry, fill, outline, w);
 
 type Pt = [number, number];
 interface Opts {
@@ -17,112 +17,163 @@ interface Opts {
   hair: string;
   whiteEyes: boolean;
   snarl: boolean;
-  armW: number;
+  arm: number; // largeur des bras à l'épaule
 }
 
-function wrapped(pts: Pt[], width: number, step = 8): string {
-  const o: string[] = [kTube(pts, width, 'url(#wrap)', '#3a0a10', W)];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [x0, y0] = pts[i], [x1, y1] = pts[i + 1];
-    const len = Math.hypot(x1 - x0, y1 - y0);
-    const ux = (x1 - x0) / len, uy = (y1 - y0) / len, nx = -uy, ny = ux;
-    for (let t = step * 0.6; t < len - 2; t += step) {
-      const cx = x0 + ux * t, cy = y0 + uy * t, h = width / 2 - 0.5;
-      o.push(`<path d="M${(cx + nx * h - ux * 1.5).toFixed(1)},${(cy + ny * h - uy * 1.5).toFixed(1)} L${(cx - nx * h + ux * 1.5).toFixed(1)},${(cy - ny * h + uy * 1.5).toFixed(1)}" stroke="url(#skS)" stroke-width="3.4"/>`);
-    }
+const WRAP = '#a3283a';
+const WRAP_INK = '#4a0c16';
+const CAP = '#6f7a2c';
+const CAP_INK = '#2e3410';
+const CLOTH = '#e8a42c';
+const PANTS = '#7a8838';
+
+/** Contour d'un membre effilé (largeur w0 à la racine, w1 à l'extrémité). */
+function taper(pts: Pt[], w0: number, w1: number): string {
+  const n = pts.length;
+  const L: Pt[] = [], R: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+    const dx = b[0] - a[0], dy = b[1] - a[1], m = Math.hypot(dx, dy) || 1;
+    const nx = -dy / m, ny = dx / m, h = (w0 + (w1 - w0) * (i / (n - 1))) / 2;
+    L.push([pts[i][0] + nx * h, pts[i][1] + ny * h]);
+    R.push([pts[i][0] - nx * h, pts[i][1] - ny * h]);
   }
-  return o.join('');
+  const r = smoothPath([...R].reverse()).replace(/^M/, ' L');
+  // départ arrondi (épaule) : demi-cercle de R[0] à L[0]
+  const h0 = w0 / 2;
+  return `${smoothPath(L)}${r} A${h0},${h0} 0 0 0 ${L[0][0].toFixed(1)},${L[0][1].toFixed(1)} Z`;
+}
+
+let uid = 0;
+/** Membre bandé : rouge, bandes claires enroulées en diagonale (découpées dans la forme), contour net. */
+function bandaged(pts: Pt[], w0: number, w1: number, skin: string, step = 7, slant = 5): string {
+  const id = `cl${uid++}`;
+  const d = taper(pts, w0, w1);
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs) - 12, x1 = Math.max(...xs) + 12, y0 = Math.min(...ys) - 12, y1 = Math.max(...ys) + 12;
+  const stripes: string[] = [];
+  for (let y = y0; y < y1; y += step) stripes.push(`M${x0},${y} L${x1},${y + slant}`);
+  return [
+    `<clipPath id="${id}"><path d="${d}"/></clipPath>`,
+    `<path d="${d}" fill="url(#wrap)"/>`,
+    `<g clip-path="url(#${id})"><path d="${stripes.join(' ')}" stroke="${shade(skin, -0.12)}" stroke-width="2.6" opacity="0.9"/>
+       <path d="${stripes.join(' ')}" transform="translate(0,1.3)" stroke="${WRAP_INK}" stroke-width="0.8" opacity="0.5"/>
+       <path d="${d}" fill="url(#limbShade)"/></g>`,
+    `<path d="${d}" fill="none" stroke="${WRAP_INK}" stroke-width="${W}" stroke-linejoin="round"/>`,
+  ].join('');
+}
+
+/** Moufle rouge avec pouce. */
+function mitten(cx: number, cy: number, flip = 1): string {
+  return [
+    shape(`M${cx - 7},${cy - 5} Q${cx - 8},${cy + 8} ${cx},${cy + 8} Q${cx + 8},${cy + 8} ${cx + 7},${cy - 4} Q${cx},${cy - 9} ${cx - 7},${cy - 5} Z`, 'url(#mit)', WRAP_INK),
+    shape(`M${cx + 5 * flip},${cy - 2} q${5 * flip},-1 ${5 * flip},4 q${-1 * flip},4 ${-5 * flip},2 Z`, 'url(#mit)', WRAP_INK, 1.6),
+    gloss(cx - 3, cy - 3, 2.6, 1.5, -30, 0.55),
+  ].join('');
 }
 
 function build(o: Opts): string {
+  uid = 0;
   const SKIN = o.skin;
+  const SK_INK = ink(SKIN, -0.6);
   const defs = [
-    cel('sk', SKIN, 'diag'),
-    cel('skS', SKIN, 'horiz'),
-    cel('hr', o.hair, 'diag'),
-    cel('cap', '#6f7a2c', 'diag'),
-    cel('wrap', '#9a2432', 'diag'),
-    cel('cloth', '#e6a02a', 'vert'),
-    cel('ol', '#7a8838', 'horiz'),
-    vgrad('mit', '#c0343f', '#7a1622'),
-  ].join('');
-  const SK_INK = ink(SKIN);
-
-  const backArm = wrapped([[45, 90], [36, 108], [40, 123]], o.armW - 1);
-  const backFist = ellipse(41, 126, 7.5, 7, 'url(#mit)', '#3a0a10');
-
-  // Jambes : pantalon olive ample à l'ourlet effiloché, tibias bandés, pieds nus.
-  const legs = [
-    shape('M54,108 L49,140 L53,144 L56,140 L60,145 L64,140 L67,143 L69,112 Z', 'url(#ol)', '#2e3410'),
-    shape('M72,112 L74,140 L78,144 L81,139 L85,145 L88,139 L92,143 L88,107 Z', 'url(#ol)', '#2e3410'),
-    `<g fill="#a8423a"><circle cx="61" cy="122" r="1.3"/><circle cx="59" cy="128" r="1.3"/><circle cx="58" cy="134" r="1.3"/></g>`,
-    wrapped([[57, 141], [57, 153]], 10, 5.5),
-    wrapped([[83, 141], [83, 153]], 10, 5.5),
-    shape('M47,153 Q57,150 66,154 Q67,159 61,159 L48,158 Q45,156 47,153 Z', 'url(#sk)', SK_INK),
-    shape('M76,153 Q86,150 95,154 Q96,159 90,159 L77,158 Q74,156 76,153 Z', 'url(#sk)', SK_INK),
-    line('M50,157 l0,1.5 M53,157 l0,1.5 M90,157 l0,1.5 M93,157 l0,1.5', SK_INK, 0.9),
+    vgrad('sk', shade(SKIN, 0.18), shade(SKIN, -0.08)),
+    vgrad('hr', shade(o.hair, 0.2), shade(o.hair, -0.25)),
+    vgrad('cap', shade(CAP, 0.18), shade(CAP, -0.2)),
+    vgrad('wrap', shade(WRAP, 0.12), shade(WRAP, -0.15)),
+    vgrad('cloth', shade(CLOTH, 0.15), shade(CLOTH, -0.2)),
+    vgrad('pants', shade(PANTS, 0.12), shade(PANTS, -0.22)),
+    vgrad('mit', '#c63a46', '#7e1824'),
+    `<linearGradient id="limbShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0.18"/><stop offset="0.45" stop-color="#fff" stop-opacity="0"/><stop offset="0.6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.28"/></linearGradient>`,
   ].join('');
 
-  // Torse en V musclé, marque rouge en cœur.
-  const torso = [
-    shape('M42,86 C46,72 94,72 99,86 L92,113 C86,124 55,124 50,113 Z', 'url(#sk)', SK_INK),
-    line('M46,84 Q56,78 66,82', '#fff', 2, 0.25),
-    line('M56,93 Q63,100 70,95 Q77,100 85,93', ink(SKIN, -0.25), 2, 0.8),
-    line('M64,104 L64,110 M76,104 L76,110 M70,102 L70,113', ink(SKIN, -0.25), 1.6, 0.55),
-    `<path d="M76,86 q-3.5,-5 -7,-1 q-2,5 7,10 q9,-5 7,-10 q-3.5,-4 -7,1 Z" fill="#b8243a" stroke="#5a0a14" stroke-width="1.2"/>`,
-  ].join('');
+  const p: string[] = [];
 
-  // Pagne jaune déchiqueté + nœud de cuir.
-  const sash = [
-    shape('M47,110 Q70,118 94,110 L95,122 L89,120 L87,128 L81,121 L75,130 L70,121 L63,129 L60,120 L53,125 L47,121 Z', 'url(#cloth)', '#6a4208'),
-    shape('M66,114 Q72,110 76,116 Q72,121 66,118 Z', '#6a3a1a', '#2a1408', 1.8),
-    shape('M68,118 Q66,130 70,138 L74,136 Q71,128 73,119 Z', '#6a3a1a', '#2a1408', 1.8),
-  ].join('');
+  /* ---------- Jambes ---------- */
+  const leg = (hipX: number, footX: number, dir: number) => {
+    const hemY = 140;
+    // bandage du tibia + pied nu
+    p.push(bandaged([[footX, hemY - 8], [footX, 153]], 10, 9, SKIN, 5.5, 3));
+    // pantalon ample, ourlet effiloché qui s'évase
+    p.push(shape(`M${hipX - 9},104 Q${hipX - 12},${hemY - 14} ${footX - 11},${hemY} L${footX - 7},${hemY + 4} L${footX - 3},${hemY - 1} L${footX + 1},${hemY + 5} L${footX + 5},${hemY} L${footX + 9},${hemY + 3} L${footX + 11},${hemY - 2} Q${hipX + 12},${hemY - 18} ${hipX + 9},106 Z`, 'url(#pants)', CAP_INK));
+    p.push(line(`M${hipX + dir * 2},112 Q${hipX + dir * 4},124 ${footX + dir * 3},136`, shade(PANTS, -0.4), D, 0.6));
+    p.push(shape(`M${footX - 9},152 Q${footX},148 ${footX + 11},152 Q${footX + 13},158 ${footX + 6},158 L${footX - 8},158 Q${footX - 11},155 ${footX - 9},152 Z`, 'url(#sk)', SK_INK));
+    p.push(line(`M${footX + 4},155 l0,2.4 M${footX + 7.5},154.5 l0,2.4`, SK_INK, 0.9, 0.8));
+  };
+  leg(60, 56, -1);
+  leg(81, 85, 1);
+  p.push(`<g fill="#a8423a" opacity="0.85"><circle cx="59" cy="120" r="1.2"/><circle cx="57.5" cy="125.5" r="1.2"/><circle cx="56.5" cy="131" r="1.2"/></g>`);
 
-  const frontArm = wrapped([[95, 88], [106, 106], [100, 120]], o.armW);
-  const frontFist = ellipse(100, 123, 8, 7.5, 'url(#mit)', '#3a0a10');
+  /* ---------- Haut du corps (remonté : jambes plus longues) ---------- */
+  const up: string[] = [];
+  // bras arrière
+  up.push(bandaged([[47, 88], [41, 96], [38, 106], [40, 119]], o.arm - 1, o.arm - 4, SKIN));
+  up.push(mitten(40, 123, -1));
+  // torse
+  up.push(shape('M43,86 C47,73 93,73 98,86 L92,112 C86,122 56,122 50,112 Z', 'url(#sk)', SK_INK));
+  up.push(`<path d="M86,80 Q98,84 98,86 L92,112 C89,118 84,120 79,121 Q88,104 86,80 Z" fill="${shade(SKIN, -0.35)}" opacity="0.35"/>`);
+  up.push(line('M56,93 Q63,99 70,95 Q77,99 85,93', SK_INK, D, 0.45));
+  up.push(line('M66,103 L66,109 M75,103 L75,109', SK_INK, D, 0.35));
+  up.push(gloss(55, 82, 9, 3, -12, 0.3));
+  up.push(`<path d="M74,86 q-3.5,-5 -7,-1 q-2,5 7,10 q9,-5 7,-10 q-3.5,-4 -7,1 Z" fill="#b8243a" stroke="#5a0a14" stroke-width="${D}"/>`);
+  // pagne jaune + nœud de cuir
+  up.push(shape('M47,109 Q70,116 94,109 L95,120 L90,118 L88,126 L82,119 L76,128 L71,119 L64,127 L61,118 L54,123 L47,119 Z', 'url(#cloth)', '#6a4208'));
+  up.push(line('M49,112 Q70,119 92,112', '#fff2c0', 1.4, 0.5));
+  up.push(shape('M66,112 Q72,108 77,114 Q72,119 66,116 Z', '#6a3a1a', '#2a1408', 1.8));
+  up.push(shape('M68,116 Q66,127 69,135 L73,134 Q71,126 73,117 Z', '#6a3a1a', '#2a1408', 1.8));
+  // bras avant (tient l'arme)
+  up.push(bandaged([[89, 90], [98, 95], [103, 105], [100, 118]], o.arm + 1, o.arm - 3, SKIN));
+  up.push(mitten(100, 122, 1));
 
-  // Tête : oreille pointue vers l'arrière (à gauche), bandana olive, mèches qui dépassent.
-  const ear = shape('M44,56 Q30,46 24,38 Q32,56 42,64 Z', 'url(#sk)', SK_INK);
-  const hairBack = shape('M40,48 L28,52 L36,56 L26,64 L40,62 L36,70 L46,64 Z', 'url(#hr)', ink(o.hair, -0.6));
-  const capTails = shape('M40,42 Q26,34 16,40 Q26,44 18,54 Q30,50 41,50 Z', 'url(#cap)', '#2a3008');
-  const head = [
-    shape('M39,50 C38,30 56,22 72,23 C92,24 104,36 103,52 C103,64 99,74 92,80 L80,86 C64,88 45,78 39,50 Z', 'url(#sk)', SK_INK),
-    o.whiteEyes
-      ? `<path d="M62,57 Q69,50 77,55 Q70,61 62,57 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/><path d="M84,55 Q89,49 96,53 Q90,58 84,55 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/>`
-      : `<path d="M62,57 Q69,50 77,55 Q70,61 62,57 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/><circle cx="70.5" cy="56" r="2.7" fill="#2a120a"/><circle cx="71.3" cy="55.1" r="0.9" fill="#fff"/><path d="M84,55 Q89,49 96,53 Q90,58 84,55 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/><circle cx="90.3" cy="54" r="2.4" fill="#2a120a"/>`,
-    line('M57,48 L77,54', '#5a1e08', 5),
-    line('M82,53 L99,46', '#5a1e08', 5),
-    line('M63,64 L74,63 M65,67 L73,66.5', '#b8243a', 2.4, 0.95),
-    line('M88,61 L97,59', '#b8243a', 2.2, 0.95),
-    line('M82,62 Q86,65 82,67', ink(SKIN, -0.3), 2),
-    o.snarl
-      ? [
-          shape('M69,71 Q81,82 94,69 Q82,75 69,71 Z', '#4a1410', ink(SKIN, -0.5), 2),
-          shape('M71,72 Q81,77 92,70.5 L91,73 Q81,78 72,74 Z', '#fff7ee', ink(SKIN, -0.5), 1),
-          `<path d="M75,73.5 l1.6,4 l1.6,-3.6 Z M87,72.5 l1.4,3.6 l1.4,-3.8 Z" fill="#fff7ee" stroke="#5a2a14" stroke-width="0.8"/>`,
-        ].join('')
-      : line('M72,73 Q81,70 91,72', '#5a2a14', 2),
-  ].join('');
-  // mèches en épis qui dépassent devant et au-dessus du bandana
-  const hairFront = [
-    shape('M96,40 L108,44 L100,48 L106,56 L96,52 Z', 'url(#hr)', ink(o.hair, -0.6)),
-    shape(smoothPath([[52, 26], [48, 10], [60, 20], [64, 4], [72, 18], [84, 6], [84, 20], [98, 14], [92, 28]]) + ' Z', 'url(#hr)', ink(o.hair, -0.6)),
-  ].join('');
-  const cap = [
-    shape(smoothPath([[37, 50], [40, 32], [54, 20], [72, 17], [92, 21], [104, 36], [104, 46]]) + ' Q72,34 37,50 Z', 'url(#cap)', '#2a3008'),
-    line('M40,47 Q72,32 103,44', '#4a5418', 2, 0.8),
-    ellipse(70, 28, 10, 7, '#e8c040', '#7a5a08', 1.6),
-    `<g fill="#6a3a1a"><circle cx="62" cy="26" r="1.4"/><circle cx="66" cy="22.5" r="1.4"/><circle cx="74" cy="22.5" r="1.4"/><circle cx="78" cy="27" r="1.4"/><circle cx="74" cy="33" r="1.4"/><circle cx="65" cy="33" r="1.4"/></g>`,
-  ].join('');
-  const shine = [gloss(52, 28, 8, 3, -25, 0.4), gloss(54, 82, 8, 3, -15, 0.35)].join('');
+  /* ---------- Tête ---------- */
+  const h: string[] = [];
+  // nœud du bandana (pans flottants vers l'arrière)
+  h.push(shape('M42,44 Q30,36 18,39 Q27,43 20,51 Q31,50 42,51 Z', 'url(#cap)', CAP_INK));
+  h.push(shape('M42,50 Q32,54 24,64 Q36,62 44,56 Z', 'url(#cap)', CAP_INK));
+  // mèche arrière qui s'échappe
+  h.push(shape('M44,36 Q36,30 33,22 Q43,26 48,32 Z', 'url(#hr)', ink(o.hair, -0.6)));
+  // oreille pointue (côté arrière)
+  h.push(shape('M46,56 Q34,52 24,46 Q32,60 45,67 Z', 'url(#sk)', SK_INK));
+  h.push(line('M42,58 Q35,55 30,52', SK_INK, D, 0.5));
+  // visage
+  h.push(shape('M39,50 C38,30 56,22 72,23 C92,24 104,36 103,52 C103,64 99,74 92,80 L80,86 C64,88 45,78 39,50 Z', 'url(#sk)', SK_INK));
+  h.push(`<path d="M44,62 C48,76 62,86 80,86 C66,84 52,76 47,60 Z" fill="${shade(SKIN, -0.35)}" opacity="0.3"/>`);
+  // yeux
+  h.push(`<path d="M62,57 Q69,50 77,55 Q70,61 62,57 Z" fill="#fff" stroke="#4a2410" stroke-width="${D}"/>`);
+  h.push(`<path d="M84,55 Q89,49 96,53 Q90,58 84,55 Z" fill="#fff" stroke="#4a2410" stroke-width="${D}"/>`);
+  if (!o.whiteEyes) {
+    h.push(`<circle cx="70.5" cy="56" r="2.6" fill="#2a120a"/><circle cx="71.2" cy="55.2" r="0.8" fill="#fff"/><circle cx="90.3" cy="54" r="2.3" fill="#2a120a"/>`);
+  }
+  h.push(line('M58,49 L77,54', '#4a1a06', 3.6));
+  h.push(line('M82,53 L98,47', '#4a1a06', 3.6));
+  // peintures de guerre
+  h.push(line('M64,64 L74,63 M66,67.5 L73,67', '#b8243a', 2.2, 0.95));
+  h.push(line('M89,61 L97,59.5', '#b8243a', 2, 0.95));
+  // nez + bouche
+  h.push(line('M83,62 Q86.5,65 83,67', SK_INK, D, 0.7));
+  if (o.snarl) {
+    h.push(shape('M70,71 Q81,81 93,70 Q82,75 70,71 Z', '#4a1410', SK_INK, 1.6));
+    h.push(shape('M72,72 Q81,77 91,71 L90,73.2 Q81,78 73,74 Z', '#fff7ee', SK_INK, 0.9));
+    h.push(`<path d="M76,73.6 l1.5,3.6 l1.5,-3.3 Z M87,72.6 l1.3,3.3 l1.3,-3.5 Z" fill="#fff7ee" stroke="#4a2410" stroke-width="0.7"/>`);
+  } else {
+    h.push(line('M72,73 Q81,70.5 91,72.5', '#4a2410', 1.8));
+  }
+  // mèches avant qui dépassent du bandana
+  h.push(shape('M97,43 Q106,46 109,54 Q103,52 99,51 Q104,57 103,63 Q97,57 94,52 Z', 'url(#hr)', ink(o.hair, -0.6)));
+  h.push(shape('M60,27 Q60,19 66,14 Q66,21 70,25 Z', 'url(#hr)', ink(o.hair, -0.6)));
+  // bandana : épouse le crâne, pli, pièce jaune cousue
+  h.push(shape('M38,51 C36,33 52,21 72,21 C92,21 104,33 104,47 C94,40 62,38 38,51 Z', 'url(#cap)', CAP_INK));
+  h.push(line('M42,45 Q72,32 101,42', shade(CAP, -0.35), D, 0.8));
+  h.push(line('M50,30 Q66,24 84,26', '#fff', 2.2, 0.25));
+  h.push(`<ellipse cx="76" cy="31" rx="8.5" ry="5.6" fill="#e8c040" stroke="#7a5a08" stroke-width="1.4" transform="rotate(-6 76 31)"/>`);
+  h.push(`<ellipse cx="76" cy="31" rx="6.2" ry="3.6" fill="none" stroke="#6a3a1a" stroke-width="1.3" stroke-dasharray="1.6 1.8" transform="rotate(-6 76 31)"/>`);
 
-  const headGroup = `<g transform="translate(70,84) scale(0.85) translate(-70,-84)">${[ear, hairBack, capTails, head, hairFront, cap, shine].join('\n')}</g>`;
-  const upper = `<g transform="translate(0,-10)">${[backArm, backFist, torso, sash, frontArm, frontFist, headGroup].join('\n')}</g>`;
-  return svg(140, 170, defs, [legs, upper].join('\n'));
+  const head = `<g transform="translate(70,84) scale(0.86) translate(-70,-84)">${h.join('\n')}</g>`;
+  p.push(`<g transform="translate(0,-14)">${up.join('\n')}\n${head}</g>`);
+  return svg(140, 170, defs, p.join('\n'));
 }
 
 /** D : fidèle à la tenue officielle — yeux blancs, bouche fermée, cheveux blond-orangé. */
-export const variantD = () => build({ skin: '#e8ac78', hair: '#eba23a', whiteEyes: true, snarl: false, armW: 12 });
-/** E : même tenue, plus « berserker » — pupilles, rictus, crinière rousse, bras plus épais. */
-export const variantE = () => build({ skin: '#e59b68', hair: '#d9662a', whiteEyes: false, snarl: true, armW: 14 });
+export const variantD = () => build({ skin: '#e8ac78', hair: '#eba23a', whiteEyes: true, snarl: false, arm: 13 });
+/** E : même tenue, plus « berserker » — pupilles, rictus, cheveux roux, bras plus épais. */
+export const variantE = () => build({ skin: '#e59b68', hair: '#d9662a', whiteEyes: false, snarl: true, arm: 15 });
