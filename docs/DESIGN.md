@@ -182,6 +182,30 @@ Les 8 donjons saisonniers (Nowel, Halouine…) sont listés ; leur inclusion res
 - **Challenges** de salle (Statue, Zombie…) → bonus de drop.
 - **Idoles** = modificateurs de difficulté contre plus de butin / XP.
 
+### 7.6 Difficulté et progression (validé)
+La difficulté n'est **jamais ajustée au personnage** : les monstres ont leurs vraies stats Dofus (grades 1 à 5, plus forts au fond du donjon), le personnage a ses vrais points et son équipement. C'est l'écart entre les deux qui fait la difficulté.
+
+- **Référence** : un personnage **du niveau du donjon, avec un stuff de son niveau**, trouve le donjon **difficile mais faisable**. (Calibrage actuel : Sacrieur niv 10 + stuff niv 10 dans la Crypte de Kardorim, niv 10.)
+- **≈ 10 niveaux en dessous** ou stuff trop faible : **quasi impossible**.
+- **Au-dessus** : de plus en plus facile → donjon de **farm**.
+- **Boucle de jeu** : trop dur → on farme le donjon précédent (ressources, craft, FM, fusion, XP) → on revient plus fort → on farme celui-là, et ainsi de suite.
+- **XP dégressive** quand le donjon est beaucoup plus bas que le personnage : pleine jusqu'à ≈ 10 niveaux d'écart, puis de moins en moins. **Les drops restent intacts** (on revient pour les ressources, pas pour l'XP).
+- **Choix du donjon** : niveau recommandé + pastille de danger calculée sur le niveau **et** le stuff : vert (facile), or (à ton niveau), corail (dangereux), violet (hors de portée). On peut toujours tenter un donjon trop dur.
+
+### 7.7 Courbe d'XP (exponentielle, très longue)
+L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de jeu par niveau). Objectifs, en jouant des donjons de son niveau :
+
+| Passage | Temps pour ce niveau | Temps total depuis le niv 1 |
+|---|---|---|
+| 10 → 11 | ≈ 4 min | ≈ 35 min |
+| 49 → 50 | ≈ 13 min | ≈ 6 h |
+| 99 → 100 | ≈ 1 h | ≈ 30 h |
+| 149 → 150 | ≈ 4 h | ≈ 140 h |
+| 199 → 200 | ≈ 18 h | **≈ 600 h** |
+
+- L'XP gagnée vient des monstres (leur niveau réel) et du boss ; la table d'XP est réglée pour tenir ces temps.
+- Les temps sont des **cibles réglables** : on les corrigera en jouant.
+
 ---
 
 ## 8. Butin
