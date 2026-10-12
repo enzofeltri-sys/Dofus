@@ -1,4 +1,4 @@
-import { ellipse as kEllipse, eye, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from './kit';
+import { ellipse as kEllipse, ink as kInk, line, shape as kShape, smoothPath, svg, tube as kTube, vgrad } from './kit';
 
 // Ce dessin garde son trait d'origine (contours épais et colorés), choisi par Enzo.
 const W = 3;
@@ -37,7 +37,7 @@ export function sacrieurSvg(): string {
     vgrad('bl', '#a33642', '#6a1f28'),
   ].join('');
 
-  const backArm = tube([[48, 92], [38, 108], [40, 124]], 11, SKIN_SH, ink(SKIN));
+  const backArm = tube([[45, 90], [36, 108], [40, 124]], 12, SKIN_SH, ink(SKIN));
   const backFist = ellipse(41, 126, 7, 6.5, SKIN_SH, ink(SKIN));
 
   // Jambes : pantalon olive puis bandes de cuir et pieds.
@@ -54,7 +54,8 @@ export function sacrieurSvg(): string {
 
   // Torse en V, musclé, couvert de cicatrices recousues.
   const torso = [
-    shape('M46,86 C50,74 90,74 95,86 L91,113 C86,124 55,124 50,113 Z', 'url(#sk)', ink(SKIN)),
+    shape('M42,86 C46,72 94,72 99,86 L92,113 C86,124 55,124 50,113 Z', 'url(#sk)', ink(SKIN)),
+    line('M46,84 Q56,78 66,82', '#fff', 2, 0.25),
     line('M56,93 Q63,100 70,95 Q77,100 85,93', ink(SKIN, -0.25), 2, 0.8),
     line('M64,104 L64,110 M76,104 L76,110 M70,102 L70,113', ink(SKIN, -0.25), 1.6, 0.55),
     // cicatrice principale + points de couture
@@ -71,7 +72,8 @@ export function sacrieurSvg(): string {
     ellipse(70, 121, 5, 4.5, '#d9a441', '#7a5418', 2),
   ].join('');
 
-  const frontArm = tube([[93, 90], [104, 106], [100, 121]], 12, SKIN, ink(SKIN));
+  const frontArm = tube([[95, 88], [106, 106], [100, 121]], 13, SKIN, ink(SKIN)) +
+    line('M99,94 Q104,98 103,106 M102,92 Q108,98 106,104', BLOOD, 2, 0.9);
   const frontFist = ellipse(100, 123, 7.5, 7, SKIN, ink(SKIN));
   const wrist = shape('M93,114 L106,114 L105,119 L94,119 Z', LEATHER, ink(LEATHER), 2);
 
@@ -80,22 +82,27 @@ export function sacrieurSvg(): string {
   const head = [
     ellipse(42, 58, 6, 8, SKIN_SH, ink(SKIN)),
     shape(
-      'M39,52 C38,30 56,22 72,23 C92,24 104,36 103,54 C102,70 94,82 76,84 C58,86 41,76 39,52 Z',
+      'M39,50 C38,30 56,22 72,23 C92,24 104,36 103,52 C103,64 99,74 92,80 L80,86 C64,88 45,78 39,50 Z',
       'url(#sk)',
       ink(SKIN),
     ),
-    // joues
-    `<ellipse cx="92" cy="66" rx="6" ry="3.5" fill="#e8705a" opacity="0.35"/>`,
-    eye(69, 57, 4.2, 5.8),
-    eye(89, 56, 3.8, 5.5),
-    // sourcils froncés (berserker)
-    line('M60,46 L75,51', '#7a2d10', 4),
-    line('M83,50 L96,45', '#7a2d10', 4),
+    // yeux plissés en amande, regard furieux
+    `<path d="M62,57 Q69,50 77,55 Q70,61 62,57 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/>`,
+    `<circle cx="70.5" cy="56" r="2.7" fill="#2a120a"/><circle cx="71.3" cy="55.1" r="0.9" fill="#fff"/>`,
+    `<path d="M84,55 Q89,49 96,53 Q90,58 84,55 Z" fill="#fff" stroke="#5a2a14" stroke-width="1.4"/>`,
+    `<circle cx="90.3" cy="54" r="2.4" fill="#2a120a"/>`,
+    // gros sourcils froncés (berserker)
+    line('M57,48 L77,54', '#5a1e08', 5),
+    line('M82,53 L99,46', '#5a1e08', 5),
+    // peintures de guerre sous les yeux
+    line('M63,64 L74,63 M65,67 L73,66.5', BLOOD, 2, 0.9),
+    line('M88,61 L97,59', BLOOD, 2, 0.9),
     // nez
     line('M82,62 Q86,65 82,67', ink(SKIN, -0.3), 2),
     // rictus avec dents
-    shape('M70,72 Q81,79 92,70 Q82,74 70,72 Z', '#fff7ee', ink(SKIN, -0.4), 2),
-    line('M76,73.5 L76,76 M82,74 L82,76.5 M87,72.5 L87,75', ink(SKIN, -0.4), 1.1),
+    shape('M69,71 Q81,82 94,69 Q82,75 69,71 Z', '#4a1410', ink(SKIN, -0.5), 2),
+    shape('M71,72 Q81,77 92,70.5 L91,73 Q81,78 72,74 Z', '#fff7ee', ink(SKIN, -0.5), 1),
+    `<path d="M75,73.5 l1.6,4 l1.6,-3.6 Z M87,72.5 l1.4,3.6 l1.4,-3.8 Z" fill="#fff7ee" stroke="#5a2a14" stroke-width="0.8"/>`,
     // balafre recousue sur la joue
     line('M55,61 L62,72', SCAR, 2.2),
     line('M56,66 L60,64 M58,69 L62,67', '#5c1418', 1.3),
@@ -112,7 +119,9 @@ export function sacrieurSvg(): string {
   const hairLines = line('M54,24 Q58,30 56,36 M74,18 Q76,26 72,32 M90,24 Q88,30 92,36', '#a8410f', 1.6, 0.8);
   const band = shape('M38,47 Q70,32 104,43 L104,51 Q70,40 39,55 Z', 'url(#bl)', ink(BLOOD));
 
-  const body = [backArm, backFist, legs, torso, sash, frontArm, wrist, frontFist, headTails, head, hair, hairLines, band].join('\n');
+  // tête un peu réduite : moins « bébé », plus guerrier
+  const headGroup = `<g transform="translate(70,84) scale(0.9) translate(-70,-84)">${[headTails, head, hair, hairLines, band].join('\n')}</g>`;
+  const body = [backArm, backFist, legs, torso, sash, frontArm, wrist, frontFist, headGroup].join('\n');
   return svg(SACRIEUR_W, SACRIEUR_H, defs, body);
 }
 
