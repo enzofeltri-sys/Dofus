@@ -1,0 +1,21 @@
+{
+  "name": "dofus-enzo",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource/baloo-2": "^5.3.0",
+    "pixi.js": "^8.22.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4"
+  }
+}
