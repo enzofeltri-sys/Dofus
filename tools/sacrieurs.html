@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#2a2228;font-family:system-ui;color:#f3e7c6;display:flex;flex-wrap:wrap;gap:14px;padding:16px}
+figure{margin:0;background:radial-gradient(#6b6058,#3a3230);border-radius:14px;padding:8px 8px 4px;text-align:center}
+figcaption{font-weight:800;font-size:26px}
+small{display:block;font-weight:500;font-size:13px;opacity:.8;max-width:240px;margin:0 auto 6px}
+img{height:300px}
+</style></head><body><script type="module">
+import { sacrieurSvg as a } from '../src/art/sacrieur-variants/a.ts';
+import { sacrieurSvg as b } from '../src/art/sacrieur-variants/b.ts';
+import { sacrieurSvg as c } from '../src/art/sacrieur-variants/c.ts';
+import { variantD as d, variantE as e } from '../src/art/sacrieur-variants/official-cartoon.ts';
+const list = [['A', a, 'Le tout premier'], ['B', b, 'Moins mignon'], ['C', c, 'Juste milieu'], ['D', d, 'Cartoon + tenue officielle'], ['E', e, 'Cartoon + tenue officielle, plus berserker']];
+for (const [k, f, t] of list) {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `<img src="${URL.createObjectURL(new Blob([f()], {type:'image/svg+xml'}))}"><figcaption>${k}</figcaption><small>${t}</small>`;
+  document.body.appendChild(fig);
+}
+</script></body></html>
