@@ -1,7 +1,7 @@
 import './hud.css';
-import {
-  ICON_ABSORPTION, ICON_ATTIRANCE, ICON_BLOOD, ICON_HEART, ICON_MUTILATION, ICON_PAUSE, ICON_SACRIEUR, ICON_STAR, ICON_SUPPLICE,
-} from './icons';
+import { variantD2 } from '../art/sacrieur-variants/official-cartoon';
+import { ICONS } from './grimoire-icons';
+import { ICON_ABSORPTION, ICON_ATTIRANCE, ICON_MUTILATION, ICON_SUPPLICE } from './icons';
 
 export interface SpellSlot {
   name: string;
@@ -16,14 +16,24 @@ export const SPELL_BAR: SpellSlot[] = [
   { name: 'Mutilation', icon: ICON_MUTILATION, cost: 2 },
 ];
 
-/** Interface de combat (DOM au-dessus du canvas). */
+const PA_MAX = 6;
+const SUFFERING_MAX = 10;
+
+/** Tête du Sacrieur recadrée pour le médaillon (même dessin que le personnage en jeu). */
+const portraitSvg = () => variantD2('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="24 6 92 92"');
+
+const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/></svg>`;
+const LOCK_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 10V8a4.5 4.5 0 0 1 9 0v2" fill="none" stroke="#3b2414" stroke-width="2.4" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="3" fill="#e3a838" stroke="#3b2414" stroke-width="2.2"/><circle cx="12" cy="15" r="1.6" fill="#3b2414"/></svg>`;
+
+/** Interface de combat (DOM au-dessus du canvas), charte « grimoire d'aventurier ». */
 export class Hud {
   readonly root: HTMLElement;
-  private hpVal!: HTMLElement;
   private hpFill!: HTMLElement;
-  private hpLabel!: HTMLElement;
+  private hpVal!: HTMLElement;
+  private paFill!: HTMLElement;
   private paVal!: HTMLElement;
-  private drops: HTMLElement[] = [];
+  private sufFill!: HTMLElement;
+  private sufVal!: HTMLElement;
   private spellEls: HTMLElement[] = [];
   readonly joy: HTMLElement;
   readonly knob: HTMLElement;
@@ -34,48 +44,57 @@ export class Hud {
     this.root = root;
     root.innerHTML = `
       <div class="top">
-        <div class="portrait">${ICON_SACRIEUR}<div class="level">12</div></div>
-        <div class="titlebox">
-          <div class="plaque">Crypte de Kardorim</div>
-          <div class="rooms"></div>
-          <div class="xp"><b style="width:62%"></b></div>
+        <div class="medal">
+          <div class="face">${portraitSvg()}</div>
+          <div class="level gr-num">12</div>
         </div>
-        <button class="pause" aria-label="Pause">${ICON_PAUSE}</button>
+        <div class="plaque gr-panel">
+          <div class="dj">Crypte de Kardorim</div>
+          <div class="rooms"></div>
+        </div>
+        <button class="pause gr-wiggle" aria-label="Pause">${PAUSE_SVG}</button>
       </div>
       <div class="hint">Glisse le pouce pour te déplacer</div>
       <div class="joy idle"><div class="base"></div><div class="knob"></div></div>
-      <div class="bar">
-        <div class="vitals">
-          <div class="heart">${ICON_HEART}<div class="val">--</div></div>
-          <div class="hpbar"><div class="track"><div class="fill"></div><div class="label">--</div></div><div class="suffering"><div class="drops"></div></div></div>
-          <div class="star">${ICON_STAR}<div class="val">6</div></div>
+      <div class="bar gr-panel">
+        <div class="gr-gauge hp">
+          <span class="ico">${ICONS.vie.svg}</span>
+          <span class="track"><span class="fill" style="--c: var(--coral)"></span></span>
+          <span class="val">--</span>
         </div>
-        <div class="spells"><div class="lock">Sorts : étape 3</div></div>
+        <div class="row2">
+          <div class="gr-gauge mini pa">
+            <span class="ico">${ICONS.pa.svg}</span>
+            <span class="track"><span class="fill" style="--c: var(--turquoise)"></span></span>
+            <span class="val">6</span>
+          </div>
+          <div class="gr-gauge mini suf">
+            <span class="ico">${ICONS.souffrance.svg}</span>
+            <span class="track"><span class="fill" style="--c: var(--coral-dark)"></span></span>
+            <span class="val">0</span>
+          </div>
+        </div>
+        <div class="spells"><div class="lock"><span>${LOCK_SVG}Sorts : étape 3</span></div></div>
       </div>
-      <div class="toast" hidden></div>
-      <div class="overlay" hidden><div class="card"><h2></h2><p></p><button type="button" class="btn"></button></div></div>`;
-    this.hpVal = root.querySelector('.heart .val')!;
-    this.hpFill = root.querySelector('.hpbar .fill')!;
-    this.hpLabel = root.querySelector('.hpbar .label')!;
-    this.paVal = root.querySelector('.star .val')!;
+      <div class="toast-wrap"><div class="gr-toast toast" hidden></div></div>
+      <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
+    this.hpFill = root.querySelector('.hp .fill')!;
+    this.hpVal = root.querySelector('.hp .val')!;
+    this.paFill = root.querySelector('.pa .fill')!;
+    this.paVal = root.querySelector('.pa .val')!;
+    this.sufFill = root.querySelector('.suf .fill')!;
+    this.sufVal = root.querySelector('.suf .val')!;
     this.joy = root.querySelector('.joy')!;
     this.knob = root.querySelector('.joy .knob')!;
     this.hint = root.querySelector('.hint')!;
     this.bar = root.querySelector('.bar')!;
 
     this.setRooms(1, 9);
-    const drops = root.querySelector('.suffering .drops')!;
-    for (let i = 0; i < 10; i++) {
-      const d = document.createElement('i');
-      d.innerHTML = ICON_BLOOD;
-      drops.appendChild(d);
-      this.drops.push(d);
-    }
     const spells = root.querySelector('.spells')!;
     SPELL_BAR.forEach((s, i) => {
       const el = document.createElement('div');
       el.className = 'spell';
-      el.innerHTML = `${s.icon}<div class="cd"></div><div class="prio">${i + 1}</div><div class="cost">${s.cost}</div>`;
+      el.innerHTML = `<div class="art">${s.icon}</div><div class="cd"></div><div class="prio gr-num">${i + 1}</div><div class="cost gr-num">${s.cost}</div>`;
       spells.appendChild(el);
       this.spellEls.push(el);
     });
@@ -84,7 +103,12 @@ export class Hud {
   /** Progression dans le donjon : salle courante (1..n), la dernière est celle du boss. */
   setRooms(cur: number, total: number) {
     const el = this.root.querySelector('.rooms')!;
-    el.innerHTML = [...Array(total)].map((_, i) => `<i class="${i === total - 1 ? 'boss' : i + 1 < cur ? 'done' : i + 1 === cur ? 'cur' : ''}"></i>`).join('') + `<span>Salle ${cur}/${total}</span>`;
+    const pips = [...Array(total)].map((_, i) => {
+      const n = i + 1;
+      const cls = [i === total - 1 ? 'boss' : '', n < cur ? 'done' : '', n === cur ? 'cur' : ''].filter(Boolean).join(' ');
+      return `<i class="${cls}"></i>`;
+    });
+    el.innerHTML = `<span class="pips">${pips.join('')}</span><span class="lbl gr-num">${cur === total ? 'Boss' : `Salle ${cur}/${total}`}</span>`;
   }
 
   /** Hauteur occupée par la barre du bas (pour cadrer la caméra au-dessus). */
@@ -96,15 +120,18 @@ export class Hud {
   }
 
   setHp(hp: number, max: number) {
-    this.hpVal.textContent = String(Math.round(hp));
-    this.hpFill.style.width = `${(100 * hp) / max}%`;
-    this.hpLabel.textContent = `${Math.round(hp)} / ${max}`;
+    const k = Math.max(0, hp) / max;
+    this.hpFill.style.setProperty('--v', `${100 * k}%`);
+    this.hpVal.textContent = `${Math.round(Math.max(0, hp))}/${max}`;
+    this.bar.classList.toggle('low', k <= 0.3);
   }
   setPa(pa: number) {
+    this.paFill.style.setProperty('--v', `${(100 * Math.min(pa, PA_MAX)) / PA_MAX}%`);
     this.paVal.textContent = String(Math.floor(pa));
   }
   setSuffering(n: number) {
-    this.drops.forEach((d, i) => d.classList.toggle('on', i < n));
+    this.sufFill.style.setProperty('--v', `${(100 * Math.min(n, SUFFERING_MAX)) / SUFFERING_MAX}%`);
+    this.sufVal.textContent = String(n);
   }
   /** cd : fraction restante du cooldown (0 = prêt). */
   setCooldown(i: number, cd: number) {

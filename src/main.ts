@@ -1,5 +1,3 @@
-import '@fontsource/baloo-2/latin-700.css';
-import '@fontsource/baloo-2/latin-800.css';
 import { Application, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } from './art/chafer';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
@@ -12,6 +10,7 @@ import { Rig } from './render/rig';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { Hud } from './ui/hud';
+import { installTheme } from './ui/theme';
 
 /**
  * Étape 2 — moteur de combat : le monde de jeu (src/game) tourne à pas fixe,
@@ -58,7 +57,8 @@ interface Fx { g: Graphics; life: number; max: number; draw: (g: Graphics, k: nu
 interface Particle { s: Sprite; vx: number; vy: number; life: number; max: number; a0: number; grav: number }
 
 async function main() {
-  await Promise.all([document.fonts.load('800 20px "Baloo 2"'), document.fonts.load('700 20px "Baloo 2"')]);
+  installTheme();
+  await Promise.all([document.fonts.load('20px "Lilita One"'), document.fonts.load('800 20px "Nunito"'), document.fonts.load('600 20px "Nunito"')]);
 
   const app = new Application();
   await app.init({ resizeTo: window, background: '#2a160c', antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 3), autoDensity: true });
@@ -149,8 +149,8 @@ async function main() {
     const t = new Text({
       text: txt,
       style: {
-        fontFamily: 'Baloo 2', fontWeight: '800', fontSize: big ? 38 : 30, fill: color,
-        stroke: { color: '#2a0806', width: 6, join: 'round' },
+        fontFamily: 'Lilita One', fontSize: big ? 40 : 31, fill: color, letterSpacing: 1,
+        stroke: { color: '#3b2414', width: 7, join: 'round' },
         dropShadow: { color: '#000000', alpha: 0.5, blur: 2, distance: 2, angle: Math.PI / 2 },
       },
     });
@@ -394,7 +394,7 @@ async function main() {
       }
       case 'hit': {
         const y = ev.target === 'hero' ? ev.y - 130 * CHAR_SCALE : ev.y - 120 * CHAR_SCALE;
-        numberAt(ev.x, y, `-${ev.damage}`, ev.target === 'hero' ? '#ff5a4a' : ev.crit ? '#ffb02e' : '#ffffff', ev.crit);
+        numberAt(ev.x, y, `-${ev.damage}`, ev.target === 'hero' ? '#e8664a' : ev.crit ? '#f2c45c' : '#fffaf0', ev.crit);
         for (let i = 0; i < (ev.crit ? 12 : 6); i++) emit(ev.x, ev.y - 50 * CHAR_SCALE, ev.crit ? 0xffd070 : 0xffffff, { vx: rand(-140, 140), vy: rand(-170, -40), life: 0.35, size: 0.08 });
         if (ev.target === 'hero') {
           shake = Math.max(shake, 8);
@@ -413,7 +413,7 @@ async function main() {
         for (let i = 0; i < 18; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-150, 150), vy: rand(-210, -40), life: 0.6, size: 0.1, add: false, grav: 320 });
         break;
       case 'heal':
-        numberAt(ev.x + 22, ev.y - 150 * CHAR_SCALE, `+${ev.amount}`, '#5ee86a');
+        numberAt(ev.x + 22, ev.y - 150 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
         break;
       case 'roomCleared':
         hud.toast('Salle terminée !');
