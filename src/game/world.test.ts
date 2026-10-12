@@ -106,4 +106,19 @@ describe('World', () => {
     w.startRoom(7);
     expect(w.monsters.length).toBeGreaterThan(a);
   });
+
+  it('envoie une deuxième vague à partir de la salle 4, et la salle ne finit qu’après elle', () => {
+    const w = new World(5);
+    w.startRoom(0);
+    expect(w.reserve.length).toBe(0);
+    w.startRoom(3);
+    const first = w.monsters.length, extra = w.reserve.length;
+    expect(extra).toBeGreaterThan(0);
+    // tous les monstres de la première vague meurent : les renforts arrivent, la salle continue
+    for (const m of w.monsters) m.hp = 0, m.state = 'dead';
+    const ev = run(w, 0.1);
+    expect(ev.some((e) => e.type === 'wave')).toBe(true);
+    expect(w.monsters.length).toBe(first + extra);
+    expect(w.phase).toBe('fight');
+  });
 });

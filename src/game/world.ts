@@ -16,6 +16,10 @@ export const ROOM_W = 720;
 export const FLOOR_TOP = 300;
 export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
+/** Durée de l'apparition d'un monstre (s). */
+export const SPAWN_TIME = 0.45;
+/** Soin en fin de salle (fraction des PV max). */
+export const ROOM_HEAL = 0.05;
 
 export interface Vec { x: number; y: number }
 
@@ -72,7 +76,8 @@ export type WorldEvent =
   | { type: 'roomCleared' }
   | { type: 'exit' }
   | { type: 'heroDied' }
-  | { type: 'roomStart'; index: number };
+  | { type: 'roomStart'; index: number }
+  | { type: 'wave' };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -88,6 +93,9 @@ export class World {
   /** Gel de l'image à l'impact (s). */
   hitstop = 0;
   bounds = { x0: 76, x1: ROOM_W - 76, y0: FLOOR_TOP + 24, y1: 1500 };
+  /** Deuxième vague : monstres en réserve, et temps écoulé dans la salle. */
+  reserve: MonsterDef[] = [];
+  roomT = 0;
   private events: WorldEvent[] = [];
   private uid = 1;
   private rnd: () => number;
@@ -131,11 +139,15 @@ export class World {
     this.hero.y = this.bounds.y1 - 150;
     this.hero.swing = null;
     this.monsters = [];
-    const count = Math.min(7, 3 + Math.floor(index * 0.7));
-    for (let i = 0; i < count; i++) {
-      const id = CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)];
+    this.roomT = 0;
+    // 5 monstres en salle 1, jusqu'à 10 ; à partir de la salle 4, une partie arrive en deuxième vague
+    const count = Math.min(10, 5 + Math.floor(index * 0.75));
+    const defs = [...Array(count)].map(() => MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]]);
+    const second = index >= 3 ? Math.round(count * 0.4) : 0;
+    this.reserve = defs.splice(defs.length - second, second);
+    for (const def of defs) {
       const p = this.findSpawn();
-      this.monsters.push(this.makeMonster(MONSTERS[id], p.x, p.y));
+      this.monsters.push(this.makeMonster(def, p.x, p.y));
     }
     this.events.push({ type: 'roomStart', index });
   }
@@ -170,19 +182,33 @@ export class World {
     this.stepHero(input);
     for (const m of this.monsters) this.stepMonster(m);
     this.separate();
+    this.roomT += STEP;
 
-    if (this.phase === 'fight' && this.monsters.every((m) => m.state === 'dead')) {
+    // deuxième vague : quand il ne reste que 2 monstres, ou au bout de 10 s
+    if (this.reserve.length && this.phase === 'fight') {
+      const alive = this.monsters.filter((m) => m.state !== 'dead').length;
+      if (alive <= 2 || this.roomT >= 10) {
+        for (const def of this.reserve) {
+          const p = this.findSpawn();
+          this.monsters.push(this.makeMonster(def, p.x, p.y));
+        }
+        this.reserve = [];
+        this.events.push({ type: 'wave' });
+      }
+    }
+
+    if (this.phase === 'fight' && !this.reserve.length && this.monsters.every((m) => m.state === 'dead')) {
       this.phase = 'cleared';
       this.events.push({ type: 'roomCleared' });
-      // petit soin en fin de salle (10 % des PV max)
-      const heal = Math.min(this.hero.maxHp - this.hero.hp, Math.round(this.hero.maxHp * 0.1));
+      // petit soin en fin de salle
+      const heal = Math.min(this.hero.maxHp - this.hero.hp, Math.round(this.hero.maxHp * ROOM_HEAL));
       if (heal > 0 && this.hero.alive) {
         this.hero.hp += heal;
         this.events.push({ type: 'heal', x: this.hero.x, y: this.hero.y, amount: heal });
       }
     }
     if (this.phase === 'cleared') {
-      this.gate = Math.min(1, this.gate + STEP / 0.9);
+      this.gate = Math.min(1, this.gate + STEP / 0.6);
       const h = this.hero;
       if (this.gate >= 1 && h.alive && Math.abs(h.x - GATE.x) < GATE.halfWidth && h.y <= this.bounds.y0 + 6) {
         this.phase = 'exiting';
@@ -291,7 +317,7 @@ export class World {
     m.knock.y *= 1 - STEP * 9;
 
     if (m.state === 'spawn') {
-      if (m.t >= 0.7) { m.state = 'chase'; m.t = 0; }
+      if (m.t >= SPAWN_TIME) { m.state = 'chase'; m.t = 0; }
       return;
     }
 

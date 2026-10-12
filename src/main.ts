@@ -4,11 +4,12 @@ import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column,
 import { SACRIEUR_FOOT, SACRIEUR_HAND, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
 import { SACRI_PARTS, SACRI_PIVOTS, variantD2 } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
-import { GATE, PERSP, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
+import { GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
 import { Rig } from './render/rig';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
+import { autopilotInput } from './game/autopilot';
 import { Hud } from './ui/hud';
 import { installTheme } from './ui/theme';
 
@@ -347,29 +348,7 @@ async function main() {
   addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 
   /** Pilote automatique (?demo) : sert aux captures et aux essais automatiques. */
-  function autopilot(): { x: number; y: number } {
-    const h = game.hero;
-    if (game.phase === 'cleared') {
-      const dx = GATE.x - h.x, dy = game.bounds.y0 - 20 - h.y, d = Math.hypot(dx, dy) || 1;
-      return { x: dx / d, y: dy / d };
-    }
-    let best: Monster | null = null, bd = Infinity;
-    for (const m of game.monsters) {
-      if (m.state === 'dead') continue;
-      const d = Math.hypot(m.x - h.x, (m.y - h.y) / PERSP);
-      // fuir une attaque annoncée
-      if (m.state === 'windup' && game.inAttack(m)) {
-        const ax = h.x - m.x, ay = (h.y - m.y) / PERSP, n = Math.hypot(ax, ay) || 1;
-        return { x: ax / n, y: ay / n };
-      }
-      if (d < bd) { bd = d; best = m; }
-    }
-    if (!best) return { x: 0, y: 0 };
-    const dx = best.x - h.x, dy = (best.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
-    if (d > 105) return { x: dx / d, y: dy / d };
-    if (d < 70) return { x: -dx / d, y: -dy / d };
-    return { x: -dy / d * 0.4, y: dx / d * 0.4 };
-  }
+  const autopilot = () => autopilotInput(game);
 
   // ---------- Événements du monde ----------
   let paused = false;
@@ -417,6 +396,10 @@ async function main() {
         break;
       case 'roomCleared':
         hud.toast('Salle terminée !');
+        break;
+      case 'wave':
+        hud.toast('Renforts !', 1200);
+        shake = Math.max(shake, 6);
         break;
       case 'exit':
         void nextRoom();
@@ -540,8 +523,8 @@ async function main() {
     // Monstres + annonces au sol
     ground.clear();
     for (const m of game.monsters) {
-      const v = monsterViews.get(m.uid);
-      if (!v) continue;
+      let v = monsterViews.get(m.uid);
+      if (!v) monsterViews.set(m.uid, (v = makeMonsterView(m))); // renforts arrivés en cours de salle
       v.c.position.set(m.x, m.y);
       v.c.zIndex = m.state === 'dead' ? m.y - 60 : m.y; // les tas d'os passent derrière
       v.rig.face(m.facing);
@@ -552,7 +535,7 @@ async function main() {
       a.windup = m.state === 'windup' ? m.t / m.def.attack.windup : null;
       a.strike = m.state === 'recover' && m.t < 0.35 ? m.t / 0.35 : null;
       a.hurt = m.hurtT / 0.18;
-      a.spawn = m.state === 'spawn' ? m.t / 0.7 : 1;
+      a.spawn = m.state === 'spawn' ? m.t / SPAWN_TIME : 1;
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
       poseChafer(v.rig, a, CHAR_SCALE);
