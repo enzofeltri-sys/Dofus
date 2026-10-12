@@ -61,6 +61,13 @@ export interface Monster {
   hidden: boolean;
   stealthT: number;
   moving: boolean;
+  /** Accélération (Craquement d'Os) restante. */
+  hasteT: number;
+  /** Boss : délais avant la prochaine accélération / invocation. */
+  crackT: number;
+  summonT: number;
+  /** Invocation : uid de son invocateur (meurt avec lui, comme dans Dofus). */
+  summoner: number | null;
 }
 
 export interface Hero {
@@ -90,7 +97,10 @@ export type WorldEvent =
   | { type: 'exit' }
   | { type: 'heroDied' }
   | { type: 'roomStart'; index: number }
-  | { type: 'wave' };
+  | { type: 'wave' }
+  | { type: 'bossCrack'; uid: number; x: number; y: number; radius: number }
+  | { type: 'summon'; uid: number; by: number }
+  | { type: 'victory' };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -109,6 +119,9 @@ export class World {
   /** Deuxième vague : monstres en réserve, et temps écoulé dans la salle. */
   reserve: { def: MonsterDef; grade: number }[] = [];
   roomT = 0;
+  /** Boss de la salle (salle finale), s'il y en a un. */
+  boss: Monster | null = null;
+  private pending: Monster[] = [];
   private events: WorldEvent[] = [];
   private uid = 1;
   private rnd: () => number;
@@ -153,6 +166,19 @@ export class World {
     this.hero.swing = null;
     this.monsters = [];
     this.roomT = 0;
+    this.boss = null;
+    if (index === TOTAL_ROOMS - 1) {
+      // salle du boss : Kardorim (grade 5) et deux Chafers aguerris
+      this.reserve = [];
+      this.boss = this.makeMonster(MONSTERS.kardorim, 5, ROOM_W / 2, this.bounds.y0 + 170);
+      this.monsters.push(this.boss);
+      for (let i = 0; i < 2; i++) {
+        const p = this.findSpawn();
+        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 4, p.x, p.y));
+      }
+      this.events.push({ type: 'roomStart', index });
+      return;
+    }
     // 5 monstres en salle 1, jusqu'à 10 ; à partir de la salle 4, une partie arrive en deuxième vague
     const count = Math.min(10, 5 + Math.floor(index * 0.75));
     const defs = [...Array(count)].map(() => ({
@@ -186,6 +212,7 @@ export class World {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
+      hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
     };
   }
 
@@ -198,6 +225,10 @@ export class World {
     }
     this.stepHero(input);
     for (const m of this.monsters) this.stepMonster(m);
+    if (this.pending.length) {
+      this.monsters.push(...this.pending);
+      this.pending = [];
+    }
     this.separate();
     this.roomT += STEP;
 
@@ -216,9 +247,10 @@ export class World {
 
     if (this.phase === 'fight' && !this.reserve.length && this.monsters.every((m) => m.state === 'dead')) {
       this.phase = 'cleared';
-      this.events.push({ type: 'roomCleared' });
+      this.events.push({ type: this.boss ? 'victory' : 'roomCleared' });
     }
-    if (this.phase === 'cleared') {
+    // la grille de la salle du boss reste fermée : le donjon est fini
+    if (this.phase === 'cleared' && !this.boss) {
       this.gate = Math.min(1, this.gate + STEP / 0.6);
       const h = this.hero;
       if (this.gate >= 1 && h.alive && Math.abs(h.x - GATE.x) < GATE.halfWidth && h.y <= this.bounds.y0 + 6) {
@@ -303,14 +335,48 @@ export class World {
       this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage: hit.damage, crit: hit.crit });
       this.hitstop = Math.max(this.hitstop, hit.crit ? 0.075 : 0.035);
       if (m.hp <= 0) {
-        m.state = 'dead';
-        m.t = 0;
-        m.hidden = false;
-        this.events.push({ type: 'death', uid: m.uid, x: m.x, y: m.y });
+        this.kill(m);
       } else if (m.state === 'windup' && hit.crit) {
         // un coup critique interrompt l'attaque en préparation
         m.state = 'recover';
         m.t = 0;
+      }
+    }
+  }
+
+  private kill(m: Monster) {
+    m.state = 'dead';
+    m.t = 0;
+    m.hp = Math.min(m.hp, 0);
+    m.hidden = false;
+    this.events.push({ type: 'death', uid: m.uid, x: m.x, y: m.y });
+    // les invocations disparaissent avec leur invocateur
+    for (const s of this.monsters) if (s.summoner === m.uid && s.state !== 'dead') this.kill(s);
+  }
+
+  /** Sorts de boss (Craquement d'Os, Appel de Kardorib). */
+  private stepBoss(m: Monster) {
+    const b = m.def.boss!;
+    m.crackT -= STEP;
+    if (m.crackT <= 0) {
+      m.crackT = b.crackEvery;
+      for (const o of this.monsters) {
+        if (o.state !== 'dead' && flatDist(o.x, o.y, m.x, m.y) <= b.crackRadius) o.hasteT = b.crackDuration;
+      }
+      this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: b.crackRadius });
+    }
+    m.summonT -= STEP;
+    if (m.summonT <= 0) {
+      m.summonT = b.summonEvery;
+      const alive = this.monsters.filter((o) => o.summoner === m.uid && o.state !== 'dead').length;
+      if (alive < b.maxSummons) {
+        const side = this.rnd() < 0.5 ? -1 : 1;
+        const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + side * 90));
+        const [sx, sy] = this.pushOut(x, m.y + 30, 26);
+        const s = this.makeMonster(MONSTERS[b.summon], 1, sx, sy);
+        s.summoner = m.uid;
+        this.pending.push(s);
+        this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
       }
     }
   }
@@ -331,6 +397,9 @@ export class World {
       if (m.t >= SPAWN_TIME) { m.state = 'chase'; m.t = 0; }
       return;
     }
+
+    m.hasteT = Math.max(0, m.hasteT - STEP);
+    if (m.def.boss && h.alive) this.stepBoss(m);
 
     // Chafer Furtif : alterne visible / invisible
     if (m.def.behavior === 'stealth') {
@@ -353,7 +422,7 @@ export class World {
           else if (d < 120) want = -0.7;
         } else if (d > a.trigger * 0.8) want = 1;
         if (want !== 0) {
-          const sp = m.def.speed * want * STEP;
+          const sp = m.def.speed * (m.hasteT > 0 ? m.def.boss?.haste ?? 1.6 : 1) * want * STEP;
           const [nx, ny] = this.slideMove(m.x, m.y, (dx / d) * sp, (dy / d) * sp * PERSP, m.def.radius);
           m.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, nx));
           m.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, ny));

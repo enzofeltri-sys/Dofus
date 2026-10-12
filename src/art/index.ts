@@ -1,10 +1,11 @@
 import { chaferSvg } from './chafer';
-import { kardorimSvg } from './kardorim';
+import { kardoribSvg, kardorimSvg } from './kardorim';
 import { sacrieurSvg, sacrieurSwordSvg } from './sacrieur';
 
 /** Planche de personnages (outil de vérification visuelle). */
 export const SHEET: Record<string, () => string> = {
-  kardorim: kardorimSvg,
+  kardorim: () => kardorimSvg(),
+  kardorib: () => kardoribSvg(),
   sacrieur: sacrieurSvg,
   epee: sacrieurSwordSvg,
   chaferDebutant: () => chaferSvg('debutant'),

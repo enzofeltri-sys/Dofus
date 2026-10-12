@@ -76,6 +76,10 @@ export class Hud {
         </div>
         <div class="spells"><div class="lock"><span>${LOCK_SVG}Sorts : étape 3</span></div></div>
       </div>
+      <div class="bossbar gr-panel" hidden>
+        <div class="bname"></div>
+        <div class="gr-gauge"><span class="track"><span class="fill" style="--c: var(--magic)"></span></span><span class="val gr-num"></span></div>
+      </div>
       <div class="toast-wrap"><div class="gr-toast toast" hidden></div></div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.hpFill = root.querySelector('.hp .fill')!;
@@ -117,6 +121,16 @@ export class Hud {
   }
   topInset(): number {
     return (this.root.querySelector('.top') as HTMLElement).getBoundingClientRect().bottom;
+  }
+
+  /** Barre de vie du boss sous la plaque du donjon (null pour la cacher). */
+  setBoss(name: string | null, hp = 0, max = 1) {
+    const el = this.root.querySelector<HTMLElement>('.bossbar')!;
+    el.hidden = name === null;
+    if (name === null) return;
+    el.querySelector('.bname')!.textContent = name;
+    el.querySelector<HTMLElement>('.fill')!.style.setProperty('--v', `${(100 * Math.max(0, hp)) / max}%`);
+    el.querySelector('.val')!.textContent = `${Math.max(0, Math.round(hp))}/${max}`;
   }
 
   setLevel(level: number) {

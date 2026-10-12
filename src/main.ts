@@ -1,5 +1,7 @@
 import { Application, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } from './art/chafer';
+import { kardoribSvg, kardorimSvg } from './art/kardorim';
+import type { MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
 import { SACRIEUR_FOOT, SACRIEUR_HAND, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
 import { SACRI_PARTS, SACRI_PIVOTS, variantD2 } from './art/sacrieur-variants/official-cartoon';
@@ -19,6 +21,8 @@ import { installTheme } from './ui/theme';
  */
 
 const DEMO = new URLSearchParams(location.search).has('demo');
+/** ?salle=9 : commence directement à une salle (tests). */
+const START_ROOM = Math.max(0, Math.min(TOTAL_ROOMS - 1, (Number(new URLSearchParams(location.search).get('salle')) || 1) - 1));
 const CHAR_SCALE = 0.8;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -77,8 +81,12 @@ async function main() {
     svgTexture(sacrieurSwordSvg(), CR),
     svgTexture(gateBarsSvg(), RES),
     ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
+    Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
+    Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
-  const chaferTex: Record<ChaferKind, Texture[]> = { debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3] };
+  const chaferTex: Record<MonsterArt, Texture[]> = {
+    debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], kardorim: chaferFlat[4], kardorib: chaferFlat[5],
+  };
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
     (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
@@ -288,11 +296,11 @@ async function main() {
     const kind = m.def.art;
     const rig = new Rig(
       CHAFER_PARTS.map((p, i) => ({ name: p, tex: chaferTex[kind][i], pivot: CHAFER_PIVOTS[p] })),
-      CHAFER_FOOT, CHAR_SCALE, true,
+      CHAFER_FOOT, CHAR_SCALE * (m.def.scale ?? 1), true,
     );
     const c = new Container();
     const hpBar = new Graphics();
-    const height = 150 * CHAR_SCALE;
+    const height = 150 * CHAR_SCALE * (m.def.scale ?? 1);
     hpBar.position.set(0, -height);
     c.addChild(shadowOf(m.def.radius * 1.2), rig.root, hpBar);
     actors.addChild(c);
@@ -417,6 +425,38 @@ async function main() {
         });
         break;
       case 'roomStart':
+        if (game.boss) {
+          hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
+          later(0.4, () => hud.toast('Kardorim !', 1400));
+        } else hud.setBoss(null);
+        break;
+      case 'bossCrack': {
+        // Craquement d'Os : onde verte au sol, le boss et ses alliés accélèrent
+        shake = Math.max(shake, 7);
+        addFx(0.6, (g, k) => {
+          g.clear().ellipse(0, 0, ev.radius * (1 - k * 0.7), ev.radius * PERSP * (1 - k * 0.7)).stroke({ width: 10 * k, color: 0xb6ff7a, alpha: k });
+        }, ev.x, ev.y);
+        for (let i = 0; i < 16; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-220, 220), vy: rand(-200, -60), life: 0.5, size: 0.09, add: false, grav: 380 });
+        break;
+      }
+      case 'summon': {
+        const s = game.monsters.find((x) => x.uid === ev.uid);
+        if (s) for (let i = 0; i < 14; i++) emit(s.x, s.y - 30, 0xb6ff7a, { vx: rand(-120, 120), vy: rand(-180, -40), life: 0.5, size: 0.09 });
+        break;
+      }
+      case 'victory':
+        busy = true;
+        hud.toast('Victoire !', 1600);
+        later(1.8, async () => {
+          hud.setBoss(null);
+          await hud.overlay('Kardorim est vaincu !', 'La Crypte de Kardorim est terminée. Les sorts, les drops et l’XP arrivent dans les prochaines étapes.', 'Recommencer le donjon');
+          await transition(() => {
+            game.restart();
+            return buildRoom(0);
+          });
+          busy = false;
+        });
+        break;
       case 'telegraph':
         break;
     }
@@ -440,15 +480,7 @@ async function main() {
 
   async function nextRoom() {
     const next = game.roomIndex + 1;
-    if (next >= TOTAL_ROOMS - 1) {
-      await transition(async () => {});
-      await hud.overlay('La salle du boss', 'Kardorim t’attend derrière cette grille. Il arrivera à l’étape 3, avec les sorts du Sacrieur.', 'Recommencer le donjon');
-      await transition(() => {
-        game.restart();
-        return buildRoom(0);
-      });
-      return;
-    }
+    if (next >= TOTAL_ROOMS) return;
     await transition(() => {
       game.startRoom(next);
       return buildRoom(next);
@@ -472,8 +504,8 @@ async function main() {
   };
 
   // ---------- Premier affichage ----------
-  game.startRoom(0);
-  await buildRoom(0);
+  game.startRoom(START_ROOM);
+  await buildRoom(START_ROOM);
   camY = camTarget();
   document.getElementById('loading')?.classList.add('done');
 
@@ -539,8 +571,8 @@ async function main() {
       a.spawn = m.state === 'spawn' ? m.t / SPAWN_TIME : 1;
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
-      poseChafer(v.rig, a, CHAR_SCALE);
-      v.hpBar.visible = m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
+      poseChafer(v.rig, a, CHAR_SCALE * (m.def.scale ?? 1));
+      v.hpBar.visible = m !== game.boss && m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
       if (v.hpBar.visible) {
         const w = 46;
         v.hpBar.clear().roundRect(-w / 2 - 2, -2, w + 4, 9, 4).fill({ color: 0x1a0e0a, alpha: 0.85 })
@@ -614,6 +646,7 @@ async function main() {
     fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
     hud.setHp(h.hp, h.maxHp);
+    if (game.boss && game.phase === 'fight') hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
     hud.setPa(6);
     hud.setSuffering(0);
   });

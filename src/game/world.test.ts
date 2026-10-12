@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MONSTERS } from './data/monsters';
-import { GATE, PERSP, STEP, World } from './world';
+import { GATE, PERSP, STEP, TOTAL_ROOMS, World } from './world';
 
 type In = { x: number; y: number } | ((w: World) => { x: number; y: number });
 const run = (w: World, seconds: number, input: In = { x: 0, y: 0 }) => {
@@ -120,5 +120,30 @@ describe('World', () => {
     expect(ev.some((e) => e.type === 'wave')).toBe(true);
     expect(w.monsters.length).toBe(first + extra);
     expect(w.phase).toBe('fight');
+  });
+
+  it('salle du boss : Kardorim invoque, accélère, ses invocations meurent avec lui, victoire', () => {
+    const w = new World(2);
+    w.startRoom(TOTAL_ROOMS - 1);
+    expect(w.boss?.def.id).toBe('kardorim');
+    for (const m of w.monsters) if (m !== w.boss) m.hp = 0, m.state = 'dead';
+    w.boss!.hp = 1e6; // survit le temps du test
+    w.hero.def = { ...w.hero.def, hp: 1e6 };
+    w.hero.hp = w.hero.maxHp = 1e6;
+    const ev = run(w, 19.5);
+    expect(ev.some((e) => e.type === 'bossCrack')).toBe(true);
+    expect(ev.filter((e) => e.type === 'summon').length).toBe(1); // à 6 s, puis toutes les 18 s
+    const summons = w.monsters.filter((m) => m.summoner === w.boss!.uid);
+    expect(summons.length).toBe(1);
+    for (const m of summons) Object.assign(m, { state: 'chase', hp: 1e6 }); // vivant au moment où le boss tombe
+    // le boss tombe : ses Kardoribs aussi, et c'est la victoire
+    w.boss!.hp = 1;
+    w.boss!.hurtT = 0;
+    const end = run(w, 6, (ww) => ({ x: (ww.boss!.x - ww.hero.x) / 300, y: (ww.boss!.y - ww.hero.y) / 300 }));
+    expect(w.boss!.state).toBe('dead');
+    expect(w.monsters.filter((m) => m.summoner === w.boss!.uid).every((m) => m.state === 'dead')).toBe(true);
+    expect(end.some((e) => e.type === 'victory')).toBe(true);
+    run(w, 3);
+    expect(w.gate).toBe(0); // pas de sortie après le boss
   });
 });

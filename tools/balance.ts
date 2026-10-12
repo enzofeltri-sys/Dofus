@@ -1,5 +1,5 @@
-// Simulation d'équilibrage : joue le donjon sans affichage avec plusieurs profils de joueur.
-// npx vite-node tools/balance.ts [parties]
+// Simulation d'équilibrage : joue le donjon entier (boss compris) sans affichage, avec plusieurs profils de joueur.
+// npx vite-node tools/balance.ts [parties] [boss]   (« boss » : commence directement au boss, PV pleins)
 import { autopilotInput } from '../src/game/autopilot';
 import { STEP, TOTAL_ROOMS, World, type Vec } from '../src/game/world';
 
@@ -15,36 +15,37 @@ const POLICIES: Record<string, Policy> = {
 };
 
 const runs = Number(process.argv[2] ?? 20);
-const COMBAT_ROOMS = TOTAL_ROOMS - 1;
+const BOSS = TOTAL_ROOMS - 1;
+const ONLY_BOSS = process.argv[3] === 'boss';
+const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);
 for (const [name, pol] of Object.entries(POLICIES)) {
-  const reached: number[] = [], hpEnd: number[] = [], roomTimes: number[] = [];
+  const reached: number[] = [], hpAtBoss: number[] = [], roomTimes: number[] = [], bossTimes: number[] = [];
+  let wins = 0;
   for (let seed = 1; seed <= runs; seed++) {
     const w = new World(seed);
     w.setPlayBottom(1380);
-    w.startRoom(0);
+    w.startRoom(ONLY_BOSS ? BOSS : 0);
+    if (ONLY_BOSS) hpAtBoss.push(1);
     const mem = { lag: { x: 0, y: 0 }, next: 0 };
     let t = 0, roomStart = 0;
-    while (t < 600) {
-      w.step(pol(w, t, mem));
+    while (t < 900) {
+      const ev = (w.step(pol(w, t, mem)), w.drain());
       t += STEP;
-      w.drain();
       if (w.phase === 'dead') break;
+      if (ev.some((e) => e.type === 'victory')) { wins++; bossTimes.push(t - roomStart); break; }
       if (w.phase === 'cleared' && name === 'immobile') break; // ne sortira jamais
       if (w.phase === 'exiting') {
         roomTimes.push(t - roomStart);
-        if (w.roomIndex + 1 >= COMBAT_ROOMS) break;
         w.startRoom(w.roomIndex + 1);
         roomStart = t;
+        if (w.roomIndex === BOSS) hpAtBoss.push(w.hero.hp / w.hero.maxHp);
       }
     }
-    const done = w.phase === 'exiting' && w.roomIndex + 1 >= COMBAT_ROOMS;
-    reached.push(done ? COMBAT_ROOMS + 1 : w.roomIndex + 1);
-    if (done) hpEnd.push(w.hero.hp / w.hero.maxHp);
+    reached.push(w.roomIndex + 1);
   }
-  const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);
   const sorted = [...reached].sort((a, b) => a - b);
   console.log(
-    `${name.padEnd(9)} boss atteint ${hpEnd.length}/${runs} | salle atteinte médiane ${sorted[Math.floor(runs / 2)]} (min ${sorted[0]}) | ` +
-    `PV en arrivant au boss ${hpEnd.length ? Math.round(100 * avg(hpEnd)) + ' %' : '-'} | durée moyenne d'une salle ${avg(roomTimes).toFixed(1)} s`,
+    `${name.padEnd(9)} boss atteint ${hpAtBoss.length}/${runs} (PV ${hpAtBoss.length ? Math.round(100 * avg(hpAtBoss)) + ' %' : '-'}) | boss vaincu ${wins}/${runs}` +
+    ` | salle médiane ${sorted[Math.floor(runs / 2)]} | salle ${avg(roomTimes).toFixed(1)} s | boss ${bossTimes.length ? avg(bossTimes).toFixed(1) + ' s' : '-'}`,
   );
 }

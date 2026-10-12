@@ -7,7 +7,7 @@ const g = (level: number, hp: number, force: number): MonsterGrade => ({ level, 
  * Le reste (vitesse, attaque, télégraphe) est l'adaptation au temps réel.
  */
 
-export type Behavior = 'melee' | 'stealth' | 'lancer' | 'brute';
+export type Behavior = 'melee' | 'stealth' | 'lancer' | 'brute' | 'boss';
 export type AttackShape = 'circle' | 'cone' | 'line';
 
 export interface MonsterAttack {
@@ -37,7 +37,9 @@ export interface MonsterGrade {
 }
 
 /** Adaptation au temps réel : les monstres ont plus de PV qu'en tour par tour. */
-export const REALTIME_HP = 1.5;
+export const REALTIME_HP = 1.65;
+/** Bonus de Puissance des monstres (en % de leur multiplicateur de dégâts) : ≈ +12 % de dégâts. */
+export const MONSTER_POWER = 0.12;
 
 export interface MonsterDef {
   id: string;
@@ -51,8 +53,27 @@ export interface MonsterDef {
   /** Rayon de collision au sol (px). */
   radius: number;
   attack: MonsterAttack;
-  /** Art utilisé (variante de Chafer). */
-  art: 'debutant' | 'furtif' | 'piquier' | 'sergent';
+  /** Art utilisé (variante de Chafer, ou boss de la crypte). */
+  art: MonsterArt;
+  /** Taille d'affichage (1 = Chafer). */
+  scale?: number;
+  /** Capacités de boss, traduites des sorts Dofus (1 tour = 3 s). */
+  boss?: BossKit;
+}
+
+export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'kardorim' | 'kardorib';
+
+export interface BossKit {
+  /** Craquement d'Os : accélère le boss et ses alliés proches (s). */
+  crackEvery: number;
+  crackDuration: number;
+  haste: number;
+  crackRadius: number;
+  /** Appel de Kardorib : invocation (s). */
+  summonFirst: number;
+  summonEvery: number;
+  summon: string;
+  maxSummons: number;
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -78,6 +99,26 @@ export const MONSTERS: Record<string, MonsterDef> = {
     grades: [g(7, 36, 60), g(8, 40, 70), g(9, 44, 80), g(10, 49, 90), g(11, 54, 100)], behavior: 'brute', speed: 115, radius: 28, art: 'sergent',
     attack: { shape: 'cone', trigger: 130, size: 165, spread: 0.72, offset: 0, windup: 0.61, recover: 0.34, cooldown: [1.19, 1.7], roll: neutre(5, 9) },
   },
+  /**
+   * Kardorim (DofusDB 4051) : niveau 10, 140 à 200 PV, Force 50.
+   * Casse-crâne : corps à corps neutre 34-38, 2 fois par tour → toutes les ~1,5-2 s, très bien annoncé.
+   * Craquement d'Os : +1 PM en zone tous les 3 tours → accélération toutes les 9 s.
+   * Appel de Kardorib : invocation tous les 6 tours → toutes les 18 s.
+   */
+  kardorim: {
+    id: 'kardorim', name: 'Kardorim', dofusId: 4051,
+    grades: [g(10, 140, 50), g(10, 150, 50), g(10, 170, 50), g(10, 190, 50), g(10, 200, 50)],
+    behavior: 'boss', speed: 118, radius: 44, art: 'kardorim', scale: 1.55,
+    attack: { shape: 'circle', trigger: 135, size: 92, spread: 0, offset: 78, windup: 0.8, recover: 0.5, cooldown: [1.4, 2.0], roll: { min: 34, max: 38, critBonus: 4, critBase: 3, element: 'neutre' } },
+    boss: { crackEvery: 9, crackDuration: 3, haste: 1.6, crackRadius: 280, summonFirst: 6, summonEvery: 18, summon: 'kardorib', maxSummons: 3 },
+  },
+  /** Kardorib (DofusDB 4052) : invocation de Kardorim, niveau 10, 60 PV, Force 40. */
+  kardorib: {
+    id: 'kardorib', name: 'Kardorib', dofusId: 4052,
+    grades: [g(10, 60, 40), g(10, 60, 40), g(10, 60, 40), g(10, 60, 40), g(10, 60, 40)],
+    behavior: 'melee', speed: 165, radius: 26, art: 'kardorib',
+    attack: { shape: 'circle', trigger: 100, size: 60, spread: 0, offset: 56, windup: 0.4, recover: 0.26, cooldown: [0.9, 1.4], roll: neutre(4, 8) },
+  },
 };
 
 export const CRYPT_POOL = ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', 'chaferPiquier', 'sergentChafer'];
@@ -85,5 +126,5 @@ export const CRYPT_POOL = ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', '
 /** Statistiques d'un monstre à un grade donné (1 à 5). */
 export function gradeStats(def: MonsterDef, grade: number): { level: number; maxHp: number; stats: Stats } {
   const gr = def.grades[Math.max(1, Math.min(def.grades.length, grade)) - 1];
-  return { level: gr.level, maxHp: Math.round(gr.hp * REALTIME_HP), stats: baseStats({ force: gr.force }) };
+  return { level: gr.level, maxHp: Math.round(gr.hp * REALTIME_HP), stats: baseStats({ force: gr.force, puissance: Math.round((100 + gr.force) * MONSTER_POWER) }) };
 }
