@@ -1,246 +1,308 @@
-import { TILE_H, TILE_W, rng } from '../iso';
+import { rng } from '../iso';
 import { shade } from '../svg';
 
 /**
- * Fond statique d'une salle de la Crypte de Kardorim :
- * sol en dalles isométriques + deux murs de pierre (arrière-gauche, arrière-droit)
- * avec niches à crânes, torches, bannière et porte de sortie.
+ * Salle de la Crypte de Kardorim — format PORTRAIT plein écran, vue de dessus 3/4 (façon Archero),
+ * direction artistique des vraies cartes Dofus de la crypte :
+ * - mur du fond vu de face : colonnade d'arcades rouge-brun sur piliers rouges peints de flammes,
+ *   chapiteaux crème sculptés de crânes, mur ocre peint de flammes, grille de sortie lumineuse ;
+ * - murs latéraux avec chaperon (dessus) et face intérieure ombrée → profondeur ;
+ * - sol de dalles en grès doré, tailles irrégulières, biseautées, taches et débris.
  *
- * Tout est généré en un seul SVG, rastérisé une fois.
+ * Unités : pixels « de conception ». La salle fait ROOM_W de large (= largeur de l'écran).
  */
 
-export const ROOM_N = 11; // salle de 11 × 11 cases
-export const WALL_H = 190;
-const PAD = 40;
-const HW = TILE_W / 2;
-const HH = TILE_H / 2;
+export const ROOM_W = 720;
+export const ROOM_H = 1560;
+/** Ligne du pied du mur du fond (début du sol). */
+export const FLOOR_TOP = 300;
+/** Limites jouables. */
+export const BOUNDS = { x0: 76, x1: ROOM_W - 76, y0: FLOOR_TOP + 24, y1: ROOM_H - 60 };
 
-export const ROOM_W = ROOM_N * TILE_W + PAD * 2;
-export const ROOM_H = ROOM_N * TILE_H + WALL_H + PAD * 2;
-/** Position, dans le SVG, du coin arrière de la salle (case 0,0). */
-export const ORIGIN = { x: ROOM_N * HW + PAD, y: WALL_H + PAD };
+const SIDE = 34; // épaisseur du chaperon des murs latéraux
+const FACE = 26; // face intérieure visible des murs latéraux
 
-const STONE = '#968b78';
-const GROUT = '#4d463f';
-const WALL_L = '#9a917f'; // mur gauche, éclairé
-const WALL_R = '#7a7266'; // mur droit, dans l'ombre
+const SAND = '#c9ae78';
+const SAND_LIGHT = '#f2e2b2';
+const SAND_DARK = '#8a7246';
+const GROUT = '#7a6440';
+const ARCH = '#8e3d24';
+const PILLAR = '#7c2c1c';
+const FLAME = '#e0782c';
+const CREAM = '#e6d6aa';
+const CREAM_INK = '#6e5a36';
+const OCHRE = '#c99a46';
 
-function iso(x: number, y: number): [number, number] {
-  return [ORIGIN.x + (x - y) * HW, ORIGIN.y + (x + y) * HH];
+/** Appliques (lumières murales), en coordonnées de salle. */
+export const LIGHTS: { x: number; y: number }[] = [];
+/** Centre de la grille de sortie. */
+export const EXIT = { x: ROOM_W / 2, y: FLOOR_TOP - 70 };
+
+const f1 = (n: number) => n.toFixed(1);
+
+/* ------------------------------------------------------------------ */
+/* Mur du fond : colonnade vue de face                                 */
+/* ------------------------------------------------------------------ */
+
+function backWall(r: () => number): string {
+  const o: string[] = [];
+  const spring = 128; // naissance des arcs (haut des chapiteaux)
+  const apex = 34; // sommet de l'intrados
+  const T = 34; // épaisseur des arcs
+  const pillars = [58, 250, 470, 662];
+
+  // Maçonnerie sombre au-dessus des arcs (voûte dans la pénombre, sans noir).
+  o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP}" fill="url(#vault)"/>`);
+  for (let y = 4, row = 0; y < spring; y += 26, row++) {
+    for (let x = row % 2 ? -26 : 0; x < ROOM_W; x += 58) o.push(`<rect x="${x + 2}" y="${y}" width="54" height="22" rx="4" fill="#6a3620" opacity="0.5"/>`);
+  }
+
+  const arc = (u0: number, u1: number, top: number, n = 28) => {
+    const cu = (u0 + u1) / 2, half = (u1 - u0) / 2;
+    const pts: [number, number][] = [];
+    for (let k = 0; k <= n; k++) {
+      const a = Math.PI * (1 - k / n);
+      pts.push([cu + Math.cos(a) * half, spring + (top - spring) * Math.sin(a)]);
+    }
+    return pts;
+  };
+  const P = (ps: [number, number][]) => ps.map((p) => `${f1(p[0])},${f1(p[1])}`).join(' L');
+
+  // Mur ocre (sous la naissance des arcs + dans chaque arc).
+  const clip: string[] = [`M0,${FLOOR_TOP} L0,${spring} L${ROOM_W},${spring} L${ROOM_W},${FLOOR_TOP} Z`];
+  for (let i = 0; i < 3; i++) clip.push(`M${P(arc(pillars[i] + 30 - T, pillars[i + 1] - 30 + T, apex - T))} Z`);
+  o.push(`<clipPath id="wallClip"><path d="${clip.join(' ')}"/></clipPath>`);
+  o.push(`<g clip-path="url(#wallClip)"><rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP}" fill="url(#ochre)"/>`);
+  for (let y = FLOOR_TOP - 26, row = 0; y > 0; y -= 26, row++) {
+    o.push(`<path d="M0,${y} L${ROOM_W},${y}" stroke="${shade(OCHRE, -0.35)}" stroke-width="1.4" opacity="0.3"/>`);
+    for (let x = row % 2 ? 26 : 0; x < ROOM_W; x += 52) o.push(`<path d="M${x},${y} l0,26" stroke="${shade(OCHRE, -0.35)}" stroke-width="1.4" opacity="0.25"/>`);
+  }
+  for (let x = 14; x < ROOM_W; x += 30 + r() * 28) {
+    const h = 40 + r() * 60, y0 = FLOOR_TOP - 20 - r() * 70;
+    o.push(`<path d="M${f1(x)},${f1(y0)} q${f1(-6 - r() * 6)},${f1(-h * 0.5)} 2,${f1(-h)} q${f1(2 + r() * 6)},${f1(h * 0.45)} 10,${f1(h * 0.2)} q2,${f1(h * 0.4)} -12,${f1(h * 0.8)} Z" fill="${FLAME}" opacity="${(0.2 + r() * 0.22).toFixed(2)}"/>`);
+  }
+  o.push('</g>');
+
+  // Mobilier du fond des travées.
+  o.push(shelves(154, r));
+  o.push(chains(566), sconce(566));
+  LIGHTS.push({ x: 566, y: 190 });
+  o.push(exitGate(ROOM_W / 2));
+
+  // Arcs : douelle (profondeur), bandeau, claveaux, motifs, pointes.
+  for (let i = 0; i < 3; i++) {
+    const u0 = pillars[i] + 30, u1 = pillars[i + 1] - 30;
+    const inner = arc(u0, u1, apex), outer = arc(u0 - T, u1 + T, apex - T), deep = arc(u0 + 12, u1 - 12, apex + 16);
+    o.push(`<path d="M${P(inner)} L${P([...deep].reverse())} Z" fill="#4e1c10"/>`);
+    o.push(`<path d="M${P(outer)} L${P([...inner].reverse())} Z" fill="url(#archG)" stroke="#3a140a" stroke-width="3" stroke-linejoin="round"/>`);
+    for (let k = 2; k < 28; k += 3) {
+      o.push(`<path d="M${f1(inner[k][0])},${f1(inner[k][1])} L${f1(outer[k][0])},${f1(outer[k][1])}" stroke="#3a140a" stroke-width="2.5"/>`);
+      if ((k / 3) % 2 === 0 && k + 2 < 28) {
+        const mx = (inner[k + 1][0] + outer[k + 2][0]) / 2, my = (inner[k + 1][1] + outer[k + 2][1]) / 2;
+        o.push(`<g fill="#5a200e" opacity="0.9"><circle cx="${f1(mx - 4.5)}" cy="${f1(my + 2.5)}" r="3.4"/><circle cx="${f1(mx + 4.5)}" cy="${f1(my + 2.5)}" r="3.4"/><circle cx="${f1(mx)}" cy="${f1(my - 4.5)}" r="3.4"/></g>`);
+      }
+    }
+    o.push(`<path d="M${P(arc(u0 - T + 5, u1 + T - 5, apex - T + 5).slice(4, 25))}" fill="none" stroke="#e39a6a" stroke-width="3" opacity="0.4" stroke-linecap="round"/>`);
+    for (const k of [6, 14, 22]) {
+      const [x, y] = outer[k];
+      const a = Math.atan2(y - spring, x - (u0 + u1) / 2);
+      const nx = Math.cos(a), ny = Math.sin(a), tx = -ny, ty = nx;
+      const p1 = [x + tx * 13, y + ty * 13], p2 = [x + nx * 30, y + ny * 30], p3 = [x - tx * 13, y - ty * 13];
+      o.push(`<path d="M${f1(p1[0])},${f1(p1[1])} L${f1(p2[0])},${f1(p2[1])} L${f1(p3[0])},${f1(p3[1])} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.5" stroke-linejoin="round"/>`);
+      o.push(`<path d="M${f1(p2[0])},${f1(p2[1])} L${f1(p3[0])},${f1(p3[1])} L${f1(x)},${f1(y)} Z" fill="${shade(CREAM, -0.22)}"/>`);
+    }
+  }
+
+  // Piliers engagés (devant les arcs).
+  for (const x of pillars) o.push(wallPillar(x, spring));
+  o.push(cobweb(pillars[1] + 32, spring + 4, 1));
+  o.push(cobweb(pillars[3] - 32, spring + 4, -1));
+  return o.join('\n');
 }
-const pt = (p: [number, number]) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
 
-/** Points d'accroche des torches, en coordonnées du SVG (pour les halos et flammes animés). */
-export const TORCHES: { x: number; y: number }[] = [];
-
-// Repère local d'un mur : u = pixels le long du mur, v = pixels vers le bas (négatif = vers le haut).
-const DIAG = Math.hypot(HW, HH);
-const LEFT_M = { a: -HW / DIAG, b: HH / DIAG, e: ORIGIN.x, f: ORIGIN.y };
-const RIGHT_M = { a: HW / DIAG, b: HH / DIAG, e: ORIGIN.x, f: ORIGIN.y };
-const WALL_LEN = ROOM_N * DIAG;
-
-function wallToScreen(m: typeof LEFT_M, u: number, v: number) {
-  return { x: m.e + m.a * u, y: m.f + m.b * u + v };
+function wallPillar(u: number, spring: number): string {
+  const W = 46, base = FLOOR_TOP;
+  const o: string[] = [];
+  o.push(`<rect x="${u - W / 2}" y="${spring}" width="${W}" height="${base - spring - 30}" fill="url(#pillarG)" stroke="#3a120a" stroke-width="3"/>`);
+  o.push(`<path d="M${u - 10},${base - 40} q-10,-26 4,-56 q-2,26 10,32 q4,-18 -2,-36 q16,24 4,60 Z" fill="${FLAME}" opacity="0.9"/>`);
+  o.push(`<path d="M${u - 4},${base - 46} q-4,-14 3,-30 q0,14 6,20 Z" fill="#ffc06a" opacity="0.9"/>`);
+  o.push(`<rect x="${u + W / 2 - 12}" y="${spring + 2}" width="10" height="${base - spring - 34}" fill="#000" opacity="0.2"/>`);
+  o.push(`<path d="M${u - 34},${base} L${u - 34},${base - 30} L${u + 34},${base - 30} L${u + 34},${base} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="3"/>`);
+  o.push(`<path d="M${u - 30},${base - 30} Q${u},${base - 42} ${u + 30},${base - 30} Z" fill="${shade(CREAM, -0.06)}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
+  o.push(`<path d="M${u - 33},${base - 27} L${u + 33},${base - 27}" stroke="#fff6d8" stroke-width="2" opacity="0.8"/>`);
+  const cy = spring + 4;
+  o.push(`<path d="M${u - 34},${cy} L${u - 30},${cy - 34} L${u + 30},${cy - 34} L${u + 34},${cy} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="3" stroke-linejoin="round"/>`);
+  o.push(`<path d="M${u - 40},${cy - 34} L${u + 40},${cy - 34} L${u + 36},${cy - 46} L${u - 36},${cy - 46} Z" fill="${shade(CREAM, 0.15)}" stroke="${CREAM_INK}" stroke-width="3" stroke-linejoin="round"/>`);
+  o.push(`<path d="M${u - 13},${cy - 20} q-3,-8 3,-9 q6,0 8,6 Z" fill="#5a4626"/><path d="M${u + 13},${cy - 20} q3,-8 -3,-9 q-6,0 -8,6 Z" fill="#5a4626"/>`);
+  o.push(`<path d="M${u - 2},${cy - 12} l2,-5 l2,5 Z" fill="#5a4626"/>`);
+  o.push(`<path d="M${u - 11},${cy - 6} L${u + 11},${cy - 6} M${u - 6},${cy - 9} l0,6 M${u},${cy - 9} l0,6 M${u + 6},${cy - 9} l0,6" stroke="#5a4626" stroke-width="1.8"/>`);
+  return o.join('');
 }
 
-function wall(m: typeof LEFT_M, base: string, seed: number, side: 'L' | 'R'): string {
+function shelves(u: number, r: () => number): string {
+  const o: string[] = [];
+  o.push(`<rect x="${u - 56}" y="150" width="112" height="134" rx="4" fill="#3e2c1a" stroke="#2a1a0c" stroke-width="3"/>`);
+  for (const y of [192, 236]) o.push(`<rect x="${u - 56}" y="${y}" width="112" height="7" fill="#7a5634" stroke="#2a1a0c" stroke-width="2"/>`);
+  const item = (x: number, y: number) => {
+    const k = r();
+    if (k < 0.55) {
+      o.push(`<ellipse cx="${f1(x)}" cy="${y - 10}" rx="10" ry="9" fill="#efe4c4" stroke="${CREAM_INK}" stroke-width="2"/>`);
+      o.push(`<ellipse cx="${f1(x - 3.5)}" cy="${y - 11}" rx="2.6" ry="3" fill="#3a2a22"/><ellipse cx="${f1(x + 3.5)}" cy="${y - 11}" rx="2.6" ry="3" fill="#3a2a22"/>`);
+    } else if (k < 0.8) {
+      o.push(`<path d="M${f1(x - 14)},${y - 4} L${f1(x + 14)},${y - 10}" stroke="${CREAM_INK}" stroke-width="7" stroke-linecap="round"/><path d="M${f1(x - 14)},${y - 4} L${f1(x + 14)},${y - 10}" stroke="#efe4c4" stroke-width="4" stroke-linecap="round"/>`);
+    } else {
+      o.push(`<path d="M${f1(x - 8)},${y} Q${f1(x - 11)},${y - 14} ${f1(x - 5)},${y - 20} L${f1(x + 5)},${y - 20} Q${f1(x + 11)},${y - 14} ${f1(x + 8)},${y} Z" fill="#5a6a6a" stroke="#2a3434" stroke-width="2"/>`);
+    }
+  };
+  for (const y of [190, 234, 282]) for (let i = 0; i < 3; i++) if (r() < 0.85) item(u - 32 + i * 32 + (r() - 0.5) * 8, y);
+  return o.join('');
+}
+
+function chains(u: number): string {
+  let d = '';
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8;
+    const x = u - 50 + t * 100, y = 150 + Math.sin(t * Math.PI) * 32;
+    d += `<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="7" ry="4.5" fill="none" stroke="#3c4a3a" stroke-width="3.5" transform="rotate(${(Math.cos(t * Math.PI) * -30).toFixed(0)} ${f1(x)} ${f1(y)})"/>`;
+  }
+  return d;
+}
+
+function sconce(u: number): string {
+  return `<path d="M${u - 16},196 Q${u},210 ${u + 16},196 L${u + 11},208 Q${u},218 ${u - 11},208 Z" fill="#4a3a2a" stroke="#22180e" stroke-width="2.5"/>
+    <path d="M${u},212 L${u},242" stroke="#4a3a2a" stroke-width="5"/><path d="M${u - 10},242 L${u + 10},242" stroke="#4a3a2a" stroke-width="5" stroke-linecap="round"/>`;
+}
+
+function exitGate(u: number): string {
+  const o: string[] = [];
+  const b = FLOOR_TOP;
+  o.push(`<path d="M${u - 70},${b} L${u - 70},${b - 120} Q${u},${b - 196} ${u + 70},${b - 120} L${u + 70},${b} Z" fill="url(#gateLight)" stroke="#2a1a0c" stroke-width="4"/>`);
+  for (let i = -4; i <= 4; i++) o.push(`<path d="M${u + i * 15},${b} L${u + i * 15},${b - 160 + i * i * 3}" stroke="#2e2a26" stroke-width="5"/>`);
+  for (const y of [b - 36, b - 92]) o.push(`<path d="M${u - 70},${y} L${u + 70},${y}" stroke="#2e2a26" stroke-width="6"/>`);
+  o.push(`<circle cx="${u}" cy="${b - 132}" r="16" fill="none" stroke="#2e2a26" stroke-width="5"/><circle cx="${u}" cy="${b - 132}" r="5" fill="#c9a24a"/>`);
+  return o.join('');
+}
+
+function cobweb(x: number, y: number, dir: 1 | -1): string {
+  return `<g stroke="#f4f0e8" stroke-width="1.2" fill="none" opacity="0.5">
+    <path d="M${x},${y} L${x + dir * 56},${y - 66} M${x},${y} L${x + dir * 24},${y - 76} M${x},${y} L${x + dir * 70},${y - 28}"/>
+    <path d="M${x + dir * 12},${y - 16} Q${x + dir * 20},${y - 14} ${x + dir * 22},${y - 6} M${x + dir * 24},${y - 32} Q${x + dir * 40},${y - 28} ${x + dir * 44},${y - 14} M${x + dir * 36},${y - 50} Q${x + dir * 56},${y - 44} ${x + dir * 60},${y - 24}"/></g>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Murs latéraux (profondeur) et mur avant                             */
+/* ------------------------------------------------------------------ */
+
+function sideWalls(r: () => number): string {
+  const o: string[] = [];
+  for (const side of [0, 1]) {
+    const capX = side === 0 ? 0 : ROOM_W - SIDE;
+    const faceX = side === 0 ? SIDE : ROOM_W - SIDE - FACE;
+    o.push(`<rect x="${faceX}" y="${FLOOR_TOP - 10}" width="${FACE}" height="${ROOM_H - FLOOR_TOP}" fill="url(#${side === 0 ? 'faceL' : 'faceR'})"/>`);
+    for (let y = FLOOR_TOP; y < ROOM_H; y += 30) o.push(`<path d="M${faceX},${y} l${FACE},0" stroke="#3a2a14" stroke-width="1.5" opacity="0.45"/>`);
+    o.push(`<rect x="${capX}" y="0" width="${SIDE}" height="${ROOM_H}" fill="#a88a58"/>`);
+    for (let y = -10; y < ROOM_H; y += 40 + r() * 20) {
+      o.push(`<rect x="${capX + 3}" y="${f1(y)}" width="${SIDE - 6}" height="${f1(34 + r() * 14)}" rx="5" fill="${shade('#c9ad78', (r() - 0.5) * 0.2)}" stroke="#6e5530" stroke-width="2"/>`);
+    }
+    for (let y = FLOOR_TOP + 260; y < ROOM_H - 120; y += 380) {
+      const px = side === 0 ? SIDE - 4 : ROOM_W - SIDE - 40;
+      o.push(`<rect x="${px}" y="${y - 70}" width="44" height="120" rx="4" fill="url(#pillarG)" stroke="#3a120a" stroke-width="3"/>`);
+      o.push(`<path d="M${px + 14},${y + 36} q-8,-22 4,-46 q-2,22 8,26 q3,-14 -2,-28 q13,20 3,48 Z" fill="${FLAME}" opacity="0.9"/>`);
+      o.push(`<rect x="${px - 4}" y="${y - 84}" width="52" height="18" rx="3" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
+      o.push(`<rect x="${px - 4}" y="${y + 46}" width="52" height="16" rx="3" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
+      const lx = side === 0 ? px + 46 : px - 2;
+      o.push(`<path d="M${lx - 10},${y - 34} Q${lx},${y - 24} ${lx + 10},${y - 34} L${lx + 7},${y - 26} Q${lx},${y - 20} ${lx - 7},${y - 26} Z" fill="#4a3a2a" stroke="#22180e" stroke-width="2"/>`);
+      LIGHTS.push({ x: lx, y: y - 44 });
+    }
+  }
+  o.push(`<rect x="0" y="${ROOM_H - 34}" width="${ROOM_W}" height="34" fill="#a88a58"/>`);
+  for (let x = -10; x < ROOM_W; x += 60) o.push(`<rect x="${x}" y="${ROOM_H - 31}" width="56" height="28" rx="5" fill="${shade('#c9ad78', (r() - 0.5) * 0.2)}" stroke="#6e5530" stroke-width="2"/>`);
+  return o.join('\n');
+}
+
+/* ------------------------------------------------------------------ */
+/* Sol                                                                 */
+/* ------------------------------------------------------------------ */
+
+function floor(r: () => number): string {
+  const o: string[] = [];
+  const x0 = SIDE + FACE - 6, x1 = ROOM_W - SIDE - FACE + 6, y0 = FLOOR_TOP, y1 = ROOM_H - 34;
+  o.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="${GROUT}"/>`);
+  const CW = 44, CH = 38; // demi-dalle, profondeur légèrement écrasée (vue 3/4)
+  const W = Math.ceil((x1 - x0) / CW), H = Math.ceil((y1 - y0) / CH);
+  const used = new Uint8Array(W * H);
+  const free = (i: number, j: number, w: number, h: number) => {
+    if (i + w > W || j + h > H) return false;
+    for (let dj = 0; dj < h; dj++) for (let di = 0; di < w; di++) if (used[(j + dj) * W + i + di]) return false;
+    return true;
+  };
+  const sizes: [number, number][] = [[2, 2], [2, 2], [3, 2], [2, 3], [1, 2], [2, 1], [3, 3], [1, 1], [2, 2], [3, 2]];
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    if (used[j * W + i]) continue;
+    let [w, h] = sizes[Math.floor(r() * sizes.length)];
+    while (!free(i, j, w, h) && (w > 1 || h > 1)) { if (w >= h && w > 1) w--; else h--; }
+    for (let dj = 0; dj < h; dj++) for (let di = 0; di < w; di++) used[(j + dj) * W + i + di] = 1;
+    o.push(slab(x0 + i * CW, y0 + j * CH, w * CW, h * CH, r));
+  }
+  for (let k = 0; k < 22; k++) {
+    const cx = x0 + r() * (x1 - x0), cy = y0 + r() * (y1 - y0);
+    const pts: string[] = [];
+    const R = 24 + r() * 50;
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2, rr = R * (0.5 + r() * 0.6);
+      pts.push(`${f1(cx + Math.cos(a) * rr * 1.3)},${f1(cy + Math.sin(a) * rr * 0.9)}`);
+    }
+    o.push(`<polygon points="${pts.join(' ')}" fill="#5e4422" opacity="${(0.15 + r() * 0.16).toFixed(2)}" filter="url(#soft)"/>`);
+  }
+  for (let k = 0; k < 50; k++) {
+    const cx = x0 + r() * (x1 - x0), cy = y0 + r() * (y1 - y0), s = 3 + r() * 5;
+    o.push(`<path d="M${f1(cx - s)},${f1(cy)} l${f1(s * 0.6)},${f1(-s * 0.7)} l${f1(s * 1.2)},${f1(s * 0.2)} l${f1(-s * 0.3)},${f1(s * 0.6)} Z" fill="${SAND_LIGHT}" stroke="${SAND_DARK}" stroke-width="1.2"/>`);
+  }
+  o.push(`<ellipse cx="250" cy="1010" rx="30" ry="22" fill="#3a3430" stroke="#1e1a16" stroke-width="3"/>`);
+  for (let i = -2; i <= 2; i++) o.push(`<path d="M${250 + i * 10},${992 + Math.abs(i) * 3} L${250 + i * 10},${1028 - Math.abs(i) * 3}" stroke="#1e1a16" stroke-width="3"/>`);
+  o.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#000" filter="url(#grain)" opacity="0.12"/>`);
+  o.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="70" fill="url(#backShadow)"/>`);
+  o.push(`<rect x="${x0}" y="${y0}" width="50" height="${y1 - y0}" fill="url(#sideShadowL)"/>`);
+  o.push(`<rect x="${x1 - 50}" y="${y0}" width="50" height="${y1 - y0}" fill="url(#sideShadowR)"/>`);
+  return o.join('\n');
+}
+
+function slab(x: number, y: number, w: number, h: number, r: () => number): string {
+  const g = 2.5;
+  const a: [number, number] = [x + g, y + g], b: [number, number] = [x + w - g, y + g], c: [number, number] = [x + w - g, y + h - g], d: [number, number] = [x + g, y + h - g];
+  const fill = shade(SAND, (r() - 0.5) * 0.2 - (r() < 0.1 ? 0.12 : 0));
+  const P = (ps: [number, number][]) => ps.map((p) => `${f1(p[0])},${f1(p[1])}`).join(' ');
+  const o: string[] = [];
+  o.push(`<rect x="${f1(a[0])}" y="${f1(a[1])}" width="${f1(w - 2 * g)}" height="${f1(h - 2 * g)}" rx="3" fill="${fill}"/>`);
+  o.push(`<polyline points="${P([d, a, b])}" fill="none" stroke="${SAND_LIGHT}" stroke-width="2.4" stroke-linejoin="round" opacity="0.85"/>`);
+  o.push(`<polyline points="${P([b, c, d])}" fill="none" stroke="${SAND_DARK}" stroke-width="3" stroke-linejoin="round" opacity="0.85"/>`);
+  if (r() < 0.25) {
+    const sx = x + w * (0.2 + r() * 0.5), sy = y + h * (0.2 + r() * 0.5);
+    o.push(`<path d="M${f1(sx)},${f1(sy)} l${f1(6 + r() * 8)},${f1(3 + r() * 4)} l${f1(-3 + r() * 6)},7 l9,3" fill="none" stroke="${SAND_DARK}" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>`);
+  }
+  if (r() < 0.2) o.push(`<ellipse cx="${f1(x + w / 2)}" cy="${f1(y + h / 2)}" rx="${f1(10 + r() * 14)}" ry="${f1(5 + r() * 6)}" fill="${SAND_LIGHT}" opacity="0.35"/>`);
+  return o.join('');
+}
+
+export function cryptRoomSvg(seed = 7): string {
+  LIGHTS.length = 0;
   const r = rng(seed);
-  const out: string[] = [];
-  const mat = `matrix(${m.a} ${m.b} 0 1 ${m.e} ${m.f})`;
-  out.push(`<g transform="${mat}">`);
-  // fond du mur (joints)
-  out.push(`<rect x="0" y="${-WALL_H}" width="${WALL_LEN}" height="${WALL_H}" fill="${GROUT}"/>`);
-  // pierres de taille, rangées décalées
-  const rowH = 27;
-  for (let row = 0; row * rowH < WALL_H; row++) {
-    const y0 = -(row + 1) * rowH;
-    let u = row % 2 ? -22 : 0;
-    while (u < WALL_LEN) {
-      const w = 38 + r() * 26;
-      const c = shade(base, (r() - 0.5) * 0.18);
-      const x0 = Math.max(u + 2, 0);
-      const x1 = Math.min(u + w - 2, WALL_LEN);
-      if (x1 - x0 > 6) {
-        out.push(`<rect x="${x0.toFixed(1)}" y="${(y0 + 2).toFixed(1)}" width="${(x1 - x0).toFixed(1)}" height="${rowH - 4}" rx="5" fill="${c}"/>`);
-        // reflet sur l'arête haute de la pierre
-        out.push(`<rect x="${(x0 + 3).toFixed(1)}" y="${(y0 + 3.5).toFixed(1)}" width="${(x1 - x0 - 6).toFixed(1)}" height="3" rx="1.5" fill="#fff" opacity="0.13"/>`);
-        if (r() < 0.12) {
-          const cx = x0 + (x1 - x0) * r();
-          out.push(`<path d="M${cx},${y0 + 3} l4,8 l-3,6 l5,7" fill="none" stroke="${shade(base, -0.45)}" stroke-width="1.5" stroke-linecap="round"/>`);
-        }
-      }
-      u += w;
-    }
-  }
-  // dégradé d'ombre : le haut du mur se perd dans le noir de la crypte
-  out.push(`<rect x="0" y="${-WALL_H}" width="${WALL_LEN}" height="${WALL_H}" fill="url(#wallFade)"/>`);
-  // plinthe sombre au pied du mur
-  out.push(`<rect x="0" y="-16" width="${WALL_LEN}" height="16" fill="${shade(base, -0.5)}" opacity="0.55"/>`);
-
-  // décor du mur
-  const niche = (u: number) => {
-    out.push(`<path d="M${u - 26},-30 L${u - 26},-96 Q${u},-128 ${u + 26},-96 L${u + 26},-30 Z" fill="${shade(base, -0.25)}" stroke="${shade(base, -0.55)}" stroke-width="3"/>`);
-    out.push(`<path d="M${u - 18},-34 L${u - 18},-92 Q${u},-116 ${u + 18},-92 L${u + 18},-34 Z" fill="#1d1820"/>`);
-    // crâne dans la niche
-    out.push(`<ellipse cx="${u}" cy="-52" rx="11" ry="10" fill="#e8dfc8" stroke="#6e5f44" stroke-width="2"/>`);
-    out.push(`<ellipse cx="${u - 4}" cy="-52" rx="3" ry="3.4" fill="#2a2024"/><ellipse cx="${u + 4}" cy="-52" rx="3" ry="3.4" fill="#2a2024"/>`);
-    out.push(`<rect x="${u - 6}" y="-44" width="12" height="5" rx="1.5" fill="#e8dfc8" stroke="#6e5f44" stroke-width="1.5"/>`);
-    // bougie
-    out.push(`<rect x="${u + 12}" y="-46" width="5" height="12" rx="1.5" fill="#efe3c0" stroke="#8a7a50" stroke-width="1"/>`);
-    out.push(`<path d="M${u + 14.5},-54 q3,4 0,8 q-3,-4 0,-8 Z" fill="#ffcf5a"/>`);
-  };
-  const torch = (u: number) => {
-    out.push(`<path d="M${u - 7},-92 L${u + 7},-92 L${u + 4},-78 L${u - 4},-78 Z" fill="#3b3337" stroke="#1a1618" stroke-width="2"/>`);
-    out.push(`<rect x="${u - 2.5}" y="-80" width="5" height="22" rx="2" fill="#5a3d26" stroke="#2a1a10" stroke-width="1.5"/>`);
-    out.push(`<path d="M${u - 10},-60 L${u + 10},-60" stroke="#3b3337" stroke-width="4" stroke-linecap="round"/>`);
-    const p = wallToScreen(m, u, -100);
-    TORCHES.push({ x: p.x, y: p.y });
-  };
-  const banner = (u: number) => {
-    out.push(`<path d="M${u - 30},-170 L${u + 30},-170" stroke="#5a3d26" stroke-width="5" stroke-linecap="round"/>`);
-    out.push(`<path d="M${u - 24},-168 L${u + 24},-168 L${u + 24},-92 L${u + 12},-100 L${u + 4},-86 L${u - 8},-98 L${u - 24},-88 Z" fill="#3f5a3a" stroke="#1f2e1c" stroke-width="3"/>`);
-    out.push(`<ellipse cx="${u}" cy="-132" rx="11" ry="10" fill="#d9a62a" stroke="#6a4a10" stroke-width="2"/>`);
-    out.push(`<ellipse cx="${u - 4}" cy="-133" rx="2.6" ry="3" fill="#3f5a3a"/><ellipse cx="${u + 4}" cy="-133" rx="2.6" ry="3" fill="#3f5a3a"/>`);
-  };
-  const door = (u: number) => {
-    out.push(`<path d="M${u - 44},0 L${u - 44},-104 Q${u},-160 ${u + 44},-104 L${u + 44},0 Z" fill="${shade(base, -0.2)}" stroke="${shade(base, -0.55)}" stroke-width="3"/>`);
-    out.push(`<path d="M${u - 34},0 L${u - 34},-100 Q${u},-146 ${u + 34},-100 L${u + 34},0 Z" fill="#5b3a22" stroke="#2a180c" stroke-width="3"/>`);
-    for (const dx of [-17, 0, 17]) out.push(`<path d="M${u + dx},-2 L${u + dx},${dx === 0 ? -134 : -118}" stroke="#3d2412" stroke-width="2"/>`);
-    out.push(`<path d="M${u - 34},-32 L${u + 34},-32 M${u - 34},-80 L${u + 34},-80" stroke="#43464d" stroke-width="6"/>`);
-    out.push(`<circle cx="${u + 20}" cy="-56" r="5" fill="none" stroke="#c9a24a" stroke-width="2.5"/>`);
-  };
-  const cobweb = (u: number, dir: 1 | -1) => {
-    const x = u, y = -WALL_H;
-    out.push(`<g stroke="#e8e4f0" stroke-width="1" fill="none" opacity="0.35">
-      <path d="M${x},${y} L${x + dir * 46},${y + 46} M${x},${y} L${x + dir * 20},${y + 56} M${x},${y} L${x + dir * 56},${y + 18}"/>
-      <path d="M${x + dir * 14},${y + 4} Q${x + dir * 12},${y + 14} ${x + dir * 6},${y + 16} M${x + dir * 30},${y + 8} Q${x + dir * 26},${y + 26} ${x + dir * 12},${y + 34} M${x + dir * 44},${y + 13} Q${x + dir * 38},${y + 38} ${x + dir * 17},${y + 48}"/></g>`);
-  };
-
-  if (side === 'L') {
-    niche(WALL_LEN * 0.22);
-    torch(WALL_LEN * 0.4);
-    banner(WALL_LEN * 0.56);
-    torch(WALL_LEN * 0.72);
-    niche(WALL_LEN * 0.88);
-    cobweb(4, 1);
-  } else {
-    niche(WALL_LEN * 0.18);
-    torch(WALL_LEN * 0.34);
-    door(WALL_LEN * 0.55);
-    torch(WALL_LEN * 0.76);
-    niche(WALL_LEN * 0.9);
-  }
-  out.push('</g>');
-  return out.join('\n');
-}
-
-function floor(): string {
-  const r = rng(7);
-  const out: string[] = [];
-  const floorPoly = [iso(0, 0), iso(ROOM_N, 0), iso(ROOM_N, ROOM_N), iso(0, ROOM_N)].map(pt).join(' ');
-  out.push(`<polygon points="${floorPoly}" fill="${GROUT}"/>`);
-  for (let gx = 0; gx < ROOM_N; gx++) {
-    for (let gy = 0; gy < ROOM_N; gy++) {
-      const k = 0.05;
-      const j = () => (r() - 0.5) * 0.05;
-      const a = iso(gx + k + j(), gy + k + j()), b = iso(gx + 1 - k + j(), gy + k + j()), c = iso(gx + 1 - k + j(), gy + 1 - k + j()), d = iso(gx + k + j(), gy + 1 - k + j());
-      const v = (r() - 0.5) * 0.22 + (r() < 0.12 ? -0.12 : 0);
-      const fill = shade(STONE, v);
-      out.push(`<polygon points="${[a, b, c, d].map(pt).join(' ')}" fill="${fill}" stroke="${shade(fill, -0.18)}" stroke-width="1.5" stroke-linejoin="round"/>`);
-      // reflet sur les arêtes hautes de la dalle
-      out.push(`<polyline points="${[d, a, b].map(pt).join(' ')}" fill="none" stroke="#fff" stroke-opacity="0.16" stroke-width="2"/>`);
-      if (r() < 0.22) {
-        const s = iso(gx + 0.25 + r() * 0.3, gy + 0.2 + r() * 0.3);
-        out.push(`<path d="M${pt(s)} l${8 + r() * 6},${4 + r() * 3} l${-2 + r() * 4},${6} l${7},${2}" fill="none" stroke="${shade(fill, -0.42)}" stroke-width="1.4" stroke-linecap="round"/>`);
-      }
-      if ((gx === 0 || gy === 0) && r() < 0.5) {
-        const m = iso(gx + 0.5, gy + 0.5);
-        out.push(`<ellipse cx="${m[0]}" cy="${m[1]}" rx="${18 + r() * 14}" ry="${7 + r() * 5}" fill="#5d7a3a" opacity="0.32" filter="url(#soft)"/>`);
-      }
-    }
-  }
-  // tapis usé (rouge sombre, bordure dorée) menant à la porte
-  out.push(carpet());
-  // texture « peinte » sur tout le sol
-  out.push(`<polygon points="${floorPoly}" fill="#000" filter="url(#grain)" opacity="0.16"/>`);
-  // occlusion ambiante au pied des murs
-  out.push(`<polygon points="${[iso(0, 0), iso(ROOM_N, 0), iso(ROOM_N, 1.3), iso(0, 1.3)].map(pt).join(' ')}" fill="url(#aoR)"/>`);
-  out.push(`<polygon points="${[iso(0, 0), iso(1.3, 0), iso(1.3, ROOM_N), iso(0, ROOM_N)].map(pt).join(' ')}" fill="url(#aoL)"/>`);
-  return out.join('\n');
-}
-
-function carpet(): string {
-  const x0 = 5.15, x1 = 6.85, y0 = 0.15, y1 = 8.6;
-  const poly = (a: number, b: number, c: number, d: number) => [iso(a, c), iso(b, c), iso(b, d), iso(a, d)].map(pt).join(' ');
-  const out: string[] = [];
-  out.push(`<polygon points="${poly(x0, x1, y0, y1)}" fill="#7a2a2c" stroke="#3a1012" stroke-width="2.5" stroke-linejoin="round"/>`);
-  out.push(`<polygon points="${poly(x0 + 0.14, x1 - 0.14, y0 + 0.1, y1 - 0.14)}" fill="none" stroke="#c99a3a" stroke-width="3" opacity="0.85"/>`);
-  out.push(`<polygon points="${poly(x0 + 0.3, x1 - 0.3, y0 + 0.25, y1 - 0.3)}" fill="#8c3234"/>`);
-  // motifs en losange
-  for (let y = 1; y < 8; y += 1.5) {
-    const c = iso((x0 + x1) / 2, y);
-    out.push(`<path d="M${c[0]},${c[1] - 9} l14,9 l-14,9 l-14,-9 Z" fill="none" stroke="#c99a3a" stroke-width="2" opacity="0.7"/>`);
-  }
-  // usure : taches et trou
-  const w1 = iso(5.9, 6.4);
-  out.push(`<ellipse cx="${w1[0]}" cy="${w1[1]}" rx="26" ry="11" fill="#4a1a1c" opacity="0.45" filter="url(#soft)"/>`);
-  // franges côté salle
-  const f0 = iso(x0, y1), f1 = iso(x1, y1);
-  for (let i = 0; i <= 12; i++) {
-    const t = i / 12;
-    const fx = f0[0] + (f1[0] - f0[0]) * t, fy = f0[1] + (f1[1] - f0[1]) * t;
-    out.push(`<path d="M${fx.toFixed(1)},${fy.toFixed(1)} l-3,7" stroke="#c99a3a" stroke-width="1.6" stroke-linecap="round"/>`);
-  }
-  return out.join('\n');
-}
-
-/** Épaisseur de la dalle de sol sur les deux bords avant (la salle « flotte », comme les cartes Dofus). */
-function slabEdge(): string {
-  const T = 34;
-  const dn = (p: [number, number]): [number, number] => [p[0], p[1] + T];
-  const left = [iso(0, ROOM_N), iso(ROOM_N, ROOM_N), dn(iso(ROOM_N, ROOM_N)), dn(iso(0, ROOM_N))];
-  const right = [iso(ROOM_N, 0), iso(ROOM_N, ROOM_N), dn(iso(ROOM_N, ROOM_N)), dn(iso(ROOM_N, 0))];
-  return [
-    `<polygon points="${left.map(pt).join(' ')}" fill="#5a5148" stroke="#2b2622" stroke-width="2.5" stroke-linejoin="round"/>`,
-    `<polygon points="${right.map(pt).join(' ')}" fill="#463f38" stroke="#2b2622" stroke-width="2.5" stroke-linejoin="round"/>`,
-  ].join('\n');
-}
-
-function wallCaps(): string {
-  // Chaperon (épaisseur) au sommet des murs.
-  const t = 0.35;
-  const up = (p: [number, number]): [number, number] => [p[0], p[1] - WALL_H];
-  const capL = [up(iso(0, -t)), up(iso(0, ROOM_N)), up(iso(-t, ROOM_N)), up(iso(-t, -t))];
-  const capR = [up(iso(-t, 0)), up(iso(ROOM_N, 0)), up(iso(ROOM_N, -t)), up(iso(-t, -t))];
-  return [
-    `<polygon points="${capL.map(pt).join(' ')}" fill="#5e574d" stroke="#2b2622" stroke-width="2.5" stroke-linejoin="round"/>`,
-    `<polygon points="${capR.map(pt).join(' ')}" fill="#544e45" stroke="#2b2622" stroke-width="2.5" stroke-linejoin="round"/>`,
-  ].join('\n');
-}
-
-export function cryptRoomSvg(): string {
-  TORCHES.length = 0;
   const defs = `
     <filter id="grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="4"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="4"/>
       <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.4 -0.45"/>
     </filter>
-    <filter id="soft"><feGaussianBlur stdDeviation="4"/></filter>
-    <linearGradient id="wallFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0d0a10" stop-opacity="0.85"/><stop offset="0.55" stop-color="#0d0a10" stop-opacity="0.1"/><stop offset="1" stop-color="#0d0a10" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="aoR" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#000" stop-opacity="0.45"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="aoL" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#000" stop-opacity="0.4"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
-    </linearGradient>`;
-  const body = [
-    wall(LEFT_M, WALL_L, 11, 'L'),
-    wall(RIGHT_M, WALL_R, 23, 'R'),
-    wallCaps(),
-    slabEdge(),
-    floor(),
-  ].join('\n');
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+    <linearGradient id="vault" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1c0e"/><stop offset="1" stop-color="#5a2e18"/></linearGradient>
+    <linearGradient id="ochre" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5424"/><stop offset="0.45" stop-color="${OCHRE}"/><stop offset="1" stop-color="#b8863a"/></linearGradient>
+    <linearGradient id="archG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e2c18"/><stop offset="1" stop-color="${ARCH}"/></linearGradient>
+    <linearGradient id="pillarG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a3402a"/><stop offset="0.6" stop-color="${PILLAR}"/><stop offset="1" stop-color="#561a10"/></linearGradient>
+    <radialGradient id="gateLight" cx="0.5" cy="0.62" r="0.7"><stop offset="0" stop-color="#ffe09a"/><stop offset="0.6" stop-color="#e0882c"/><stop offset="1" stop-color="#6a3a14"/></radialGradient>
+    <linearGradient id="faceL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5e4626"/><stop offset="1" stop-color="#8a6c40"/></linearGradient>
+    <linearGradient id="faceR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#4a3820"/><stop offset="1" stop-color="#7a5e36"/></linearGradient>
+    <linearGradient id="backShadow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1a08" stop-opacity="0.5"/><stop offset="1" stop-color="#2a1a08" stop-opacity="0"/></linearGradient>
+    <linearGradient id="sideShadowL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a1a08" stop-opacity="0.45"/><stop offset="1" stop-color="#2a1a08" stop-opacity="0"/></linearGradient>
+    <linearGradient id="sideShadowR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#2a1a08" stop-opacity="0.5"/><stop offset="1" stop-color="#2a1a08" stop-opacity="0"/></linearGradient>`;
+  const body = [floor(r), backWall(r), sideWalls(r)].join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ROOM_W} ${ROOM_H}" width="${ROOM_W}" height="${ROOM_H}"><defs>${defs}</defs>${body}</svg>`;
 }

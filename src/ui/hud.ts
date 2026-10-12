@@ -37,7 +37,7 @@ export class Hud {
         <div class="portrait">${ICON_SACRIEUR}<div class="level">12</div></div>
         <div class="titlebox">
           <div class="plaque">Crypte de Kardorim</div>
-          <div class="rooms"><i class="done"></i><i class="done"></i><i class="cur"></i><i></i><i></i><i></i><i class="boss"></i><span>Salle 3/7</span></div>
+          <div class="rooms"></div>
           <div class="xp"><b style="width:62%"></b></div>
         </div>
         <button class="pause" aria-label="Pause">${ICON_PAUSE}</button>
@@ -47,10 +47,9 @@ export class Hud {
       <div class="bar">
         <div class="vitals">
           <div class="heart">${ICON_HEART}<div class="val">--</div></div>
-          <div class="hpbar"><div class="track"><div class="fill"></div></div><div class="label">--</div></div>
+          <div class="hpbar"><div class="track"><div class="fill"></div><div class="label">--</div></div><div class="suffering"><div class="drops"></div></div></div>
           <div class="star">${ICON_STAR}<div class="val">6</div></div>
         </div>
-        <div class="suffering"><div class="lbl">Souffrance</div><div class="drops"></div></div>
         <div class="spells"></div>
       </div>`;
     this.hpVal = root.querySelector('.heart .val')!;
@@ -62,6 +61,7 @@ export class Hud {
     this.hint = root.querySelector('.hint')!;
     this.bar = root.querySelector('.bar')!;
 
+    this.setRooms(3, 9);
     const drops = root.querySelector('.suffering .drops')!;
     for (let i = 0; i < 10; i++) {
       const d = document.createElement('i');
@@ -79,6 +79,12 @@ export class Hud {
     });
   }
 
+  /** Progression dans le donjon : salle courante (1..n), la dernière est celle du boss. */
+  setRooms(cur: number, total: number) {
+    const el = this.root.querySelector('.rooms')!;
+    el.innerHTML = [...Array(total)].map((_, i) => `<i class="${i === total - 1 ? 'boss' : i + 1 < cur ? 'done' : i + 1 === cur ? 'cur' : ''}"></i>`).join('') + `<span>Salle ${cur}/${total}</span>`;
+  }
+
   /** Hauteur occupée par la barre du bas (pour cadrer la caméra au-dessus). */
   bottomInset(): number {
     return window.innerHeight - this.bar.getBoundingClientRect().top;
@@ -90,7 +96,7 @@ export class Hud {
   setHp(hp: number, max: number) {
     this.hpVal.textContent = String(Math.round(hp));
     this.hpFill.style.width = `${(100 * hp) / max}%`;
-    this.hpLabel.textContent = `${Math.round(hp)} / ${max} PV`;
+    this.hpLabel.textContent = `${Math.round(hp)} / ${max}`;
   }
   setPa(pa: number) {
     this.paVal.textContent = String(Math.floor(pa));

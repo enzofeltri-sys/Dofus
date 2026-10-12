@@ -37,7 +37,10 @@ les stats, les donjons, les panoplies, le craft et la forgemagie de Dofus, mais 
 
 Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
 
-- **Vue isométrique** comme Dofus, mais **déplacement libre** (pas de cases), façon Diablo.
+- **Téléphone en portrait, plein écran** (priorité absolue ; iPad et PC plus tard).
+- **Vue de dessus 3/4 façon Archero** : la salle remplit toute la largeur de l'écran, aucune zone noire ou vide ; la caméra défile verticalement.
+  - Profondeur (« un peu de 3D ») : mur du fond vu de face (arcades, sortie), murs latéraux avec face intérieure ombrée, objets en volume (dessus + face avant), ombres portées.
+  - (Une vraie vue isométrique en losange laisserait du noir dans les coins d'un écran vertical : écartée.)
 - **Tout est dessiné en vectoriel dans le code** (pas d'assets Dofus copiés, pas de générateur d'images).
 - Signature visuelle Dofus :
   - contours épais, souples et **colorés** (plus foncés que la teinte, jamais noir pur) ;
@@ -45,7 +48,8 @@ Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
   - sols peints en dégradés doux, bordures d'herbe en touffes, arbres ronds ;
   - palette chaude et saturée.
 - **Interface façon Dofus** : tons parchemin beige/brun, **cœur** (PV), **étoile bleue** (PA), **botte verte** (PM), barre de sorts en bas.
-- Références visuelles : illustrations officielles des monstres (DofusDB), utilisées **uniquement comme modèle**, jamais intégrées au jeu.
+- Références visuelles : illustrations des monstres et **cartes réelles des donjons** (DofusDB), utilisées **uniquement comme modèle**, jamais intégrées au jeu.
+  - Ex. Crypte de Kardorim : grès doré, colonnade d'arcades rouge-brun, piliers rouges peints de flammes, chapiteaux crème sculptés de crânes, mur ocre, braseros.
 - Limite assumée : rendu « esprit Dofus », pas une copie conforme ni un niveau d'illustrateur professionnel.
 
 ---
@@ -59,7 +63,7 @@ Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
 - La difficulté vient du **positionnement** : portée de l'arme (le corps à corps oblige au contact), attaques ennemies **annoncées au sol** à esquiver.
 
 ### 4.2 Contrôles
-- Téléphone / iPad : joystick virtuel (n'importe où à gauche de l'écran).
+- Téléphone : joystick virtuel qui apparaît sous le pouce, n'importe où sur l'écran.
 - PC : ZQSD / WASD / flèches.
 
 ### 4.3 L'arme = attaque de base
@@ -155,7 +159,7 @@ Profondeur de build = **stats** + **variantes de sorts** + **ordre de priorité*
 ## 7. Mode Histoire
 
 ### 7.1 Structure
-- **Un run = un donjon** : 6 à 8 salles d'ennemis, un **mini-boss** au milieu, le **boss** à la fin.
+- **Un run = un donjon** : **8 à 10 salles** selon le donjon (dernière salle = boss), un **mini-boss** au milieu.
 - Entre deux salles : **choix d'1 bonus parmi 3** (temporaire, valable pour le run).
 - **Finir un donjon débloque le suivant.**
 

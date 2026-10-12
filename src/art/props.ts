@@ -1,64 +1,92 @@
-import { ellipse, ink, line, shape, svg, vgrad } from './kit';
+import { ellipse, line, shape, svg, vgrad } from './kit';
+import { shade } from '../svg';
 
-/** Objets de décor posés au sol. Chaque SVG a son point d'ancrage au sol (pied de l'objet). */
+/**
+ * Objets de décor en vue 3/4 (face du dessus + face avant → volume),
+ * tons grès et crème des cartes de la crypte. Chaque SVG a son point d'ancrage au sol.
+ */
 export interface PropArt {
   svg: string;
   foot: [number, number];
 }
 
-const STONE = '#a49a86';
+const CREAM_INK = '#6e5a36';
+const RED = '#7c2c1c';
+const FLAME = '#e0782c';
 
-/** Pilier de pierre, chapiteau sculpté, base carrée. */
-export function pillar(): PropArt {
-  const defs = vgrad('pil', '#b9af9a', '#7a705f') + vgrad('pilD', '#8f8572', '#5b5345');
+/** Colonne libre : base cubique, fût rouge peint de flammes, chapiteau-crâne. */
+export function column(): PropArt {
+  const defs =
+    `<linearGradient id="colShaft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8442c"/><stop offset="0.55" stop-color="${RED}"/><stop offset="1" stop-color="#4e160c"/></linearGradient>` +
+    vgrad('colTop', '#fbf0d0', '#e0cc9a') + vgrad('colFront', '#d8c492', '#a8925e');
   const b = [
-    // base
-    shape('M14,236 L50,254 L86,236 L86,222 L50,240 L14,222 Z', 'url(#pilD)', ink(STONE)),
-    shape('M14,222 L50,204 L86,222 L50,240 Z', 'url(#pil)', ink(STONE)),
+    // base : dessus + face avant
+    shape('M8,214 L92,214 L92,240 L8,240 Z', 'url(#colFront)', CREAM_INK),
+    shape('M8,214 L20,198 L80,198 L92,214 Z', 'url(#colTop)', CREAM_INK),
     // fût
-    shape('M26,222 L26,48 Q50,40 74,48 L74,222 Q50,232 26,222 Z', 'url(#pil)', ink(STONE)),
-    `<path d="M58,50 L58,226" stroke="#6e6554" stroke-width="12" opacity="0.35"/>`,
-    line('M36,58 L36,214', '#fff', 3, 0.22),
-    line('M44,120 l6,10 l-4,8 l6,12', ink(STONE, -0.3), 1.6, 0.8),
-    // chapiteau
-    shape('M14,48 L50,30 L86,48 L86,58 L50,76 L14,58 Z', 'url(#pilD)', ink(STONE)),
-    shape('M14,48 L50,30 L86,48 L50,66 Z', 'url(#pil)', ink(STONE)),
-    `<path d="M14,48 L50,66 L86,48" fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="2"/>`,
-    // lierre / mousse
-    `<path d="M28,200 q8,-14 4,-30 q10,8 8,26 Z" fill="#5d7a3a" opacity="0.8"/>`,
+    shape('M26,206 L26,66 L74,66 L74,206 Q50,214 26,206 Z', 'url(#colShaft)', '#3a120a'),
+    `<path d="M40,196 q-12,-30 4,-64 q-2,30 12,36 q4,-22 -2,-42 q18,28 4,70 Z" fill="${FLAME}" opacity="0.9"/>`,
+    `<path d="M46,188 q-5,-16 3,-34 q0,16 7,22 Z" fill="#ffc06a"/>`,
+    line('M32,74 L32,198', '#fff', 3, 0.18),
+    // chapiteau : face avant sculptée + dessus
+    shape('M14,66 L18,32 L82,32 L86,66 Z', 'url(#colFront)', CREAM_INK),
+    shape('M10,32 L22,14 L78,14 L90,32 Z', 'url(#colTop)', CREAM_INK),
+    `<path d="M36,52 q-4,-10 4,-11 q8,0 10,8 Z" fill="#5a4626"/><path d="M64,52 q4,-10 -4,-11 q-8,0 -10,8 Z" fill="#5a4626"/>`,
+    `<path d="M48,60 l2,-6 l2,6 Z" fill="#5a4626"/>`,
+    `<rect x="66" y="34" width="18" height="30" fill="#000" opacity="0.12"/>`,
   ].join('');
-  return { svg: svg(100, 260, defs, b), foot: [50, 240] };
+  return { svg: svg(100, 246, defs, b), foot: [50, 232] };
 }
 
-/** Sarcophage de pierre au couvercle sculpté. Orienté le long de l'axe x isométrique. */
+/** Sarcophage en grès : couvercle sculpté (dessus) + flanc avant orné. */
 export function sarcophagus(): PropArt {
-  const defs = vgrad('sar', '#b3a891', '#7c725f') + vgrad('sarD', '#867c69', '#544c3f');
+  const defs = vgrad('sTop', '#f6e8bc', '#d8c28c') + vgrad('sFront', '#cdb683', '#9c8452');
   const b = [
-    // flanc gauche (face avant) et flanc droit
-    shape('M10,78 L92,119 L92,141 L10,100 Z', 'url(#sarD)', ink(STONE)),
-    shape('M92,119 L134,98 L134,120 L92,141 Z', '#6a6152', ink(STONE)),
-    // couvercle
-    shape('M10,78 L52,57 L134,98 L92,119 Z', 'url(#sar)', ink(STONE)),
-    shape('M24,79 L52,65 L120,99 L92,113 Z', '#c2b8a0', ink(STONE, -0.4), 2),
-    // gisant stylisé : crâne et mains croisées
-    ellipse(48, 76, 9, 6, '#ece3cc', '#6e5f44', 2),
-    `<ellipse cx="45" cy="76" rx="2" ry="1.6" fill="#3a2a2a"/><ellipse cx="51" cy="77" rx="2" ry="1.6" fill="#3a2a2a"/>`,
-    line('M70,90 L84,86 M72,84 L82,94', '#6e5f44', 2.5),
-    // fissures, mousse
-    line('M30,92 l8,6 l-2,6', ink(STONE, -0.3), 1.6, 0.8),
-    `<ellipse cx="112" cy="124" rx="14" ry="5" fill="#5d7a3a" opacity="0.6"/>`,
+    // flanc avant
+    shape('M10,70 L190,70 L186,128 L14,128 Z', 'url(#sFront)', CREAM_INK),
+    shape('M30,84 L170,84 L168,116 L32,116 Z', shade('#cdb683', -0.08), CREAM_INK, 2),
+    ellipse(100, 100, 12, 10, '#efe4c4', CREAM_INK, 2),
+    `<ellipse cx="96" cy="99" rx="2.6" ry="3" fill="#3a2a22"/><ellipse cx="104" cy="99" rx="2.6" ry="3" fill="#3a2a22"/>`,
+    line('M58,92 L80,108 M58,108 L80,92 M120,92 L142,108 M120,108 L142,92', CREAM_INK, 3),
+    // couvercle (dessus), bombé
+    shape('M6,70 L22,18 L178,18 L194,70 Z', 'url(#sTop)', CREAM_INK),
+    shape('M34,60 L44,28 L156,28 L166,60 Z', '#f2e2b4', CREAM_INK, 2),
+    // gisant : crâne + bras croisés
+    ellipse(60, 44, 13, 11, '#efe4c4', CREAM_INK, 2),
+    `<ellipse cx="56" cy="43" rx="3" ry="3.4" fill="#3a2a22"/><ellipse cx="64" cy="43" rx="3" ry="3.4" fill="#3a2a22"/>`,
+    line('M92,36 L118,54 M92,54 L118,36', CREAM_INK, 4),
+    line('M128,44 L150,44', CREAM_INK, 4),
+    line('M24,24 L176,24', '#fff8dc', 2, 0.8),
+    `<rect x="160" y="72" width="26" height="54" fill="#000" opacity="0.1"/>`,
+    `<ellipse cx="172" cy="128" rx="18" ry="5" fill="#5d7a3a" opacity="0.5"/>`,
   ].join('');
-  return { svg: svg(144, 150, defs, b), foot: [72, 124] };
+  return { svg: svg(200, 136, defs, b), foot: [100, 128] };
 }
+
+/** Brasero de pierre (le feu est animé à part, au point FIRE). */
+export function brazier(): PropArt {
+  const defs = vgrad('bTop', '#fbf0d0', '#e0cc9a') + vgrad('bFront', '#d8c492', '#a8925e');
+  const b = [
+    shape('M8,44 L80,44 L80,96 L8,96 Z', 'url(#bFront)', CREAM_INK),
+    shape('M8,44 L18,26 L70,26 L80,44 Z', 'url(#bTop)', CREAM_INK),
+    ellipse(44, 34, 24, 8, '#3a2014', '#22120a', 2.5),
+    ellipse(44, 33, 18, 5, '#ffb040', '#c06010', 1.5),
+    line('M20,60 L68,60 M20,78 L68,78', CREAM_INK, 2, 0.6),
+    `<rect x="62" y="46" width="16" height="48" fill="#000" opacity="0.12"/>`,
+  ].join('');
+  return { svg: svg(88, 104, defs, b), foot: [44, 96] };
+}
+export const BRAZIER_FIRE: [number, number] = [0, -64];
 
 /** Tas d'ossements. */
 export function bones(): PropArt {
-  const B = '#ece3cc', O = '#7a6648';
+  const B = '#efe4c4', O = '#7a6648';
   const bone = (x1: number, y1: number, x2: number, y2: number) =>
     `<path d="M${x1},${y1} L${x2},${y2}" stroke="${O}" stroke-width="8" stroke-linecap="round"/>
      <path d="M${x1},${y1} L${x2},${y2}" stroke="${B}" stroke-width="4.5" stroke-linecap="round"/>
      <circle cx="${x1}" cy="${y1}" r="4" fill="${B}" stroke="${O}" stroke-width="1.6"/><circle cx="${x2}" cy="${y2}" r="4" fill="${B}" stroke="${O}" stroke-width="1.6"/>`;
   const b = [
+    `<ellipse cx="40" cy="46" rx="34" ry="8" fill="#000" opacity="0.18"/>`,
     bone(14, 44, 46, 36),
     bone(30, 50, 58, 42),
     bone(40, 30, 70, 46),
@@ -69,19 +97,28 @@ export function bones(): PropArt {
   return { svg: svg(80, 58, '', b), foot: [40, 46] };
 }
 
-/** Bougies fondues (la flamme est animée à part). */
+/** Coupe sombre remplie d'os (vue sur les cartes). */
+export function boneBowl(): PropArt {
+  const B = '#efe4c4', O = '#7a6648';
+  const b = [
+    shape('M8,30 Q10,62 44,64 Q78,62 80,30 Z', '#3a3430', '#1e1a16'),
+    ellipse(44, 30, 36, 12, '#2a2420', '#1e1a16', 3),
+    `<path d="M24,32 L60,24" stroke="${O}" stroke-width="8" stroke-linecap="round"/><path d="M24,32 L60,24" stroke="${B}" stroke-width="4.5" stroke-linecap="round"/>`,
+    ellipse(52, 30, 9, 8, B, O, 2),
+    `<ellipse cx="49" cy="30" rx="2.4" ry="2.8" fill="#2a2024"/><ellipse cx="55" cy="30" rx="2.4" ry="2.8" fill="#2a2024"/>`,
+    line('M16,46 Q44,56 72,46', '#5a5048', 2, 0.7),
+  ].join('');
+  return { svg: svg(88, 70, '', b), foot: [44, 62] };
+}
+
+/** Bougies fondues (flammes animées à part). */
 export function candles(): PropArt {
   const W = '#efe3c0', O = '#8a7a50';
   const c = (x: number, h: number) =>
     `<path d="M${x - 5},40 L${x - 5},${40 - h} Q${x},${36 - h} ${x + 5},${40 - h} L${x + 5},40 Z" fill="${W}" stroke="${O}" stroke-width="1.6"/>
      <path d="M${x - 5},${44 - h} q2,6 0,12" stroke="${W}" stroke-width="3" stroke-linecap="round"/>
      <path d="M${x},${38 - h} l0,-4" stroke="#3a2a1a" stroke-width="1.5"/>`;
-  const b = [
-    `<ellipse cx="28" cy="40" rx="24" ry="8" fill="${W}" stroke="${O}" stroke-width="1.6"/>`,
-    c(16, 18),
-    c(30, 28),
-    c(42, 12),
-  ].join('');
+  const b = [`<ellipse cx="28" cy="40" rx="24" ry="8" fill="${W}" stroke="${O}" stroke-width="1.6"/>`, c(16, 18), c(30, 28), c(42, 12)].join('');
   return { svg: svg(56, 50, '', b), foot: [28, 40] };
 }
 
@@ -92,17 +129,17 @@ export const CANDLE_FLAMES: [number, number][] = [
   [42 - 28, 40 - 12 - 8 - 40],
 ];
 
-/** Gravats : pierres tombées. */
+/** Blocs de pierre écroulés (volume). */
 export function rubble(): PropArt {
-  const b = [
-    shape('M6,30 L18,20 L32,24 L34,34 L18,38 Z', '#8f8572', ink(STONE)),
-    shape('M30,36 L40,28 L52,32 L50,40 L38,42 Z', '#a49a86', ink(STONE)),
-    shape('M20,40 L26,36 L32,40 L26,44 Z', '#7a705f', ink(STONE), 2),
-  ].join('');
-  return { svg: svg(58, 48, '', b), foot: [28, 38] };
+  const defs = vgrad('rTop', '#fbf0d0', '#e0cc9a') + vgrad('rFront', '#d0bc88', '#a08a58');
+  const blk = (x: number, y: number, w: number, h: number, d: number) =>
+    shape(`M${x},${y} L${x + w},${y} L${x + w},${y + h} L${x},${y + h} Z`, 'url(#rFront)', CREAM_INK, 2.5) +
+    shape(`M${x},${y} L${x + d * 0.4},${y - d} L${x + w - d * 0.2},${y - d} L${x + w},${y} Z`, 'url(#rTop)', CREAM_INK, 2.5);
+  const b = [blk(6, 40, 46, 22, 14), blk(44, 50, 34, 18, 10), blk(24, 20, 30, 18, 10)].join('');
+  return { svg: svg(84, 74, defs, b), foot: [42, 66] };
 }
 
-/** Os de Chafer (ressource lâchée au sol), petit objet brillant. */
+/** Os de Chafer (ressource lâchée au sol). */
 export function lootBone(): PropArt {
   const B = '#f4ecd6', O = '#7a6648';
   const b = `<path d="M8,26 L34,12" stroke="${O}" stroke-width="9" stroke-linecap="round"/>
@@ -111,3 +148,4 @@ export function lootBone(): PropArt {
     <circle cx="32" cy="8" r="4.5" fill="${B}" stroke="${O}" stroke-width="1.8"/><circle cx="37" cy="15" r="4.5" fill="${B}" stroke="${O}" stroke-width="1.8"/>`;
   return { svg: svg(44, 36, '', b), foot: [22, 30] };
 }
+
