@@ -1,9 +1,9 @@
-import '@fontsource/baloo-2/700.css';
-import '@fontsource/baloo-2/800.css';
+import '@fontsource/baloo-2/latin-700.css';
+import '@fontsource/baloo-2/latin-800.css';
 import { Application, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { chaferSvg, CHAFER_FOOT, CHAFER_H, CHAFER_W, type ChaferKind } from './art/chafer';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, lootBone, rubble, sarcophagus, type PropArt } from './art/props';
-import { sacrieurSvg, sacrieurSwordSvg, SACRIEUR_FOOT, SACRIEUR_H, SACRIEUR_W, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
+import { sacrieurSvg, sacrieurSwordSvg, SACRIEUR_FOOT, SACRIEUR_H, SACRIEUR_HAND, SACRIEUR_W, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
 import { BOUNDS, cryptRoomSvg, EXIT, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { Hud, SPELL_BAR } from './ui/hud';
@@ -53,6 +53,8 @@ function vignetteTexture(w: number, h: number): Texture {
 
 interface Actor {
   c: Container;
+  /** Calque retourné horizontalement selon l'orientation (l'art regarde vers la gauche). */
+  rig: Container;
   body: Sprite;
   flash: Sprite;
   x: number;
@@ -192,17 +194,19 @@ async function main() {
   const mkActor = (tex: Texture, foot: [number, number], w: number, h: number, kind: Actor['kind'], x: number, y: number, hp: number): Actor => {
     const c = new Container();
     c.addChild(new Graphics().ellipse(0, 0, 32 * CHAR_SCALE, 32 * CHAR_SCALE * PERSP * 0.6).fill({ color: 0x2a1404, alpha: 0.38 }));
+    const rig = new Container();
+    c.addChild(rig);
     const body = new Sprite(tex);
     body.anchor.set(foot[0] / w, foot[1] / h);
     body.scale.set(CHAR_SCALE);
-    c.addChild(body);
+    rig.addChild(body);
     const flash = new Sprite(tex);
     flash.anchor.copyFrom(body.anchor);
     flash.scale.set(CHAR_SCALE);
     flash.blendMode = 'add';
     flash.alpha = 0;
-    c.addChild(flash);
-    const a: Actor = { c, body, flash, x, y, hp, maxHp: hp, kind, flashT: 0, phase: Math.random() * 10, atkT: rand(1, 3), knock: { x: 0, y: 0 }, dead: 0, alpha: 1 };
+    rig.addChild(flash);
+    const a: Actor = { c, rig, body, flash, x, y, hp, maxHp: hp, kind, flashT: 0, phase: Math.random() * 10, atkT: rand(1, 3), knock: { x: 0, y: 0 }, dead: 0, alpha: 1 };
     if (kind !== 'sacrieur') {
       a.hpBar = new Graphics();
       a.hpBar.position.set(0, -h * CHAR_SCALE * 0.98);
@@ -217,9 +221,10 @@ async function main() {
   player.hp = 148;
   const sword = new Sprite(swordTex);
   sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
-  const HAND = { x: (100 - SACRIEUR_FOOT[0]) * CHAR_SCALE, y: (123 - SACRIEUR_FOOT[1]) * CHAR_SCALE };
+  sword.scale.set(CHAR_SCALE);
+  const HAND = { x: (SACRIEUR_HAND[0] - SACRIEUR_FOOT[0]) * CHAR_SCALE, y: (SACRIEUR_HAND[1] - SACRIEUR_FOOT[1]) * CHAR_SCALE };
   sword.position.set(HAND.x, HAND.y);
-  player.c.addChildAt(sword, 1);
+  player.rig.addChildAt(sword, 0); // l'épée passe derrière le poing
 
   const spawnSpots: [ChaferKind, number, number][] = [
     ['debutant', 300, 1120],
@@ -535,10 +540,8 @@ async function main() {
     }
     swingT = Math.max(0, swingT - dt);
     const sw = swingT > 0 ? 1 - swingT / 0.24 : 0;
-    const rot = swingT > 0 ? -1.9 + sw * 3.2 : 0.45 + Math.sin(time * 2.2) * 0.05;
-    sword.rotation = rot * facing;
-    sword.scale.set(CHAR_SCALE * facing, CHAR_SCALE);
-    sword.x = HAND.x * facing;
+    // repère de l'art (tourné vers la gauche) : rotation négative = la pointe part vers l'avant
+    sword.rotation = swingT > 0 ? 1.7 - sw * 3.6 : -0.55 + Math.sin(time * 2.2) * 0.05;
 
     // Ennemis
     ground.clear();
@@ -640,7 +643,8 @@ async function main() {
       const bob = isMoving ? Math.abs(Math.sin(a.phase * 9)) * 5 : 0;
       const breath = Math.sin(a.phase * 2.6) * 0.022;
       const f = a === player ? facing : player.x >= a.x ? 1 : -1;
-      const sx = CHAR_SCALE * (1 - breath * 0.6) * f, sy = CHAR_SCALE * (1 + breath);
+      const sx = CHAR_SCALE * (1 - breath * 0.6), sy = CHAR_SCALE * (1 + breath);
+      a.rig.scale.x = -f; // l'art regarde vers la gauche
       a.body.scale.set(sx, sy);
       a.flash.scale.set(sx, sy);
       a.body.y = a.flash.y = -bob;

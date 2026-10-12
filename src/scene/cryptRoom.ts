@@ -27,7 +27,6 @@ const SAND_LIGHT = '#f2e2b2';
 const SAND_DARK = '#8a7246';
 const GROUT = '#7a6440';
 const ARCH = '#8e3d24';
-const PILLAR = '#7c2c1c';
 const FLAME = '#e0782c';
 const CREAM = '#e6d6aa';
 const CREAM_INK = '#6e5a36';
@@ -94,7 +93,7 @@ function backWall(r: () => number): string {
     const u0 = pillars[i] + 30, u1 = pillars[i + 1] - 30;
     const inner = arc(u0, u1, apex), outer = arc(u0 - T, u1 + T, apex - T), deep = arc(u0 + 12, u1 - 12, apex + 16);
     o.push(`<path d="M${P(inner)} L${P([...deep].reverse())} Z" fill="#4e1c10"/>`);
-    o.push(`<path d="M${P(outer)} L${P([...inner].reverse())} Z" fill="url(#archG)" stroke="#3a140a" stroke-width="3" stroke-linejoin="round"/>`);
+    o.push(`<path d="M${P(outer)} L${P([...inner].reverse())} Z" fill="url(#archG)" stroke="#3a140a" stroke-width="2.2" stroke-linejoin="round"/>`);
     for (let k = 2; k < 28; k += 3) {
       o.push(`<path d="M${f1(inner[k][0])},${f1(inner[k][1])} L${f1(outer[k][0])},${f1(outer[k][1])}" stroke="#3a140a" stroke-width="2.5"/>`);
       if ((k / 3) % 2 === 0 && k + 2 < 28) {
@@ -102,7 +101,7 @@ function backWall(r: () => number): string {
         o.push(`<g fill="#5a200e" opacity="0.9"><circle cx="${f1(mx - 4.5)}" cy="${f1(my + 2.5)}" r="3.4"/><circle cx="${f1(mx + 4.5)}" cy="${f1(my + 2.5)}" r="3.4"/><circle cx="${f1(mx)}" cy="${f1(my - 4.5)}" r="3.4"/></g>`);
       }
     }
-    o.push(`<path d="M${P(arc(u0 - T + 5, u1 + T - 5, apex - T + 5).slice(4, 25))}" fill="none" stroke="#e39a6a" stroke-width="3" opacity="0.4" stroke-linecap="round"/>`);
+    o.push(`<path d="M${P(arc(u0 - T + 5, u1 + T - 5, apex - T + 5).slice(4, 25))}" fill="none" stroke="#e39a6a" stroke-width="2.2" opacity="0.4" stroke-linecap="round"/>`);
     for (const k of [6, 14, 22]) {
       const [x, y] = outer[k];
       const a = Math.atan2(y - spring, x - (u0 + u1) / 2);
@@ -123,25 +122,38 @@ function backWall(r: () => number): string {
 function wallPillar(u: number, spring: number): string {
   const W = 46, base = FLOOR_TOP;
   const o: string[] = [];
-  o.push(`<rect x="${u - W / 2}" y="${spring}" width="${W}" height="${base - spring - 30}" fill="url(#pillarG)" stroke="#3a120a" stroke-width="3"/>`);
+  o.push(`<rect x="${u - W / 2}" y="${spring}" width="${W}" height="${base - spring - 30}" fill="url(#pillarG)" stroke="#3a120a" stroke-width="2.2"/>`);
   o.push(`<path d="M${u - 10},${base - 40} q-10,-26 4,-56 q-2,26 10,32 q4,-18 -2,-36 q16,24 4,60 Z" fill="${FLAME}" opacity="0.9"/>`);
   o.push(`<path d="M${u - 4},${base - 46} q-4,-14 3,-30 q0,14 6,20 Z" fill="#ffc06a" opacity="0.9"/>`);
   o.push(`<rect x="${u + W / 2 - 12}" y="${spring + 2}" width="10" height="${base - spring - 34}" fill="#000" opacity="0.2"/>`);
-  o.push(`<path d="M${u - 34},${base} L${u - 34},${base - 30} L${u + 34},${base - 30} L${u + 34},${base} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="3"/>`);
+  o.push(`<path d="M${u - 34},${base} L${u - 34},${base - 30} L${u + 34},${base - 30} L${u + 34},${base} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.2"/>`);
   o.push(`<path d="M${u - 30},${base - 30} Q${u},${base - 42} ${u + 30},${base - 30} Z" fill="${shade(CREAM, -0.06)}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
   o.push(`<path d="M${u - 33},${base - 27} L${u + 33},${base - 27}" stroke="#fff6d8" stroke-width="2" opacity="0.8"/>`);
   const cy = spring + 4;
-  o.push(`<path d="M${u - 34},${cy} L${u - 30},${cy - 34} L${u + 30},${cy - 34} L${u + 34},${cy} Z" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="3" stroke-linejoin="round"/>`);
-  o.push(`<path d="M${u - 40},${cy - 34} L${u + 40},${cy - 34} L${u + 36},${cy - 46} L${u - 36},${cy - 46} Z" fill="${shade(CREAM, 0.15)}" stroke="${CREAM_INK}" stroke-width="3" stroke-linejoin="round"/>`);
-  o.push(`<path d="M${u - 13},${cy - 20} q-3,-8 3,-9 q6,0 8,6 Z" fill="#5a4626"/><path d="M${u + 13},${cy - 20} q3,-8 -3,-9 q-6,0 -8,6 Z" fill="#5a4626"/>`);
-  o.push(`<path d="M${u - 2},${cy - 12} l2,-5 l2,5 Z" fill="#5a4626"/>`);
-  o.push(`<path d="M${u - 11},${cy - 6} L${u + 11},${cy - 6} M${u - 6},${cy - 9} l0,6 M${u},${cy - 9} l0,6 M${u + 6},${cy - 9} l0,6" stroke="#5a4626" stroke-width="1.8"/>`);
+  o.push(skullCapital(u, cy));
+  return o.join('');
+}
+
+/** Chapiteau crème sculpté d'un crâne (face avant + tablette supérieure en volume). */
+export function skullCapital(u: number, cy: number, w = 34): string {
+  const o: string[] = [];
+  o.push(`<path d="M${u - w},${cy} L${u - w + 4},${cy - 36} L${u + w - 4},${cy - 36} L${u + w},${cy} Z" fill="url(#capG)" stroke="${CREAM_INK}" stroke-width="2.2" stroke-linejoin="round"/>`);
+  // crâne en relief
+  o.push(`<path d="M${u - 18},${cy - 22} C${u - 18},${cy - 36} ${u + 18},${cy - 36} ${u + 18},${cy - 22} C${u + 18},${cy - 14} ${u + 12},${cy - 10} ${u + 10},${cy - 4} L${u - 10},${cy - 4} C${u - 12},${cy - 10} ${u - 18},${cy - 14} ${u - 18},${cy - 22} Z" fill="#efe2bc" stroke="${CREAM_INK}" stroke-width="1.6"/>`);
+  o.push(`<ellipse cx="${u - 8}" cy="${cy - 21}" rx="5.5" ry="5" fill="url(#socket)"/><ellipse cx="${u + 8}" cy="${cy - 21}" rx="5.5" ry="5" fill="url(#socket)"/>`);
+  o.push(`<path d="M${u - 2},${cy - 12} l2,-5 l2,5 Z" fill="#4a3618"/>`);
+  o.push(`<path d="M${u - 8},${cy - 4} L${u - 8},${cy - 8} M${u - 3},${cy - 4} L${u - 3},${cy - 8} M${u + 2},${cy - 4} L${u + 2},${cy - 8} M${u + 7},${cy - 4} L${u + 7},${cy - 8}" stroke="${CREAM_INK}" stroke-width="1.4"/>`);
+  o.push(`<ellipse cx="${u - 9}" cy="${cy - 31}" rx="5" ry="2" fill="#fff" opacity="0.55"/>`);
+  // tablette supérieure : face avant + dessus éclairé
+  o.push(`<path d="M${u - w - 6},${cy - 36} L${u + w + 6},${cy - 36} L${u + w + 6},${cy - 44} L${u - w - 6},${cy - 44} Z" fill="#c9b484" stroke="${CREAM_INK}" stroke-width="2.2" stroke-linejoin="round"/>`);
+  o.push(`<path d="M${u - w - 6},${cy - 44} L${u + w + 6},${cy - 44} L${u + w},${cy - 52} L${u - w},${cy - 52} Z" fill="#f8eed2" stroke="${CREAM_INK}" stroke-width="2.2" stroke-linejoin="round"/>`);
+  o.push(`<rect x="${u + w - 12}" y="${cy - 35}" width="10" height="34" fill="#000" opacity="0.12"/>`);
   return o.join('');
 }
 
 function shelves(u: number, r: () => number): string {
   const o: string[] = [];
-  o.push(`<rect x="${u - 56}" y="150" width="112" height="134" rx="4" fill="#3e2c1a" stroke="#2a1a0c" stroke-width="3"/>`);
+  o.push(`<rect x="${u - 56}" y="150" width="112" height="134" rx="4" fill="#3e2c1a" stroke="#2a1a0c" stroke-width="2.2"/>`);
   for (const y of [192, 236]) o.push(`<rect x="${u - 56}" y="${y}" width="112" height="7" fill="#7a5634" stroke="#2a1a0c" stroke-width="2"/>`);
   const item = (x: number, y: number) => {
     const k = r();
@@ -206,7 +218,7 @@ function sideWalls(r: () => number): string {
     }
     for (let y = FLOOR_TOP + 260; y < ROOM_H - 120; y += 380) {
       const px = side === 0 ? SIDE - 4 : ROOM_W - SIDE - 40;
-      o.push(`<rect x="${px}" y="${y - 70}" width="44" height="120" rx="4" fill="url(#pillarG)" stroke="#3a120a" stroke-width="3"/>`);
+      o.push(`<rect x="${px}" y="${y - 70}" width="44" height="120" rx="4" fill="url(#pillarG)" stroke="#3a120a" stroke-width="2.2"/>`);
       o.push(`<path d="M${px + 14},${y + 36} q-8,-22 4,-46 q-2,22 8,26 q3,-14 -2,-28 q13,20 3,48 Z" fill="${FLAME}" opacity="0.9"/>`);
       o.push(`<rect x="${px - 4}" y="${y - 84}" width="52" height="18" rx="3" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
       o.push(`<rect x="${px - 4}" y="${y + 46}" width="52" height="16" rx="3" fill="${CREAM}" stroke="${CREAM_INK}" stroke-width="2.5"/>`);
@@ -258,8 +270,8 @@ function floor(r: () => number): string {
     const cx = x0 + r() * (x1 - x0), cy = y0 + r() * (y1 - y0), s = 3 + r() * 5;
     o.push(`<path d="M${f1(cx - s)},${f1(cy)} l${f1(s * 0.6)},${f1(-s * 0.7)} l${f1(s * 1.2)},${f1(s * 0.2)} l${f1(-s * 0.3)},${f1(s * 0.6)} Z" fill="${SAND_LIGHT}" stroke="${SAND_DARK}" stroke-width="1.2"/>`);
   }
-  o.push(`<ellipse cx="250" cy="1010" rx="30" ry="22" fill="#3a3430" stroke="#1e1a16" stroke-width="3"/>`);
-  for (let i = -2; i <= 2; i++) o.push(`<path d="M${250 + i * 10},${992 + Math.abs(i) * 3} L${250 + i * 10},${1028 - Math.abs(i) * 3}" stroke="#1e1a16" stroke-width="3"/>`);
+  o.push(`<ellipse cx="250" cy="1010" rx="30" ry="22" fill="#3a3430" stroke="#1e1a16" stroke-width="2.2"/>`);
+  for (let i = -2; i <= 2; i++) o.push(`<path d="M${250 + i * 10},${992 + Math.abs(i) * 3} L${250 + i * 10},${1028 - Math.abs(i) * 3}" stroke="#1e1a16" stroke-width="2.2"/>`);
   o.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" fill="#000" filter="url(#grain)" opacity="0.12"/>`);
   o.push(`<rect x="${x0}" y="${y0}" width="${x1 - x0}" height="70" fill="url(#backShadow)"/>`);
   o.push(`<rect x="${x0}" y="${y0}" width="50" height="${y1 - y0}" fill="url(#sideShadowL)"/>`);
@@ -270,17 +282,25 @@ function floor(r: () => number): string {
 function slab(x: number, y: number, w: number, h: number, r: () => number): string {
   const g = 2.5;
   const a: [number, number] = [x + g, y + g], b: [number, number] = [x + w - g, y + g], c: [number, number] = [x + w - g, y + h - g], d: [number, number] = [x + g, y + h - g];
-  const fill = shade(SAND, (r() - 0.5) * 0.2 - (r() < 0.1 ? 0.12 : 0));
+  const tint = r();
+  const base = tint < 0.15 ? '#b4a684' : tint < 0.3 ? '#d2b072' : SAND; // dalles plus grises ou plus dorées
+  const fill = shade(base, (r() - 0.5) * 0.18 - (r() < 0.1 ? 0.12 : 0));
   const P = (ps: [number, number][]) => ps.map((p) => `${f1(p[0])},${f1(p[1])}`).join(' ');
   const o: string[] = [];
-  o.push(`<rect x="${f1(a[0])}" y="${f1(a[1])}" width="${f1(w - 2 * g)}" height="${f1(h - 2 * g)}" rx="3" fill="${fill}"/>`);
+  o.push(`<rect x="${f1(a[0])}" y="${f1(a[1])}" width="${f1(w - 2 * g)}" height="${f1(h - 2 * g)}" rx="6" fill="${fill}"/>`);
+  o.push(`<rect x="${f1(a[0])}" y="${f1(a[1])}" width="${f1(w - 2 * g)}" height="${f1(h - 2 * g)}" rx="6" fill="url(#slabHi)"/>`);
   o.push(`<polyline points="${P([d, a, b])}" fill="none" stroke="${SAND_LIGHT}" stroke-width="2.4" stroke-linejoin="round" opacity="0.85"/>`);
-  o.push(`<polyline points="${P([b, c, d])}" fill="none" stroke="${SAND_DARK}" stroke-width="3" stroke-linejoin="round" opacity="0.85"/>`);
+  o.push(`<polyline points="${P([b, c, d])}" fill="none" stroke="${SAND_DARK}" stroke-width="2.2" stroke-linejoin="round" opacity="0.85"/>`);
   if (r() < 0.25) {
     const sx = x + w * (0.2 + r() * 0.5), sy = y + h * (0.2 + r() * 0.5);
     o.push(`<path d="M${f1(sx)},${f1(sy)} l${f1(6 + r() * 8)},${f1(3 + r() * 4)} l${f1(-3 + r() * 6)},7 l9,3" fill="none" stroke="${SAND_DARK}" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>`);
   }
-  if (r() < 0.2) o.push(`<ellipse cx="${f1(x + w / 2)}" cy="${f1(y + h / 2)}" rx="${f1(10 + r() * 14)}" ry="${f1(5 + r() * 6)}" fill="${SAND_LIGHT}" opacity="0.35"/>`);
+  if (r() < 0.3) {
+    // coin ébréché
+    const cx = r() < 0.5 ? x + g : x + w - g, cy = r() < 0.5 ? y + g : y + h - g;
+    const sx = cx === x + g ? 1 : -1, sy = cy === y + g ? 1 : -1, k = 6 + r() * 8;
+    o.push(`<path d="M${f1(cx)},${f1(cy)} l${f1(sx * k)},0 l${f1(-sx * k * 0.3)},${f1(sy * k * 0.5)} l${f1(-sx * k * 0.7)},${f1(sy * k * 0.4)} Z" fill="${GROUT}"/>`);
+  }
   return o.join('');
 }
 
@@ -296,7 +316,10 @@ export function cryptRoomSvg(seed = 7): string {
     <linearGradient id="vault" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1c0e"/><stop offset="1" stop-color="#5a2e18"/></linearGradient>
     <linearGradient id="ochre" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5424"/><stop offset="0.45" stop-color="${OCHRE}"/><stop offset="1" stop-color="#b8863a"/></linearGradient>
     <linearGradient id="archG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e2c18"/><stop offset="1" stop-color="${ARCH}"/></linearGradient>
-    <linearGradient id="pillarG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a3402a"/><stop offset="0.6" stop-color="${PILLAR}"/><stop offset="1" stop-color="#561a10"/></linearGradient>
+    <linearGradient id="pillarG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4e160c"/><stop offset="0.16" stop-color="#a8442c"/><stop offset="0.3" stop-color="#d0684a"/><stop offset="0.42" stop-color="#a03c26"/><stop offset="0.75" stop-color="#6a2214"/><stop offset="1" stop-color="#3a0c06"/></linearGradient>
+    <radialGradient id="slabHi" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#fff6dc" stop-opacity="0.32"/><stop offset="1" stop-color="#fff6dc" stop-opacity="0"/></radialGradient>
+    <linearGradient id="capG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f6ead0"/><stop offset="0.55" stop-color="#e2d0a0"/><stop offset="1" stop-color="#a8925e"/></linearGradient>
+    <radialGradient id="socket" cx="0.5" cy="0.4" r="0.6"><stop offset="0" stop-color="#2a1a0c"/><stop offset="1" stop-color="#6a5430"/></radialGradient>
     <radialGradient id="gateLight" cx="0.5" cy="0.62" r="0.7"><stop offset="0" stop-color="#ffe09a"/><stop offset="0.6" stop-color="#e0882c"/><stop offset="1" stop-color="#6a3a14"/></radialGradient>
     <linearGradient id="faceL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5e4626"/><stop offset="1" stop-color="#8a6c40"/></linearGradient>
     <linearGradient id="faceR" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#4a3820"/><stop offset="1" stop-color="#7a5e36"/></linearGradient>

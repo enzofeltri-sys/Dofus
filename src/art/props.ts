@@ -11,14 +11,14 @@ export interface PropArt {
 }
 
 const CREAM_INK = '#6e5a36';
-const RED = '#7c2c1c';
 const FLAME = '#e0782c';
 
 /** Colonne libre : base cubique, fût rouge peint de flammes, chapiteau-crâne. */
 export function column(): PropArt {
   const defs =
-    `<linearGradient id="colShaft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a8442c"/><stop offset="0.55" stop-color="${RED}"/><stop offset="1" stop-color="#4e160c"/></linearGradient>` +
-    vgrad('colTop', '#fbf0d0', '#e0cc9a') + vgrad('colFront', '#d8c492', '#a8925e');
+    `<linearGradient id="colShaft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4e160c"/><stop offset="0.16" stop-color="#a8442c"/><stop offset="0.3" stop-color="#d0684a"/><stop offset="0.42" stop-color="#a03c26"/><stop offset="0.75" stop-color="#6a2214"/><stop offset="1" stop-color="#3a0c06"/></linearGradient>` +
+    vgrad('colTop', '#fbf0d0', '#e0cc9a') + vgrad('colFront', '#d8c492', '#a8925e') +
+    `<radialGradient id="socket" cx="0.5" cy="0.4" r="0.6"><stop offset="0" stop-color="#2a1a0c"/><stop offset="1" stop-color="#6a5430"/></radialGradient>`;
   const b = [
     // base : dessus + face avant
     shape('M8,214 L92,214 L92,240 L8,240 Z', 'url(#colFront)', CREAM_INK),
@@ -28,12 +28,16 @@ export function column(): PropArt {
     `<path d="M40,196 q-12,-30 4,-64 q-2,30 12,36 q4,-22 -2,-42 q18,28 4,70 Z" fill="${FLAME}" opacity="0.9"/>`,
     `<path d="M46,188 q-5,-16 3,-34 q0,16 7,22 Z" fill="#ffc06a"/>`,
     line('M32,74 L32,198', '#fff', 3, 0.18),
-    // chapiteau : face avant sculptée + dessus
-    shape('M14,66 L18,32 L82,32 L86,66 Z', 'url(#colFront)', CREAM_INK),
-    shape('M10,32 L22,14 L78,14 L90,32 Z', 'url(#colTop)', CREAM_INK),
-    `<path d="M36,52 q-4,-10 4,-11 q8,0 10,8 Z" fill="#5a4626"/><path d="M64,52 q4,-10 -4,-11 q-8,0 -10,8 Z" fill="#5a4626"/>`,
-    `<path d="M48,60 l2,-6 l2,6 Z" fill="#5a4626"/>`,
-    `<rect x="66" y="34" width="18" height="30" fill="#000" opacity="0.12"/>`,
+    // chapiteau sculpté d'un crâne en relief + tablette en volume
+    shape('M14,66 L18,34 L82,34 L86,66 Z', 'url(#colFront)', CREAM_INK),
+    shape('M34,50 C34,38 66,38 66,50 C66,56 61,59 59,64 L41,64 C39,59 34,56 34,50 Z', '#efe2bc', CREAM_INK, 1.6),
+    `<ellipse cx="43" cy="50" rx="5" ry="4.6" fill="url(#socket)"/><ellipse cx="57" cy="50" rx="5" ry="4.6" fill="url(#socket)"/>`,
+    `<path d="M48,58 l2,-4.5 l2,4.5 Z" fill="#4a3618"/>`,
+    line('M42,64 L42,60 M47,64 L47,60 M52,64 L52,60 M57,64 L57,60', CREAM_INK, 1.3),
+    `<ellipse cx="42" cy="41" rx="5" ry="2" fill="#fff" opacity="0.55"/>`,
+    shape('M8,34 L92,34 L92,26 L8,26 Z', '#c9b484', CREAM_INK),
+    shape('M8,26 L92,26 L84,12 L16,12 Z', 'url(#colTop)', CREAM_INK),
+    `<rect x="70" y="36" width="14" height="28" fill="#000" opacity="0.12"/>`,
   ].join('');
   return { svg: svg(100, 246, defs, b), foot: [50, 232] };
 }
@@ -116,7 +120,7 @@ export function candles(): PropArt {
   const W = '#efe3c0', O = '#8a7a50';
   const c = (x: number, h: number) =>
     `<path d="M${x - 5},40 L${x - 5},${40 - h} Q${x},${36 - h} ${x + 5},${40 - h} L${x + 5},40 Z" fill="${W}" stroke="${O}" stroke-width="1.6"/>
-     <path d="M${x - 5},${44 - h} q2,6 0,12" stroke="${W}" stroke-width="3" stroke-linecap="round"/>
+     <path d="M${x - 5},${44 - h} q2,6 0,12" stroke="${W}" stroke-width="2.2" stroke-linecap="round"/>
      <path d="M${x},${38 - h} l0,-4" stroke="#3a2a1a" stroke-width="1.5"/>`;
   const b = [`<ellipse cx="28" cy="40" rx="24" ry="8" fill="${W}" stroke="${O}" stroke-width="1.6"/>`, c(16, 18), c(30, 28), c(42, 12)].join('');
   return { svg: svg(56, 50, '', b), foot: [28, 40] };

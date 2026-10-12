@@ -4,7 +4,7 @@ import * as A from '../src/art/index.ts';
 for (const [name, s] of Object.entries(A.SHEET)) {
   const img = new Image(); img.title = name;
   img.src = URL.createObjectURL(new Blob([s()], {type:'image/svg+xml'}));
-  img.onload = () => { img.height = 300 * img.naturalHeight / 192; };
+  img.onload = () => { img.height = 2 * img.naturalHeight; };
   document.body.appendChild(img);
 }
 </script></body></html>

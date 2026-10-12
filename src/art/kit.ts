@@ -5,10 +5,10 @@ import { shade } from '../svg';
  * Style Dofus : contours épais, arrondis et COLORÉS (teinte assombrie, jamais noir pur).
  */
 
-export const OUTLINE = 3;
+export const OUTLINE = 1.8;
 
 /** Contour coloré dérivé de la couleur de remplissage. */
-export const ink = (fill: string, k = -0.55) => shade(fill, k);
+export const ink = (fill: string, k = -0.68) => shade(fill, k);
 
 type Pt = [number, number];
 
@@ -69,4 +69,22 @@ export function svg(w: number, h: number, defs: string, body: string): string {
 export function eye(cx: number, cy: number, rx: number, ry: number, color = '#2a1a14'): string {
   return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${color}"/>
 <ellipse cx="${cx + rx * 0.3}" cy="${cy - ry * 0.4}" rx="${rx * 0.38}" ry="${ry * 0.3}" fill="#fff"/>`;
+}
+
+/**
+ * Dégradé « modelé Dofus » : lumière en haut à gauche, teinte de base, puis une bande d'ombre
+ * franche en bas à droite (effet cel-shading doux). À utiliser comme fill="url(#id)".
+ */
+export function cel(id: string, base: string, angle: 'diag' | 'vert' | 'horiz' = 'diag'): string {
+  const [x2, y2] = angle === 'diag' ? [1, 1] : angle === 'vert' ? [0, 1] : [1, 0];
+  return `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">
+    <stop offset="0" stop-color="${shade(base, 0.3)}"/>
+    <stop offset="0.42" stop-color="${base}"/>
+    <stop offset="0.56" stop-color="${shade(base, -0.2)}"/>
+    <stop offset="1" stop-color="${shade(base, -0.34)}"/></linearGradient>`;
+}
+
+/** Reflet brillant (petite tache claire), typique du rendu Dofus. */
+export function gloss(cx: number, cy: number, rx: number, ry: number, rot = -30, opacity = 0.55): string {
+  return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff" opacity="${opacity}" transform="rotate(${rot} ${cx} ${cy})"/>`;
 }
