@@ -81,7 +81,14 @@ Chaque type d'arme a sa vitesse et sa forme d'attaque. Les stats viennent du jet
 | Arc / Baguette | Rapide | À distance |
 
 ### 4.4 Sorts automatiques
-- **4 emplacements** de sorts, **ordonnés par priorité** par le joueur (hors combat).
+- **Emplacements** de sorts **ordonnés par priorité** (case 1 d'abord) : **4** au départ, **5** au niv 50, **6** au niv 100, **7** au niv 150, **8** au niv 200.
+- **Les sorts se gagnent pendant le donjon** (validé) : on commence chaque donjon avec l'arme seule ; après chaque salle, **1 carte parmi 3** :
+  nouveau sort (pris dans le grimoire, donc selon le niveau), amélioration d'un sort, ou bonus de stats pour le run.
+  Quand les cases sont pleines, un nouveau sort **remplace** celui qu'on choisit. Tout repart à zéro au donjon suivant.
+- **Grimoire** : 22 paires « sort ⇄ variante » du Sacrieur ; pour chaque paire on choisit l'un des deux hors donjon.
+  On peut marquer des **favoris**, qui sortent plus souvent dans les cartes.
+- **Traduction en temps réel** : 1 tour Dofus = **3 s** ; « N lancers par tour » → au plus un lancer toutes les 3/N s ;
+  « tous les N tours » → toutes les 3N s ; 1 case ≈ 60 px au sol ; vol de vie = 50 % des dégâts infligés.
 - Chaque sort a une **fiche** : coût en PA, **cooldown**, **portée min–max**, élément, zone, **condition de lancement**.
 - À chaque instant, le jeu lance le **premier sort de la liste** qui est prêt, dont les PA sont disponibles et qui a une cible valide.
 - Exemples de conditions : « un ennemi est dans la portée », « PV > 50 % », « PV < 40 % », « ≥ 3 ennemis dans la zone ».
@@ -161,7 +168,7 @@ Profondeur de build = **stats** + **variantes de sorts** + **ordre de priorité*
 
 ### 7.1 Structure
 - **Un run = un donjon** : **8 à 10 salles** selon le donjon (dernière salle = boss), un **mini-boss** au milieu.
-- Entre deux salles : **choix d'1 bonus parmi 3** (temporaire, valable pour le run).
+- Entre deux salles : **choix d'1 carte parmi 3** (sort, amélioration de sort ou bonus de stats ; valable pour le run, voir §4.4).
 - **Finir un donjon débloque le suivant.**
 
 ### 7.2 Persistance
