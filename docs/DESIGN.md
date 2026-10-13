@@ -87,8 +87,8 @@ Chaque type d'arme a sa vitesse et sa forme d'attaque. Les stats viennent du jet
   Quand les cases sont pleines, un nouveau sort **remplace** celui qu'on choisit. Tout repart à zéro au donjon suivant.
 - **Grimoire** : 22 paires « sort ⇄ variante » du Sacrieur ; pour chaque paire on choisit l'un des deux hors donjon.
   On peut marquer des **favoris**, qui sortent plus souvent dans les cartes.
-- **Traduction en temps réel** : 1 tour Dofus = **3 s** ; « N lancers par tour » → au plus un lancer toutes les 3/N s ;
-  « tous les N tours » → toutes les 3N s ; 1 case ≈ 60 px au sol ; vol de vie = 50 % des dégâts infligés.
+- **Traduction en temps réel** : 1 tour Dofus = **4 s** (6 PA rechargés par tour) ; « N lancers par tour » → au plus un lancer toutes les 4/N s ;
+  « tous les N tours » → toutes les 4N s ; 1 case ≈ 60 px au sol ; vol de vie = 50 % des dégâts infligés.
 - Chaque sort a une **fiche** : coût en PA, **cooldown**, **portée min–max**, élément, zone, **condition de lancement**.
 - À chaque instant, le jeu lance le **premier sort de la liste** qui est prêt, dont les PA sont disponibles et qui a une cible valide.
 - Exemples de conditions : « un ennemi est dans la portée », « PV > 50 % », « PV < 40 % », « ≥ 3 ennemis dans la zone ».

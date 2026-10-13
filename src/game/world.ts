@@ -3,6 +3,7 @@ import { resolveHit } from './formulas';
 import { startingHero, type HeroDef } from './data/hero';
 import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
+import { CAST_DELAY, MELEE, MUTILATION, PA_MAX, PA_REGEN, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
 
 /**
@@ -68,6 +69,29 @@ export interface Monster {
   summonT: number;
   /** Invocation : uid de son invocateur (meurt avec lui, comme dans Dofus). */
   summoner: number | null;
+  /** Effets des sorts du Sacrieur (durées restantes, s). */
+  markT: number;
+  weakT: number;
+  critDownT: number;
+}
+
+/** Sort placé dans une case pendant le donjon (avec ses améliorations de run). */
+export interface SpellSlot {
+  id: SpellId;
+  /** +x : dégâts multipliés par (1 + x). */
+  dmgBonus: number;
+  /** x : temps de recharge multiplié par (1 - x). */
+  cdBonus: number;
+  cd: number;
+}
+
+/** Ce que le Sacrieur a gagné pendant le donjon (cartes) ; remis à zéro au donjon suivant. */
+export interface RunState {
+  slots: (SpellSlot | null)[];
+  force: number;
+  vitalite: number;
+  critique: number;
+  speed: number;
 }
 
 export interface Hero {
@@ -84,6 +108,18 @@ export interface Hero {
   swing: { t: number; dur: number; hit: boolean; dir: Vec } | null;
   hurtT: number;
   invulnT: number;
+  /** PA disponibles (jauge qui se recharge). */
+  pa: number;
+  /** Délai avant le prochain sort. */
+  castCd: number;
+  souffrance: number;
+  souffranceT: number;
+  /** Mutilation : palier (0 = inactive) et délai avant le palier suivant. */
+  mutStage: number;
+  mutT: number;
+  /** Bouclier (Coagulation) : PV absorbés et durée. */
+  shield: number;
+  shieldT: number;
 }
 
 export type WorldEvent =
@@ -100,7 +136,11 @@ export type WorldEvent =
   | { type: 'wave' }
   | { type: 'bossCrack'; uid: number; x: number; y: number; radius: number }
   | { type: 'summon'; uid: number; by: number }
-  | { type: 'victory' };
+  | { type: 'victory' }
+  | { type: 'cast'; spell: SpellId; slot: number; x: number; y: number; tx: number; ty: number; uid?: number }
+  | { type: 'pull'; uid: number; fx: number; fy: number; x: number; y: number }
+  | { type: 'mutilation'; stage: number; sacrifice: number }
+  | { type: 'coagulation'; shield: number };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -115,6 +155,7 @@ export class World {
   gate = 0;
   /** Gel de l'image à l'impact (s). */
   hitstop = 0;
+  run: RunState;
   bounds = { x0: 76, x1: ROOM_W - 76, y0: FLOOR_TOP + 24, y1: 1500 };
   /** Deuxième vague : monstres en réserve, et temps écoulé dans la salle. */
   reserve: { def: MonsterDef; grade: number }[] = [];
@@ -131,8 +172,9 @@ export class World {
     const def = startingHero();
     this.hero = {
       def, x: ROOM_W / 2, y: 1300, hp: def.hp, maxHp: def.hp, facing: 1, moving: false, alive: true,
-      attackCd: 0, swing: null, hurtT: 0, invulnT: 0,
+      attackCd: 0, swing: null, hurtT: 0, invulnT: 0, ...freshCombat(),
     };
+    this.run = freshRun(def.level);
   }
 
   /** Le rendu indique jusqu'où le sol est visible au-dessus de la barre d'interface. */
@@ -150,7 +192,8 @@ export class World {
   /** Recommence le donjon depuis la première salle, PV pleins. */
   restart() {
     const def = startingHero();
-    Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0 });
+    Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
+    this.run = freshRun(def.level);
     this.startRoom(0);
   }
 
@@ -213,6 +256,7 @@ export class World {
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
       hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
+      markT: 0, weakT: 0, critDownT: 0,
     };
   }
 
@@ -275,7 +319,8 @@ export class World {
     h.moving = m > 0.05;
     if (h.moving) {
       if (m > 1) { ix /= m; iy /= m; }
-      let [nx, ny] = this.slideMove(h.x, h.y, ix * h.def.speed * STEP, iy * h.def.speed * STEP * 0.85, h.def.radius);
+      const speed = h.def.speed * (1 + this.run.speed);
+      let [nx, ny] = this.slideMove(h.x, h.y, ix * speed * STEP, iy * speed * STEP * 0.85, h.def.radius);
       // la grille ouverte laisse passer le joueur au fond de la salle
       const y0 = this.phase === 'cleared' && this.gate >= 1 && Math.abs(nx - GATE.x) < GATE.halfWidth ? this.bounds.y0 - 10 : this.bounds.y0;
       nx = Math.max(this.bounds.x0, Math.min(this.bounds.x1, nx));
@@ -307,6 +352,140 @@ export class World {
         this.events.push({ type: 'swing', dir });
       }
     }
+
+    this.stepSpells();
+  }
+
+  /** Caractéristiques du Sacrieur en combat : base + cartes + Souffrance + Mutilation. */
+  heroStats(): Stats {
+    const s = this.hero.def.stats, h = this.hero;
+    return {
+      ...s,
+      force: s.force + this.run.force,
+      critique: s.critique + this.run.critique,
+      puissance: s.puissance + h.souffrance * SOUFFRANCE.powerPerCharge + h.mutStage * MUTILATION.power,
+    };
+  }
+
+  /** Recharge des PA, Souffrance, Mutilation, puis lancer automatique selon l'ordre des cases. */
+  private stepSpells() {
+    const h = this.hero;
+    h.pa = Math.min(PA_MAX, h.pa + PA_REGEN * STEP);
+    h.castCd = Math.max(0, h.castCd - STEP);
+    for (const sl of this.run.slots) if (sl) sl.cd = Math.max(0, sl.cd - STEP);
+    // la Souffrance retombe d'une charge par tour sans coup reçu
+    h.souffranceT += STEP;
+    if (h.souffrance > 0 && h.souffranceT >= SOUFFRANCE.decayEvery) {
+      h.souffrance--;
+      h.souffranceT = 0;
+    }
+    // bouclier de Coagulation
+    if (h.shieldT > 0) {
+      h.shieldT -= STEP;
+      if (h.shieldT <= 0) h.shield = 0;
+    }
+    // Mutilation : un palier de plus à chaque tour ; sous 40 % de PV, elle devient un bouclier
+    if (h.mutStage > 0) {
+      if (h.hp / h.maxHp < MUTILATION.stopBelow || this.phase !== 'fight') this.coagulation();
+      else {
+        h.mutT -= STEP;
+        if (h.mutT <= 0 && h.mutStage < MUTILATION.maxStage) this.mutilate(h.mutStage + 1);
+      }
+    }
+    if (this.phase !== 'fight' || h.castCd > 0) return;
+    this.run.slots.some((sl, i) => {
+      if (!sl || sl.cd > 0) return false;
+      const sp = SPELLS[sl.id];
+      if (h.pa < sp.pa) return false;
+      if (!this.cast(sp, sl, i)) return false;
+      h.pa -= sp.pa;
+      sl.cd = sp.cooldown * (1 - sl.cdBonus);
+      h.castCd = CAST_DELAY;
+      return true;
+    });
+  }
+
+  private targets(minD: number, maxD: number): Monster[] {
+    const h = this.hero;
+    return this.monsters
+      .filter((m) => m.state !== 'dead' && m.state !== 'spawn' && !m.hidden)
+      .map((m) => ({ m, d: flatDist(m.x, m.y, h.x, h.y) - m.def.radius }))
+      .filter((o) => o.d >= minD && o.d <= maxD)
+      .sort((a, b) => a.d - b.d)
+      .map((o) => o.m);
+  }
+
+  /** Lance un sort s'il a une cible valide ; renvoie false sinon (on essaie la case suivante). */
+  private cast(sp: SpellDef, sl: SpellSlot, slot: number): boolean {
+    const h = this.hero, k = sp.kind;
+    if (k.type === 'mutilation') {
+      if (h.mutStage > 0 || h.hp / h.maxHp <= MUTILATION.startAbove || !this.targets(0, 9e9).length) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: h.x, ty: h.y });
+      this.mutilate(1);
+      return true;
+    }
+    if (k.type === 'pull') {
+      const bonus = h.souffrance >= SOUFFRANCE.pullBonusAt ? SOUFFRANCE.pullBonusCells * 60 : 0;
+      const m = this.targets(Math.max(sp.range[0], MELEE + 20), sp.range[1] + bonus)[0];
+      if (!m) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
+      const fx = m.x, fy = m.y;
+      const dx = m.x - h.x, dy = (m.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
+      const pull = (k.cells + (bonus ? 4 : 0)) * 60;
+      const keep = Math.max(h.def.radius + m.def.radius + 10, d - pull);
+      let nx = h.x + (dx / d) * keep, ny = h.y + (dy / d) * keep * PERSP;
+      nx = Math.max(this.bounds.x0, Math.min(this.bounds.x1, nx));
+      ny = Math.max(this.bounds.y0, Math.min(this.bounds.y1, ny));
+      [m.x, m.y] = this.pushOut(nx, ny, m.def.radius);
+      m.knock.x = m.knock.y = 0;
+      this.events.push({ type: 'pull', uid: m.uid, fx, fy, x: m.x, y: m.y });
+      return true;
+    }
+    const m = this.targets(sp.range[0], sp.range[1])[0];
+    if (!m) return false;
+    this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
+    const roll = { ...k.roll, min: Math.round(k.roll.min * (1 + sl.dmgBonus)), max: Math.round(k.roll.max * (1 + sl.dmgBonus)) };
+    const hit = resolveHit(roll, this.heroStats(), m.stats, this.rnd);
+    if (k.debuff === 'mark') m.markT = TURN;
+    if (k.debuff === 'power') m.weakT = TURN;
+    if (k.debuff === 'crit') m.critDownT = TURN;
+    this.damageMonster(m, hit.damage, hit.crit);
+    this.healHero(Math.floor(hit.damage * 0.5));
+    return true;
+  }
+
+  private mutilate(stage: number) {
+    const h = this.hero;
+    const cost = Math.max(1, Math.round(h.hp * MUTILATION.sacrifice));
+    h.hp = Math.max(1, h.hp - cost);
+    h.mutStage = stage;
+    h.mutT = TURN;
+    this.events.push({ type: 'mutilation', stage, sacrifice: cost });
+  }
+
+  /** Coagulation : la Mutilation s'arrête et laisse un bouclier selon son palier. */
+  private coagulation() {
+    const h = this.hero;
+    const pct = MUTILATION.shield[Math.min(h.mutStage, MUTILATION.shield.length) - 1];
+    h.mutStage = 0;
+    h.shield = Math.round((h.maxHp * pct) / 100);
+    h.shieldT = TURN;
+    this.events.push({ type: 'coagulation', shield: h.shield });
+  }
+
+  healHero(amount: number) {
+    const h = this.hero;
+    const heal = Math.min(amount, h.maxHp - h.hp);
+    if (heal <= 0 || !h.alive) return;
+    h.hp += heal;
+    this.events.push({ type: 'heal', x: h.x, y: h.y, amount: heal });
+  }
+
+  private damageMonster(m: Monster, damage: number, crit: boolean) {
+    m.hp -= damage;
+    m.hurtT = 0.18;
+    this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit });
+    if (m.hp <= 0) this.kill(m);
   }
 
   private nearestTarget(reach: number): Monster | null {
@@ -327,7 +506,9 @@ export class World {
       if (d - m.def.radius > w.reach + 6) continue;
       const ang = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / (d || 1))));
       if (d > 30 && ang > w.arc) continue;
-      const hit = resolveHit(w.roll, h.def.stats, m.stats, this.rnd);
+      const hit = resolveHit(w.roll, this.heroStats(), m.stats, this.rnd);
+      // Supplice : frapper une cible marquée soigne de 20 % des dommages
+      if (m.markT > 0) this.healHero(Math.floor(hit.damage * SUPPLICE_MARK));
       m.hp -= hit.damage;
       m.hurtT = 0.18;
       m.knock.x += (dx / (d || 1)) * 34;
@@ -399,6 +580,9 @@ export class World {
     }
 
     m.hasteT = Math.max(0, m.hasteT - STEP);
+    m.markT = Math.max(0, m.markT - STEP);
+    m.weakT = Math.max(0, m.weakT - STEP);
+    m.critDownT = Math.max(0, m.critDownT - STEP);
     if (m.def.boss && h.alive) this.stepBoss(m);
 
     // Chafer Furtif : alterne visible / invisible
@@ -475,8 +659,16 @@ export class World {
 
   private hurtHero(m: Monster) {
     const h = this.hero;
-    const hit = resolveHit(m.def.attack.roll, m.stats, h.def.stats, this.rnd);
-    h.hp = Math.max(0, h.hp - hit.damage);
+    // Absorption (-50 Puissance) et Stase (-10 % Critique) affaiblissent la cible pendant un tour
+    const st = m.weakT > 0 || m.critDownT > 0
+      ? { ...m.stats, puissance: m.stats.puissance - (m.weakT > 0 ? 50 : 0), critique: m.stats.critique - (m.critDownT > 0 ? 10 : 0) }
+      : m.stats;
+    const hit = resolveHit(m.def.attack.roll, st, h.def.stats, this.rnd);
+    const absorbed = Math.min(h.shield, hit.damage);
+    h.shield -= absorbed;
+    h.hp = Math.max(0, h.hp - (hit.damage - absorbed));
+    h.souffrance = Math.min(SOUFFRANCE.max, h.souffrance + 1);
+    h.souffranceT = 0;
     h.hurtT = 0.25;
     h.invulnT = 0.35;
     this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: hit.damage, crit: hit.crit });
@@ -551,4 +743,12 @@ export class World {
       }
     }
   }
+}
+
+function freshCombat() {
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, souffranceT: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0 };
+}
+
+function freshRun(level: number): RunState {
+  return { slots: Array(slotsForLevel(level)).fill(null), force: 0, vitalite: 0, critique: 0, speed: 0 };
 }
