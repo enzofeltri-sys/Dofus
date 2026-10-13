@@ -100,3 +100,14 @@ export const spellsForLevel = (level: number): SpellDef[] => Object.values(SPELL
 
 /** Nombre de cases de sorts selon le niveau (4 → 8). */
 export const slotsForLevel = (level: number): number => 4 + [50, 100, 150, 200].filter((l) => level >= l).length;
+
+/** Passifs gagnés par les cartes (cumulables jusqu'à `max`), valables pour le donjon en cours. */
+export type PassiveId = 'vampirisme' | 'regeneration' | 'epines' | 'frenesie' | 'douleur' | 'endurance';
+export const PASSIVES: Record<PassiveId, { name: string; text: string; per: number; max: number }> = {
+  vampirisme: { name: 'Soif de sang', text: 'Vol de vie des sorts +10 % (50 % → 60 %).', per: 0.1, max: 3 },
+  regeneration: { name: 'Sang neuf', text: 'Tu régénères 0,6 % de tes PV max par seconde.', per: 0.006, max: 3 },
+  epines: { name: 'Épines', text: 'Renvoie 15 % des dégâts reçus à l’attaquant.', per: 0.15, max: 3 },
+  frenesie: { name: 'Frénésie', text: 'Ton épée frappe 15 % plus vite.', per: 0.15, max: 3 },
+  douleur: { name: 'Douleur exaltée', text: 'Chaque charge de Souffrance donne +2 Puissance de plus.', per: 2, max: 3 },
+  endurance: { name: 'Peau de cuir', text: 'Tu subis 8 % de dégâts en moins.', per: 0.08, max: 3 },
+};

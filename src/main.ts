@@ -16,7 +16,7 @@ import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus
 import { SPELLS } from './game/data/spells';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
-import { ELEMENT_COLOR, SPELL_ICONS } from './ui/spell-icons';
+import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
 import { installTheme } from './ui/theme';
 
 /**
@@ -292,8 +292,43 @@ async function main() {
   armF.addChild(sword);
   const heroC = new Container();
   const heroAura = new Graphics();
+  // vie (et Souffrance) au-dessus du Sacrieur, à la place de la grosse barre du bas
+  const heroHp = new Graphics();
+  const heroHpText = new Text({
+    text: '',
+    style: { fontFamily: 'Lilita One', fontSize: 28, fill: '#fffaf0', stroke: { color: '#3b2414', width: 6, join: 'round' } },
+  });
+  heroHpText.anchor.set(0.5, 1);
+  heroHpText.resolution = RES * 1.2;
   heroC.addChild(shadowOf(28 * CHAR_SCALE), heroAura, heroRig.root);
+  // au premier plan (jamais cachée par un monstre), suit le héros
+  const heroHpBox = new Container();
+  heroHpBox.addChild(heroHp, heroHpText);
+  floatLayer.addChild(heroHpBox);
   actors.addChild(heroC);
+  const HP_Y = -180 * CHAR_SCALE;
+  function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean) {
+    heroHpBox.visible = alive;
+    if (!alive) return;
+    heroHpBox.position.set(heroView.c.x, heroView.c.y);
+    // l'écran est réduit (≈ ×0,54 sur téléphone) : tailles prévues pour rester lisibles
+    const W = 112, H = 15, R = 7.5, k = Math.max(0, hp) / max;
+    const low = k <= 0.3;
+    heroHp.clear()
+      .roundRect(-W / 2, HP_Y, W, H, R).fill({ color: 0x3b1a12 })
+      .roundRect(-W / 2, HP_Y, Math.max(H, W * k), H, R).fill({ color: low ? (Math.sin(performance.now() / 120) > 0 ? 0xff4a3a : 0xd8303c) : 0xe8664a })
+      .roundRect(-W / 2 + 4, HP_Y + 2.5, Math.max(0, W * k - 8), 3.5, 2).fill({ color: 0xffffff, alpha: 0.35 })
+      .roundRect(-W / 2, HP_Y, W, H, R).stroke({ width: 3, color: 0x3b2414 });
+    if (shield > 0) heroHp.roundRect(-W / 2, HP_Y - 9, W * Math.min(1, shield / max), 7, 3.5).fill({ color: 0x8ddccf }).stroke({ width: 2, color: 0x1d5c55 });
+    // Souffrance : 10 petites gouttes sous la barre
+    if (souffrance > 0) for (let i = 0; i < 10; i++) {
+      heroHp.roundRect(-W / 2 + 2 + i * 11.2, HP_Y + H + 4, 8, 8, 3).fill({ color: i < souffrance ? 0xb8202e : 0x3b1a12, alpha: i < souffrance ? 1 : 0.4 })
+        .stroke({ width: 1.5, color: 0x3b2414, alpha: i < souffrance ? 1 : 0.4 });
+    }
+    heroHpText.text = String(Math.ceil(Math.max(0, hp)));
+    heroHpText.position.set(0, HP_Y - (shield > 0 ? 10 : 1));
+  }
+
   const heroView: HeroView = { rig: heroRig, c: heroC, sword, deadT: 0, anim: { t: 0, moving: false, walkPh: 0, swing: null, hurt: 0, dead: null } };
 
   const monsterViews = new Map<number, MonsterView>();
@@ -323,7 +358,7 @@ async function main() {
     const y = window.innerHeight - hud.bottomInset() - 90;
     hud.joy.style.left = `${window.innerWidth / 2}px`;
     hud.joy.style.top = `${y}px`;
-    hud.placeHint(y - 92);
+    hud.placeHint(y + 72); // sous le joystick, pour ne pas couvrir le héros
     hud.knob.style.transform = '';
   };
   placeJoyIdle();
@@ -544,7 +579,7 @@ async function main() {
     else {
       const views = cards.map((c) => {
         const info = cardInfo(game, c);
-        return { ...info, kind: c.kind, icon: info.spell ? SPELL_ICONS[info.spell] : STAT_ICON[info.stat!] };
+        return { ...info, kind: c.kind, icon: info.spell ? SPELL_ICONS[info.spell] : info.passive ? PASSIVE_ICONS[info.passive] : STAT_ICON[info.stat!] };
       });
       i = await hud.pickCard(views, slotViews(), (a, b) => {
         swapSlots(game, a, b);
@@ -729,10 +764,9 @@ async function main() {
     if (!busy) fadeA = Math.max(0, fadeA - dt * 3);
     fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
-    hud.setHp(h.hp, h.maxHp);
+    drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive);
     if (game.boss && game.phase === 'fight') hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
     hud.setPa(h.pa);
-    hud.setSuffering(h.souffrance);
     hud.setSlots(slotViews());
     game.run.slots.forEach((sl, i) => {
       if (!sl) return;

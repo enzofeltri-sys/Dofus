@@ -83,7 +83,8 @@ Chaque type d'arme a sa vitesse et sa forme d'attaque. Les stats viennent du jet
 ### 4.4 Sorts automatiques
 - **Emplacements** de sorts **ordonnés par priorité** (case 1 d'abord) : **4** au départ, **5** au niv 50, **6** au niv 100, **7** au niv 150, **8** au niv 200.
 - **Les sorts se gagnent pendant le donjon** (validé) : on commence chaque donjon avec l'arme seule ; après chaque salle, **1 carte parmi 3** :
-  nouveau sort (pris dans le grimoire, donc selon le niveau), amélioration d'un sort, ou bonus de stats pour le run.
+  nouveau sort (pris dans le grimoire, donc selon le niveau), amélioration d'un sort, bonus de stats, ou **passif** cumulable
+  (Soif de sang, Sang neuf, Épines, Frénésie, Douleur exaltée, Peau de cuir ; 3 fois max chacun).
   Quand les cases sont pleines, un nouveau sort **remplace** celui qu'on choisit. Tout repart à zéro au donjon suivant.
 - **Grimoire** : 22 paires « sort ⇄ variante » du Sacrieur ; pour chaque paire on choisit l'un des deux hors donjon.
   On peut marquer des **favoris**, qui sortent plus souvent dans les cartes.

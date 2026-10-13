@@ -10,11 +10,10 @@ export interface CardView {
   title: string;
   text: string;
   icon: string;
-  kind: 'spell' | 'upgrade' | 'stat';
+  kind: 'spell' | 'upgrade' | 'stat' | 'passive';
 }
 
 const PA_MAX = 6;
-const SUFFERING_MAX = 10;
 
 /** Tête du Sacrieur recadrée pour le médaillon (même dessin que le personnage en jeu). */
 const portraitSvg = () => sacrieurSvg('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="31 13 66 66"');
@@ -24,12 +23,8 @@ const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><
 /** Interface de combat (DOM au-dessus du canvas), charte « grimoire d'aventurier ». */
 export class Hud {
   readonly root: HTMLElement;
-  private hpFill!: HTMLElement;
-  private hpVal!: HTMLElement;
   private paFill!: HTMLElement;
   private paVal!: HTMLElement;
-  private sufFill!: HTMLElement;
-  private sufVal!: HTMLElement;
   private spellEls: HTMLElement[] = [];
   readonly joy: HTMLElement;
   readonly knob: HTMLElement;
@@ -52,26 +47,12 @@ export class Hud {
       </div>
       <div class="hint">Glisse le pouce pour te déplacer</div>
       <div class="joy idle"><div class="base"></div><div class="knob"></div></div>
-      <div class="bar gr-panel">
-        <div class="gr-gauge hp">
-          <span class="ico">${ICONS.vie.svg}</span>
-          <span class="track"><span class="fill" style="--c: var(--coral)"></span></span>
-          <span class="val">--</span>
-        </div>
-        <div class="row2">
-          <div class="gr-gauge mini pa">
-            <span class="ico">${ICONS.pa.svg}</span>
-            <span class="track"><span class="fill" style="--c: var(--turquoise)"></span></span>
-            <span class="val">6</span>
-          </div>
-          <div class="gr-gauge mini suf">
-            <span class="ico">${ICONS.souffrance.svg}</span>
-            <span class="track"><span class="fill" style="--c: var(--coral-dark)"></span></span>
-            <span class="val">0</span>
-          </div>
-        </div>
-        <div class="spells"></div>
+      <div class="pa-side" aria-label="Points d'action">
+        <span class="ico">${ICONS.pa.svg}</span>
+        <span class="vtrack"><span class="vfill"></span><span class="ticks"></span></span>
+        <span class="val gr-num">6</span>
       </div>
+      <div class="bar"><div class="spells"></div></div>
       <div class="bossbar gr-panel" hidden>
         <div class="bname"></div>
         <div class="gr-gauge"><span class="track"><span class="fill" style="--c: var(--magic)"></span></span><span class="val gr-num"></span></div>
@@ -83,12 +64,9 @@ export class Hud {
         <div class="pk-book gr-panel"><div class="gr-label pk-booklbl"></div><div class="pk-slots"></div></div>
       </div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
-    this.hpFill = root.querySelector('.hp .fill')!;
-    this.hpVal = root.querySelector('.hp .val')!;
-    this.paFill = root.querySelector('.pa .fill')!;
-    this.paVal = root.querySelector('.pa .val')!;
-    this.sufFill = root.querySelector('.suf .fill')!;
-    this.sufVal = root.querySelector('.suf .val')!;
+    this.paFill = root.querySelector('.pa-side .vfill')!;
+    this.paVal = root.querySelector('.pa-side .val')!;
+    root.querySelector('.pa-side .ticks')!.innerHTML = '<i></i>'.repeat(PA_MAX - 1);
     this.joy = root.querySelector('.joy')!;
     this.knob = root.querySelector('.joy .knob')!;
     this.hint = root.querySelector('.hint')!;
@@ -209,19 +187,10 @@ export class Hud {
   setLevel(level: number) {
     this.root.querySelector('.medal .level')!.textContent = String(level);
   }
-  setHp(hp: number, max: number) {
-    const k = Math.max(0, hp) / max;
-    this.hpFill.style.setProperty('--v', `${100 * k}%`);
-    this.hpVal.textContent = `${Math.round(Math.max(0, hp))}/${max}`;
-    this.bar.classList.toggle('low', k <= 0.3);
-  }
+  /** Jauge de PA verticale sur le côté de l'écran. */
   setPa(pa: number) {
     this.paFill.style.setProperty('--v', `${(100 * Math.min(pa, PA_MAX)) / PA_MAX}%`);
     this.paVal.textContent = String(Math.floor(pa));
-  }
-  setSuffering(n: number) {
-    this.sufFill.style.setProperty('--v', `${(100 * Math.min(n, SUFFERING_MAX)) / SUFFERING_MAX}%`);
-    this.sufVal.textContent = String(n);
   }
   /** cd : fraction restante du cooldown (0 = prêt) ; noPa : pas assez de PA. */
   setCooldown(i: number, cd: number, noPa = false) {

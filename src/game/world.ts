@@ -3,7 +3,7 @@ import { resolveHit } from './formulas';
 import { startingHero, type HeroDef } from './data/hero';
 import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
-import { CAST_DELAY, MELEE, MUTILATION, PA_MAX, PA_REGEN, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type SpellDef, type SpellId } from './data/spells';
+import { CAST_DELAY, MELEE, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
 
 /**
@@ -92,6 +92,8 @@ export interface RunState {
   vitalite: number;
   critique: number;
   speed: number;
+  /** Passifs : nombre de cartes prises pour chacun. */
+  passives: Partial<Record<PassiveId, number>>;
 }
 
 export interface Hero {
@@ -205,7 +207,7 @@ export class World {
     this.layout = roomLayout(index);
     this.obstacles = roomObstacles(this.layout);
     this.hero.x = ROOM_W / 2;
-    this.hero.y = this.bounds.y1 - 150;
+    this.hero.y = this.bounds.y1 - 240; // au-dessus du joystick
     this.hero.swing = null;
     this.monsters = [];
     this.roomT = 0;
@@ -347,8 +349,9 @@ export class World {
         const dx = target.x - h.x, dy = (target.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
         const dir = { x: dx / d, y: dy / d };
         h.facing = dx >= 0 ? 1 : -1;
-        h.swing = { t: 0, dur: Math.min(0.42, 0.8 / w.speed), hit: false, dir };
-        h.attackCd = 1 / w.speed;
+        const ws = w.speed * (1 + this.passive('frenesie'));
+        h.swing = { t: 0, dur: Math.min(0.42, 0.8 / ws), hit: false, dir };
+        h.attackCd = 1 / ws;
         this.events.push({ type: 'swing', dir });
       }
     }
@@ -363,13 +366,21 @@ export class World {
       ...s,
       force: s.force + this.run.force,
       critique: s.critique + this.run.critique,
-      puissance: s.puissance + h.souffrance * SOUFFRANCE.powerPerCharge + h.mutStage * MUTILATION.power,
+      puissance: s.puissance + h.souffrance * (SOUFFRANCE.powerPerCharge + this.passive('douleur')) + h.mutStage * MUTILATION.power,
     };
+  }
+
+  /** Valeur cumulée d'un passif (0 si aucune carte prise). */
+  passive(id: PassiveId): number {
+    return (this.run.passives[id] ?? 0) * PASSIVES[id].per;
   }
 
   /** Recharge des PA, Souffrance, Mutilation, puis lancer automatique selon l'ordre des cases. */
   private stepSpells() {
     const h = this.hero;
+    // Sang neuf : régénération continue
+    const regen = this.passive('regeneration');
+    if (regen > 0 && h.alive && this.phase === 'fight') h.hp = Math.min(h.maxHp, h.hp + h.maxHp * regen * STEP);
     h.pa = Math.min(PA_MAX, h.pa + PA_REGEN * STEP);
     h.castCd = Math.max(0, h.castCd - STEP);
     for (const sl of this.run.slots) if (sl) sl.cd = Math.max(0, sl.cd - STEP);
@@ -450,7 +461,7 @@ export class World {
     if (k.debuff === 'power') m.weakT = TURN;
     if (k.debuff === 'crit') m.critDownT = TURN;
     this.damageMonster(m, hit.damage, hit.crit);
-    this.healHero(Math.floor(hit.damage * 0.5));
+    this.healHero(Math.floor(hit.damage * (0.5 + this.passive('vampirisme'))));
     return true;
   }
 
@@ -664,14 +675,18 @@ export class World {
       ? { ...m.stats, puissance: m.stats.puissance - (m.weakT > 0 ? 50 : 0), critique: m.stats.critique - (m.critDownT > 0 ? 10 : 0) }
       : m.stats;
     const hit = resolveHit(m.def.attack.roll, st, h.def.stats, this.rnd);
-    const absorbed = Math.min(h.shield, hit.damage);
+    const dmg = Math.round(hit.damage * (1 - this.passive('endurance')));
+    const absorbed = Math.min(h.shield, dmg);
     h.shield -= absorbed;
-    h.hp = Math.max(0, h.hp - (hit.damage - absorbed));
+    h.hp = Math.max(0, h.hp - (dmg - absorbed));
+    // Épines : une partie des dégâts revient à l'attaquant
+    const thorns = Math.floor(dmg * this.passive('epines'));
+    if (thorns > 0 && m.state !== 'dead') this.damageMonster(m, thorns, false);
     h.souffrance = Math.min(SOUFFRANCE.max, h.souffrance + 1);
     h.souffranceT = 0;
     h.hurtT = 0.25;
     h.invulnT = 0.35;
-    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: hit.damage, crit: hit.crit });
+    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: hit.crit });
     if (h.hp <= 0) {
       h.alive = false;
       h.swing = null;
@@ -750,5 +765,5 @@ function freshCombat() {
 }
 
 function freshRun(level: number): RunState {
-  return { slots: Array(slotsForLevel(level)).fill(null), force: 0, vitalite: 0, critique: 0, speed: 0 };
+  return { slots: Array(slotsForLevel(level)).fill(null), force: 0, vitalite: 0, critique: 0, speed: 0, passives: {} };
 }

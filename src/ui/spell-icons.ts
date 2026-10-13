@@ -1,4 +1,4 @@
-import type { SpellId } from '../game/data/spells';
+import type { PassiveId, SpellId } from '../game/data/spells';
 
 /**
  * Icônes des sorts du Sacrieur, style « grimoire » (même trait que grimoire-icons.ts) :
@@ -42,4 +42,15 @@ export const SPELL_ICONS: Record<SpellId, string> = {
     `<path d="M32 8l6 6-17 17-6-6Z" fill="#dfe6ec" ${S}/><path d="M13 23l12 12-3 3-12-12Z" fill="#e3a838" ${S}/>` +
     `<path d="M14 34l-5 5" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M14 34l-5 5" stroke="#8a5a2c" stroke-width="2.6" stroke-linecap="round"/>` +
     HI('M33 12L22 23') + DROP(34, 34, 0.75)),
+};
+
+/** Icônes des passifs (pastille dorée : un passif est permanent pendant le donjon). */
+const pbadge = (body: string) => badge('#f6e3b0', '#9a6a12', body);
+export const PASSIVE_ICONS: Record<PassiveId, string> = {
+  vampirisme: pbadge(`<path d="M12 14l4 9 4-9M28 14l4 9 4-9" fill="#fff6dc" ${S}/><path d="M8 13h32" ${S}/>` + DROP(24, 32, 0.9)),
+  regeneration: pbadge(`<path d="M24 39C12 31 8 25 8 19c0-5 3.5-8 8-8 3.5 0 6 2 8 5 2-3 4.5-5 8-5 4.5 0 8 3 8 8 0 6-4 12-16 20Z" fill="#e8664a" ${S}/><path d="M24 16v14M17 23h14" stroke="#fff6dc" stroke-width="3.2" stroke-linecap="round"/>`),
+  epines: pbadge(`<circle cx="24" cy="25" r="11" fill="#8a6a3c" ${S}/><path d="M24 8v6M24 36v6M7 25h6M35 25h6M12 13l4 4M32 33l4 4M36 13l-4 4M16 33l-4 4" ${S}/>` + HI('M19 21c1-2 2.5-3 4-3.5')),
+  frenesie: pbadge(`<path d="M30 6h10v10L22 34l-8-8Z" fill="#d7e2ea" ${S}/><path d="M12 24l12 12-3 3-12-12Z" fill="#e3a838" ${S}/><path d="M6 14h8M4 20h8M8 8h8" stroke="#e8664a" stroke-width="2.6" stroke-linecap="round"/>`),
+  douleur: pbadge(`<path d="M24 5c6 10 14 16 14 25a14 14 0 0 1-28 0C10 21 18 15 24 5Z" fill="#b8432c" ${S}/><path d="M19 22l5 4 4-7 3 9" fill="none" stroke="#ffd36a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`),
+  endurance: pbadge(`<path d="M24 6l15 6v10c0 9-6 16-15 20C15 38 9 31 9 22V12Z" fill="#a0784a" ${S}/><path d="M24 11v26" stroke="#5a3a1a" stroke-width="2" stroke-dasharray="3 3"/>` + HI('M14 15v7')),
 };

@@ -1,4 +1,4 @@
-import { SPELLS, spellsForLevel, type SpellId } from './data/spells';
+import { PASSIVES, SPELLS, spellsForLevel, type PassiveId, type SpellId } from './data/spells';
 import type { World } from './world';
 
 /**
@@ -9,7 +9,8 @@ export type StatBonus = 'force' | 'vitalite' | 'critique' | 'speed';
 export type Card =
   | { kind: 'spell'; spell: SpellId }
   | { kind: 'upgrade'; spell: SpellId; up: 'dmg' | 'cd' }
-  | { kind: 'stat'; stat: StatBonus };
+  | { kind: 'stat'; stat: StatBonus }
+  | { kind: 'passive'; passive: PassiveId };
 
 export const STAT_BONUS: Record<StatBonus, { value: number; title: string; text: string }> = {
   force: { value: 15, title: 'Force +15', text: 'Plus de dégâts Terre et Neutre : épée, Supplice.' },
@@ -34,11 +35,15 @@ export function drawCards(w: World, rnd: () => number, favorites: SpellId[] = []
     return c;
   });
   const statCards: Card[] = (Object.keys(STAT_BONUS) as StatBonus[]).map((stat) => ({ kind: 'stat', stat }));
+  const passiveCards: Card[] = (Object.keys(PASSIVES) as PassiveId[])
+    .filter((p) => (w.run.passives[p] ?? 0) < PASSIVES[p].max)
+    .map((passive) => ({ kind: 'passive', passive }));
 
   const weight = (c: Card) => {
     if (c.kind === 'spell') return (free ? 3 : 0.8) * (favorites.includes(c.spell) ? 2.5 : 1);
     if (c.kind === 'upgrade') return 1.4 * (favorites.includes(c.spell) ? 1.6 : 1);
-    return 1;
+    if (c.kind === 'passive') return 0.9;
+    return 0.8;
   };
   const pick = (pool: Card[], taken: Card[]): Card | null => {
     const left = pool.filter((c) => !taken.some((t) => key(t) === key(c)));
@@ -50,7 +55,7 @@ export function drawCards(w: World, rnd: () => number, favorites: SpellId[] = []
 
   const out: Card[] = [];
   if (free && spellCards.length) out.push(pick(spellCards, out)!);
-  const all = [...spellCards, ...upCards, ...statCards];
+  const all = [...spellCards, ...upCards, ...statCards, ...passiveCards];
   while (out.length < 3) {
     const c = pick(all, out);
     if (!c) break;
@@ -73,6 +78,8 @@ export function applyCard(w: World, c: Card, replaceSlot?: number) {
     if (!sl) return;
     if (c.up === 'dmg') sl.dmgBonus += UPGRADE.dmg;
     else sl.cdBonus = Math.min(UPGRADE.cdMax, sl.cdBonus + UPGRADE.cd);
+  } else if (c.kind === 'passive') {
+    run.passives[c.passive] = (run.passives[c.passive] ?? 0) + 1;
   } else {
     const v = STAT_BONUS[c.stat].value;
     run[c.stat] += v;
@@ -90,7 +97,7 @@ export function swapSlots(w: World, a: number, b: number) {
 }
 
 /** Textes d'une carte pour l'écran de choix. */
-export function cardInfo(w: World, c: Card): { tag: string; title: string; text: string; spell?: SpellId; stat?: StatBonus } {
+export function cardInfo(w: World, c: Card): { tag: string; title: string; text: string; spell?: SpellId; stat?: StatBonus; passive?: PassiveId } {
   if (c.kind === 'spell') return { tag: 'Nouveau sort', title: SPELLS[c.spell].name, text: SPELLS[c.spell].text, spell: c.spell };
   if (c.kind === 'upgrade') {
     const sl = w.run.slots.find((s) => s?.id === c.spell);
@@ -98,6 +105,10 @@ export function cardInfo(w: World, c: Card): { tag: string; title: string; text:
     return c.up === 'dmg'
       ? { tag: 'Amélioration', title: `${name} : dégâts +20 %`, text: `Total : +${Math.round(((sl?.dmgBonus ?? 0) + UPGRADE.dmg) * 100)} % de dégâts pour ce donjon.`, spell: c.spell }
       : { tag: 'Amélioration', title: `${name} : recharge -20 %`, text: `Se relance plus souvent (jusqu’à -40 %).`, spell: c.spell };
+  }
+  if (c.kind === 'passive') {
+    const p = PASSIVES[c.passive], n = w.run.passives[c.passive] ?? 0;
+    return { tag: n ? `Passif · ${n + 1}/${p.max}` : 'Passif', title: p.name, text: p.text, passive: c.passive };
   }
   const b = STAT_BONUS[c.stat];
   return { tag: 'Bonus', title: b.title, text: b.text, stat: c.stat };

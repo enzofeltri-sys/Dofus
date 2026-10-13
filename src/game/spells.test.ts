@@ -132,3 +132,23 @@ describe('Cartes entre les salles', () => {
     expect(w.run.slots.every((s) => s === null)).toBe(true);
   });
 });
+
+describe('Passifs', () => {
+  it('se cumulent jusqu’à 3 et agissent : vol de vie, épines, endurance, frénésie', () => {
+    const { w, m } = duel(60, []);
+    for (let i = 0; i < 5; i++) applyCard(w, { kind: 'passive', passive: 'epines' });
+    expect(w.run.passives.epines).toBe(5);
+    w.run.passives.epines = 3; // le tirage ne propose plus un passif au maximum
+    expect(drawCards(w, rng(3)).every((c) => c.kind !== 'passive' || c.passive !== 'epines')).toBe(true);
+    applyCard(w, { kind: 'passive', passive: 'endurance' });
+    Object.assign(m, { cd: 0 });
+    const hp0 = m.hp;
+    const ev = run(w, 2.5);
+    const hits = ev.filter((e) => e.type === 'hit' && e.target === 'hero');
+    expect(hits.length).toBeGreaterThan(0);
+    expect(m.hp).toBeLessThan(hp0); // les épines ont renvoyé des dégâts
+    expect(w.passive('frenesie')).toBe(0);
+    applyCard(w, { kind: 'passive', passive: 'frenesie' });
+    expect(w.passive('frenesie')).toBeCloseTo(0.15);
+  });
+});
