@@ -6,9 +6,10 @@ import { shade } from '../../svg';
  * Trait uniforme, membres effilés, bandages enroulés en diagonale, ombres douces.
  * Regarde vers la DROITE. Pieds en (70, 160).
  */
-const W = 2.2; // épaisseur unique du contour extérieur
-const D = 1.3; // épaisseur des détails intérieurs
-const ink = (fill: string, k = -0.62) => kInk(fill, k);
+let W = 2.2; // épaisseur unique du contour extérieur
+let D = 1.3; // épaisseur des détails intérieurs
+let INK_K = -0.62;
+const ink = (fill: string, k = INK_K) => kInk(fill, k);
 const shape = (d: string, fill: string, outline = ink(fill), w = W) => kShape(d, fill, outline, w);
 
 type Pt = [number, number];
@@ -19,6 +20,16 @@ interface Opts {
   snarl: boolean;
   arm: number; // largeur des bras à l'épaule
   armStyle?: 'full' | 'slim' | 'forearm' | 'bands' | 'spiral';
+  /** Finesse (variantes F) : traits, minceur des membres, échelle de la tête, sourcils. */
+  line?: number;
+  detail?: number;
+  inkK?: number;
+  slim?: number;
+  headScale?: number;
+  brow?: number;
+  hand?: number;
+  /** Allonge les jambes (pieds plus bas, en px). */
+  legLen?: number;
 }
 
 const WRAP = '#a3283a';
@@ -100,9 +111,11 @@ function arm(o: Opts, skin: string, skInk: string, side: 'back' | 'front'): stri
       : bandaged([[89, 90], [98, 95], [103, 105], [100, 118]], o.arm + 1, o.arm - 3, skin) + mitten(100, 122, 1);
   }
   // bras plus fins, plus près du corps, légèrement pliés
-  const pts: Pt[] = back ? [[46, 88], [42, 98], [41, 108], [43, 118]] : [[94, 87], [99, 97], [100, 107], [97, 117]];
-  const w0 = 12.5, w1 = 9.5;
-  const fist = back ? mitten(43, 121, -1, 0.82) : mitten(97, 120, 1, 0.82);
+  const sl = o.slim ?? 0, dx = (back ? 1 : -1) * 4 * sl;
+  const pts: Pt[] = (back ? [[46, 88], [42, 98], [41, 108], [43, 118]] : [[94, 87], [99, 97], [100, 107], [97, 117]]).map(([x, y]) => [x + dx, y] as Pt);
+  const w0 = 12.5 * (1 - 0.22 * sl), w1 = 9.5 * (1 - 0.2 * sl);
+  const hs = 0.82 * (o.hand ?? 1);
+  const fist = back ? mitten(43 + dx, 121, -1, hs) : mitten(97 + dx, 120, 1, hs);
   const SKIN_FILL = 'url(#skArm)';
   if (st === 'slim') return bandaged(pts, w0, w1, skin, 6, 4) + fist;
   if (st === 'forearm') {
@@ -128,6 +141,10 @@ export const SACRI_PIVOTS: Record<SacriPart, [number, number]> = {
 
 function build(o: Opts, part?: SacriPart): string {
   uid = 0;
+  W = o.line ?? 2.2;
+  D = o.detail ?? 1.3;
+  INK_K = o.inkK ?? -0.62;
+  const sl = o.slim ?? 0;
   const SKIN = o.skin;
   const SK_INK = ink(SKIN, -0.6);
   const defs = [
@@ -146,17 +163,20 @@ function build(o: Opts, part?: SacriPart): string {
 
   /* ---------- Jambes ---------- */
   const leg = (arr: string[], hipX: number, footX: number, dir: number) => {
-    const hemY = 140;
+    const L = o.legLen ?? 0;
+    const hemY = 140 + L * 0.8;
+    const pw = 1 - 0.24 * sl; // pantalon plus ajusté
+    const a = 9 * pw, b = 12 * pw, c = 11 * pw;
     // bandage du tibia + pied nu
-    arr.push(bandaged([[footX, hemY - 8], [footX, 153]], 10, 9, SKIN, 5.5, 3));
+    arr.push(bandaged([[footX, hemY - 8], [footX, 153 + L]], 10 * (1 - 0.2 * sl), 9 * (1 - 0.2 * sl), SKIN, 5.5, 3));
     // pantalon ample, ourlet effiloché qui s'évase
-    arr.push(shape(`M${hipX - 9},104 Q${hipX - 12},${hemY - 14} ${footX - 11},${hemY} L${footX - 7},${hemY + 4} L${footX - 3},${hemY - 1} L${footX + 1},${hemY + 5} L${footX + 5},${hemY} L${footX + 9},${hemY + 3} L${footX + 11},${hemY - 2} Q${hipX + 12},${hemY - 18} ${hipX + 9},106 Z`, 'url(#pants)', CAP_INK));
+    arr.push(shape(`M${hipX - a},104 Q${hipX - b},${hemY - 14} ${footX - c},${hemY} L${footX - c * 0.64},${hemY + 4} L${footX - c * 0.27},${hemY - 1} L${footX + c * 0.1},${hemY + 5} L${footX + c * 0.45},${hemY} L${footX + c * 0.82},${hemY + 3} L${footX + c},${hemY - 2} Q${hipX + b},${hemY - 18} ${hipX + a},106 Z`, 'url(#pants)', CAP_INK));
     arr.push(line(`M${hipX + dir * 2},112 Q${hipX + dir * 4},124 ${footX + dir * 3},136`, shade(PANTS, -0.4), D, 0.6));
-    arr.push(shape(`M${footX - 9},152 Q${footX},148 ${footX + 11},152 Q${footX + 13},158 ${footX + 6},158 L${footX - 8},158 Q${footX - 11},155 ${footX - 9},152 Z`, 'url(#sk)', SK_INK));
-    arr.push(line(`M${footX + 4},155 l0,2.4 M${footX + 7.5},154.5 l0,2.4`, SK_INK, 0.9, 0.8));
+    arr.push(`<g transform="translate(0,${L})">` + shape(`M${footX - 9},152 Q${footX},148 ${footX + 11},152 Q${footX + 13},158 ${footX + 6},158 L${footX - 8},158 Q${footX - 11},155 ${footX - 9},152 Z`, 'url(#sk)', SK_INK) +
+      line(`M${footX + 4},155 l0,2.4 M${footX + 7.5},154.5 l0,2.4`, SK_INK, 0.9, 0.8) + '</g>');
   };
-  leg(legB, 60, 56, -1);
-  leg(legF, 81, 85, 1);
+  leg(legB, 60 + 2 * sl, 56 + 2 * sl, -1);
+  leg(legF, 81 - 2 * sl, 85 - 2 * sl, 1);
   legB.push(`<g fill="#a8423a" opacity="0.85"><circle cx="59" cy="120" r="1.2"/><circle cx="57.5" cy="125.5" r="1.2"/><circle cx="56.5" cy="131" r="1.2"/></g>`);
 
   /* ---------- Haut du corps (remonté : jambes plus longues) ---------- */
@@ -196,8 +216,8 @@ function build(o: Opts, part?: SacriPart): string {
   if (!o.whiteEyes) {
     h.push(`<circle cx="70.5" cy="56" r="2.6" fill="#2a120a"/><circle cx="71.2" cy="55.2" r="0.8" fill="#fff"/><circle cx="90.3" cy="54" r="2.3" fill="#2a120a"/>`);
   }
-  h.push(line('M58,49 L77,54', '#4a1a06', 3.6));
-  h.push(line('M82,53 L98,47', '#4a1a06', 3.6));
+  h.push(line('M58,49 L77,54', '#4a1a06', o.brow ?? 3.6));
+  h.push(line('M82,53 L98,47', '#4a1a06', o.brow ?? 3.6));
   // peintures de guerre
   h.push(line('M64,64 L74,63 M66,67.5 L73,67', '#b8243a', 2.2, 0.95));
   h.push(line('M89,61 L97,59.5', '#b8243a', 2, 0.95));
@@ -220,13 +240,13 @@ function build(o: Opts, part?: SacriPart): string {
   h.push(`<ellipse cx="76" cy="31" rx="8.5" ry="5.6" fill="#e8c040" stroke="#7a5a08" stroke-width="1.4" transform="rotate(-6 76 31)"/>`);
   h.push(`<ellipse cx="76" cy="31" rx="6.2" ry="3.6" fill="none" stroke="#6a3a1a" stroke-width="1.3" stroke-dasharray="1.6 1.8" transform="rotate(-6 76 31)"/>`);
 
-  const head = `<g transform="translate(70,84) scale(0.86) translate(-70,-84)">${h.join('\n')}</g>`;
+  const head = `<g transform="translate(70,84) scale(${o.headScale ?? 0.86}) translate(-70,-84)">${h.join('\n')}</g>`;
   const upper = (x: string) => `<g transform="translate(0,-14)">${x}</g>`;
   const parts: Record<SacriPart, string> = {
     legB: legB.join('\n'),
     legF: legF.join('\n'),
     armB: upper(armB.join('\n')),
-    torso: upper(torso.join('\n')),
+    torso: upper(sl ? `<g transform="translate(70,0) scale(${1 - 0.1 * sl},1) translate(-70,0)">${torso.join('\n')}</g>` : torso.join('\n')),
     armF: upper(armF.join('\n')),
     head: upper(head),
   };
@@ -244,3 +264,14 @@ export const variantD1 = () => build({ ...D_BASE, armStyle: 'slim' });
 export const variantD2 = (part?: SacriPart) => build({ ...D_BASE, armStyle: 'forearm' }, part);
 export const variantD3 = () => build({ ...D_BASE, armStyle: 'bands' });
 export const variantD4 = () => build({ ...D_BASE, armStyle: 'spiral' });
+
+/** Variantes « fines » de D2 : traits plus légers, silhouette plus élancée. */
+const D2_OPTS: Opts = { ...D_BASE, armStyle: 'forearm' };
+/** F1 : mêmes formes, traits fins et encre plus douce. */
+export const variantF1 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.45, detail: 0.9, inkK: -0.55, brow: 2.8 }, part);
+/** F2 : F1 + membres et pantalon affinés, mains plus petites. */
+export const variantF2 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.45, detail: 0.9, inkK: -0.55, brow: 2.6, slim: 1, hand: 0.88 }, part);
+/** F3 : F2 + tête un peu plus petite (silhouette plus élancée). */
+export const variantF3 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.3, detail: 0.8, inkK: -0.52, brow: 2.4, slim: 1, hand: 0.85, headScale: 0.8 }, part);
+/** F4 : F2 + jambes plus longues et tête plus petite (silhouette élancée). Pieds en (70, 166). */
+export const variantF4 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.86, headScale: 0.8, legLen: 6 }, part);
