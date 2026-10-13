@@ -288,11 +288,9 @@ export const variantF2 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.45, d
 /** F3 : F2 + tête un peu plus petite (silhouette plus élancée). */
 const F3_OPTS: Opts = { ...D2_OPTS, line: 1.3, detail: 0.8, inkK: -0.52, brow: 2.4, slim: 1, hand: 0.85, headScale: 0.8 };
 export const variantF3 = (part?: SacriPart) => build(F3_OPTS, part);
-/** H : G3 (buste très fin) choisi par Enzo, tête plus petite et plus fine. C'est le Sacrieur du jeu. */
-export const H_OPTS: Opts = { ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.84, legLen: 4, chest: 0.7, headScale: 0.76, headW: 0.92 };
+/** H : G3 (buste très fin) choisi par Enzo, tête nettement plus petite et plus fine (ex-« H2 »). C'est le Sacrieur du jeu. */
+export const H_OPTS: Opts = { ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.84, legLen: 4, chest: 0.7, headScale: 0.7, headW: 0.92 };
 export const variantH = (part?: SacriPart) => build(H_OPTS, part);
-/** H2 : tête encore plus petite (pour comparaison). */
-export const variantH2 = (part?: SacriPart) => build({ ...H_OPTS, headScale: 0.7 }, part);
 /** F4 : F2 + jambes plus longues et tête plus petite (silhouette élancée). Pieds en (70, 166). */
 export const variantF4 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.86, headScale: 0.8, legLen: 6 }, part);
 
