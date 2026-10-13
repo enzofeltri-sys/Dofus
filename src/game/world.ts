@@ -224,11 +224,11 @@ export class World {
     this.boss = null;
     this.elite = null;
     if (index === World.ELITE_ROOM) {
-      // salle du mini-boss : le Sergent d'élite et deux Chafers
+      // salle du mini-boss : le Sergent d'élite et quatre Chafers
       this.reserve = [];
       this.elite = this.makeMonster(MONSTERS.sergentElite, 5, ROOM_W / 2, this.bounds.y0 + 200);
       this.monsters.push(this.elite);
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 4; i++) {
         const p = this.findSpawn();
         this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 3, p.x, p.y));
       }
@@ -236,24 +236,24 @@ export class World {
       return;
     }
     if (index === TOTAL_ROOMS - 1) {
-      // salle du boss : Kardorim (grade 5) et deux Chafers aguerris
+      // salle du boss : Kardorim (grade 5) et cinq Chafers aguerris
       this.reserve = [];
       this.boss = this.makeMonster(MONSTERS.kardorim, 5, ROOM_W / 2, this.bounds.y0 + 170);
       this.monsters.push(this.boss);
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = this.findSpawn();
-        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 4, p.x, p.y));
+        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 4 + (i % 2), p.x, p.y));
       }
       this.events.push({ type: 'roomStart', index });
       return;
     }
-    // 5 monstres en salle 1, jusqu'à 10 ; à partir de la salle 4, une partie arrive en deuxième vague
-    const count = Math.min(10, 5 + Math.floor(index * 0.75));
+    // 7 monstres en salle 1, jusqu'à 14 ; à partir de la salle 3, une partie arrive en deuxième vague
+    const count = Math.min(14, 7 + index);
     const defs = [...Array(count)].map(() => ({
       def: MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]],
       grade: roomGrade(index, this.rnd()),
     }));
-    const second = index >= 3 ? Math.round(count * 0.4) : 0;
+    const second = index >= 2 ? Math.round(count * 0.4) : 0;
     this.reserve = defs.splice(defs.length - second, second);
     for (const { def, grade } of defs) {
       const p = this.findSpawn();

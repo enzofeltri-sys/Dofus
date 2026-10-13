@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyCard, drawCards, needsReplace, swapSlots } from './cards';
 import { MONSTERS } from './data/monsters';
-import { PA_MAX, SPELLS, TURN, type SpellId } from './data/spells';
+import { MUTILATION, PA_MAX, SPELLS, TURN, type SpellId } from './data/spells';
 import { PERSP, STEP, World, type WorldEvent } from './world';
 import { rng } from '../iso';
 
@@ -72,7 +72,7 @@ describe('Sorts du Sacrieur', () => {
     run(w, 0.1);
     expect(w.hero.mutStage).toBe(1);
     expect(w.hero.hp).toBe(hp0 - Math.round(hp0 * 0.1));
-    expect(w.heroStats().puissance).toBe(50);
+    expect(w.heroStats().puissance).toBe(MUTILATION.power);
     run(w, TURN + 0.1);
     expect(w.hero.mutStage).toBe(2);
     w.hero.hp = Math.floor(w.hero.maxHp * 0.3);

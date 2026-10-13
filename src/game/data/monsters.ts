@@ -37,9 +37,9 @@ export interface MonsterGrade {
 }
 
 /** Adaptation au temps réel : les monstres ont plus de PV qu'en tour par tour. */
-export const REALTIME_HP = 1.8;
-/** Bonus de Puissance des monstres (en % de leur multiplicateur de dégâts) : ≈ +12 % de dégâts. */
-export const MONSTER_POWER = 0.30;
+export const REALTIME_HP = 2.2;
+/** Bonus de Puissance des monstres (en % de leur multiplicateur de dégâts) : +50 % de dégâts. */
+export const MONSTER_POWER = 0.5;
 
 export interface MonsterDef {
   id: string;
@@ -121,14 +121,14 @@ export const MONSTERS: Record<string, MonsterDef> = {
    * Kardorim (DofusDB 4051) : niveau 10, 140 à 200 PV, Force 50.
    * Casse-crâne : corps à corps neutre 34-38, 2 fois par tour → toutes les ~1,5-2 s, très bien annoncé.
    * Craquement d'Os : +1 PM en zone tous les 3 tours → accélération toutes les 12 s (1 tour = 4 s).
-   * Appel de Kardorib : invocation tous les 6 tours → toutes les 24 s.
+   * Appel de Kardorib : invocation tous les 6 tours → toutes les 24 s (16 s ici : difficulté relevée à la demande d'Enzo).
    */
   kardorim: {
     id: 'kardorim', name: 'Kardorim', dofusId: 4051,
     grades: [g(10, 140, 50), g(10, 150, 50), g(10, 170, 50), g(10, 190, 50), g(10, 200, 50)],
     behavior: 'boss', speed: 118, radius: 44, art: 'kardorim', scale: 1.55,
     attack: { shape: 'circle', trigger: 135, size: 92, spread: 0, offset: 78, windup: 0.8, recover: 0.5, cooldown: [1.4, 2.0], roll: { min: 34, max: 38, critBonus: 4, critBase: 3, element: 'neutre' } },
-    boss: { crackEvery: 12, crackDuration: 4, haste: 1.6, crackRadius: 280, summonFirst: 6, summonEvery: 24, summon: 'kardorib', maxSummons: 3 },
+    boss: { crackEvery: 12, crackDuration: 4, haste: 1.6, crackRadius: 280, summonFirst: 6, summonEvery: 16, summon: 'kardorib', maxSummons: 4 },
   },
   /** Kardorib (DofusDB 4052) : invocation de Kardorim, niveau 10, 60 PV, Force 40. */
   kardorib: {
