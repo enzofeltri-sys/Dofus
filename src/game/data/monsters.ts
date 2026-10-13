@@ -57,8 +57,12 @@ export interface MonsterDef {
   art: MonsterArt;
   /** Taille d'affichage (1 = Chafer). */
   scale?: number;
-  /** Capacités de boss, traduites des sorts Dofus (1 tour = 3 s). */
+  /** Capacités de boss, traduites des sorts Dofus (1 tour = 4 s). */
   boss?: BossKit;
+  /** Multiplicateur de PV (monstre d'élite). */
+  hpMult?: number;
+  /** Charge : attaque spéciale en ligne, puis le monstre fonce sur toute la longueur. */
+  charge?: { every: number; attack: MonsterAttack; dash: number };
 }
 
 export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'kardorim' | 'kardorib';
@@ -100,6 +104,20 @@ export const MONSTERS: Record<string, MonsterDef> = {
     attack: { shape: 'cone', trigger: 130, size: 165, spread: 0.72, offset: 0, windup: 0.61, recover: 0.34, cooldown: [1.19, 1.7], roll: neutre(5, 9) },
   },
   /**
+   * Mini-boss de la salle 5 (création, faute de mini-boss de ce niveau dans Dofus) :
+   * le vrai Sergent Chafer au grade 5, plus grand, 2,5 fois plus de PV, et une charge annoncée en ligne.
+   */
+  sergentElite: {
+    id: 'sergentElite', name: 'Sergent Chafer d’élite', dofusId: 4050,
+    grades: [g(7, 36, 60), g(8, 40, 70), g(9, 44, 80), g(10, 49, 90), g(11, 54, 100)],
+    behavior: 'brute', speed: 120, radius: 34, art: 'sergent', scale: 1.3, hpMult: 2.5,
+    attack: { shape: 'cone', trigger: 140, size: 175, spread: 0.72, offset: 0, windup: 0.6, recover: 0.34, cooldown: [1.1, 1.6], roll: neutre(5, 9) },
+    charge: {
+      every: 6, dash: 290,
+      attack: { shape: 'line', trigger: 420, size: 330, spread: 30, offset: 0, windup: 0.85, recover: 0.6, cooldown: [1.2, 1.6], roll: neutre(8, 12) },
+    },
+  },
+  /**
    * Kardorim (DofusDB 4051) : niveau 10, 140 à 200 PV, Force 50.
    * Casse-crâne : corps à corps neutre 34-38, 2 fois par tour → toutes les ~1,5-2 s, très bien annoncé.
    * Craquement d'Os : +1 PM en zone tous les 3 tours → accélération toutes les 12 s (1 tour = 4 s).
@@ -126,5 +144,5 @@ export const CRYPT_POOL = ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', '
 /** Statistiques d'un monstre à un grade donné (1 à 5). */
 export function gradeStats(def: MonsterDef, grade: number): { level: number; maxHp: number; stats: Stats } {
   const gr = def.grades[Math.max(1, Math.min(def.grades.length, grade)) - 1];
-  return { level: gr.level, maxHp: Math.round(gr.hp * REALTIME_HP), stats: baseStats({ force: gr.force, puissance: Math.round((100 + gr.force) * MONSTER_POWER) }) };
+  return { level: gr.level, maxHp: Math.round(gr.hp * REALTIME_HP * (def.hpMult ?? 1)), stats: baseStats({ force: gr.force, puissance: Math.round((100 + gr.force) * MONSTER_POWER) }) };
 }

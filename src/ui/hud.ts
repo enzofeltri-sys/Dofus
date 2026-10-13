@@ -63,6 +63,26 @@ export class Hud {
         <div class="pk-cards"></div>
         <div class="pk-book gr-panel"><div class="gr-label pk-booklbl"></div><div class="pk-slots"></div></div>
       </div>
+      <div class="camp gr-paper" hidden>
+        <h1 class="gr-title">Dofus <span>version Enzo</span></h1>
+        <div class="camp-hero">${sacrieurSvg()}</div>
+        <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span></div>
+        <div class="camp-records"></div>
+        <div class="camp-dj gr-panel gold">
+          <div class="dj-txt"><span class="gr-label">Donjon · niveau 10</span><b>Crypte de Kardorim</b><span class="dj-sub">9 salles · mini-boss · Kardorim</span></div>
+          <button type="button" class="gr-btn enter">Entrer</button>
+        </div>
+        <div class="camp-soon"><span class="gr-label">Bientôt au camp</span>
+          <div><span class="gr-chip">${ICONS.sac.svg}Inventaire</span><span class="gr-chip">${ICONS.sagesse.svg}Grimoire</span><span class="gr-chip">${ICONS.artisan.svg}Artisan</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
+        </div>
+      </div>
+      <div class="summary" hidden><div class="sum-card gr-panel gold">
+        <h2 class="gr-title"></h2><p class="sum-sub"></p>
+        <div class="sum-stats"></div>
+        <div class="sum-cards"></div>
+        <p class="sum-loot"></p>
+        <button type="button" class="gr-btn turquoise back">Retour au camp</button>
+      </div></div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.paFill = root.querySelector('.pa-side .vfill')!;
     this.paVal = root.querySelector('.pa-side .val')!;
@@ -244,6 +264,45 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return !this.root.querySelector<HTMLElement>('.overlay')!.hidden || !this.root.querySelector<HTMLElement>('.picker')!.hidden;
+    return ['.overlay', '.picker', '.camp', '.summary'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+  }
+
+  /** Écran d'accueil : le Sacrieur, ses records, et l'entrée du donjon. Résout quand on entre. */
+  camp(rec: { runs: number; wins: number; bestRoom: number; bestWinTime: number | null }): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.camp')!;
+    const t = rec.bestWinTime;
+    el.querySelector('.camp-records')!.innerHTML = [
+      ['Parties', String(rec.runs)],
+      ['Victoires', String(rec.wins)],
+      ['Plus loin', rec.bestRoom ? `Salle ${rec.bestRoom}` : '—'],
+      ['Record', t === null ? '—' : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`],
+    ].map(([k, v]) => `<div><span class="gr-label">${k}</span><b class="gr-num">${v}</b></div>`).join('');
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.enter')!.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
+  /** Bilan de fin de partie (victoire ou défaite). */
+  summary(won: boolean, rows: [string, string][], cards: string[], loot: string): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.summary')!;
+    el.querySelector('h2')!.textContent = won ? 'Victoire !' : 'Le Sacrieur est tombé';
+    el.querySelector('.sum-sub')!.textContent = won ? 'Kardorim est vaincu, la Crypte est terminée.' : 'Il reviendra plus fort.';
+    el.querySelector('.sum-stats')!.innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b class="gr-num">${v}</b></div>`).join('');
+    el.querySelector('.sum-cards')!.innerHTML = cards.length
+      ? `<span class="gr-label">Cartes prises</span><div>${cards.map((c) => `<span class="gr-chip">${c}</span>`).join('')}</div>`
+      : '';
+    el.querySelector('.sum-loot')!.textContent = loot;
+    el.classList.toggle('won', won);
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.back')!.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
   }
 }

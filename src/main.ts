@@ -13,6 +13,7 @@ import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, L
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
+import { applyRun, loadSave, storeSave, type RunResult } from './game/save';
 import { SPELLS } from './game/data/spells';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
@@ -27,6 +28,8 @@ import { installTheme } from './ui/theme';
 const DEMO = new URLSearchParams(location.search).has('demo');
 
 /** ?salle=9 : commence directement à une salle (tests). */
+/** Le camp s'affiche au lancement, sauf en démo ou quand on vise directement une salle. */
+const SHOW_CAMP = !DEMO && !new URLSearchParams(location.search).has('salle');
 const START_ROOM = Math.max(0, Math.min(TOTAL_ROOMS - 1, (Number(new URLSearchParams(location.search).get('salle')) || 1) - 1));
 const CHAR_SCALE = 0.8;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
@@ -358,7 +361,7 @@ async function main() {
     const y = window.innerHeight - hud.bottomInset() - 90;
     hud.joy.style.left = `${window.innerWidth / 2}px`;
     hud.joy.style.top = `${y}px`;
-    hud.placeHint(y + 72); // sous le joystick, pour ne pas couvrir le héros
+    hud.placeHint(y - 92);
     hud.knob.style.transform = '';
   };
   placeJoyIdle();
@@ -455,19 +458,15 @@ async function main() {
         break;
       case 'heroDied':
         busy = true;
-        later(1.3, async () => {
-          await hud.overlay('Le Sacrieur est tombé', `Tu as atteint la salle ${game.roomIndex + 1} sur ${TOTAL_ROOMS}.`, 'Recommencer');
-          await transition(() => {
-            game.restart();
-            return buildRoom(0);
-          });
-          busy = false;
-        });
+        later(1.3, () => endRun(false));
         break;
       case 'roomStart':
         if (game.boss) {
           hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
           later(0.4, () => hud.toast('Kardorim !', 1400));
+        } else if (game.elite) {
+          hud.setBoss(game.elite.def.name, game.elite.hp, game.elite.maxHp);
+          later(0.4, () => hud.toast('Mini-boss !', 1400));
         } else hud.setBoss(null);
         break;
       case 'bossCrack': {
@@ -487,15 +486,7 @@ async function main() {
       case 'victory':
         busy = true;
         hud.toast('Victoire !', 1600);
-        later(1.8, async () => {
-          hud.setBoss(null);
-          await hud.overlay('Kardorim est vaincu !', 'La Crypte de Kardorim est terminée. Les sorts, les drops et l’XP arrivent dans les prochaines étapes.', 'Recommencer le donjon');
-          await transition(() => {
-            game.restart();
-            return buildRoom(0);
-          });
-          busy = false;
-        });
+        later(1.8, () => endRun(true));
         break;
       case 'cast': {
         hud.flashCast(ev.slot);
@@ -571,6 +562,37 @@ async function main() {
   const STAT_ICON: Record<StatBonus, string> = { force: ICONS.force.svg, vitalite: ICONS.vie.svg, critique: ICONS.xp.svg, speed: ICONS.pm.svg };
   const slotViews = (): SlotView[] => game.run.slots.map((sl) => (sl ? { icon: SPELL_ICONS[sl.id], name: SPELLS[sl.id].name, pa: SPELLS[sl.id].pa } : null));
 
+  let save = loadSave();
+  const cardsTaken: string[] = [];
+
+  /** Fin de partie : bilan, sauvegarde, retour au camp, nouvelle partie. */
+  async function endRun(won: boolean) {
+    const st = game.stats;
+    const result: RunResult = {
+      won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
+      cards: [...cardsTaken], loot: { xp: 0, resources: {} }, bossLoot: { xp: 0, resources: {} },
+    };
+    save = applyRun(save, result);
+    storeSave(save);
+    hud.setBoss(null);
+    const t = Math.round(st.time);
+    await hud.summary(won, [
+      ['Salle atteinte', `${result.room} / ${TOTAL_ROOMS}`],
+      ['Durée', `${Math.floor(t / 60)} min ${String(t % 60).padStart(2, '0')}`],
+      ['Monstres vaincus', String(st.kills)],
+      ['Dégâts infligés', String(st.dealt)],
+      ['Dégâts subis', String(st.taken)],
+      ['PV récupérés', String(st.healed)],
+    ], result.cards, 'XP et ressources arrivent aux étapes 5 et 6 : en cas de défaite tu garderas ce que tu as ramassé, mais pas le butin du boss.');
+    if (SHOW_CAMP) await hud.camp(save);
+    await transition(() => {
+      game.restart();
+      cardsTaken.length = 0;
+      return buildRoom(0);
+    });
+    busy = false;
+  }
+
   /** Entre deux salles : 1 carte parmi 3 (sort, amélioration, bonus), et l'ordre des sorts. */
   async function offerCards() {
     const cards = drawCards(game, Math.random);
@@ -587,6 +609,7 @@ async function main() {
       });
     }
     const card = cards[i];
+    cardsTaken.push(cardInfo(game, card).title);
     let replace: number | undefined;
     if (needsReplace(game, card) && card.kind === 'spell') {
       replace = DEMO ? game.run.slots.length - 1 : await hud.chooseReplace(`Apprendre ${SPELLS[card.spell].name}`, slotViews());
@@ -600,6 +623,8 @@ async function main() {
     if (next >= TOTAL_ROOMS) return;
     busy = true;
     await offerCards();
+    // le mini-boss rapporte une carte de plus
+    if (game.roomIndex === World.ELITE_ROOM) await offerCards();
     await transition(() => {
       game.startRoom(next);
       return buildRoom(next);
@@ -627,6 +652,7 @@ async function main() {
   await buildRoom(START_ROOM);
   camY = camTarget();
   document.getElementById('loading')?.classList.add('done');
+  if (SHOW_CAMP) void hud.camp(save);
 
   let acc = 0;
   let time = 0;
@@ -684,20 +710,20 @@ async function main() {
       a.t = time;
       a.moving = m.moving;
       if (m.moving && !frozen) a.walkPh += dt * 9;
-      a.windup = m.state === 'windup' ? m.t / m.def.attack.windup : null;
+      a.windup = m.state === 'windup' ? m.t / m.atk.windup : null;
       a.strike = m.state === 'recover' && m.t < 0.35 ? m.t / 0.35 : null;
       a.hurt = m.hurtT / 0.18;
       a.spawn = m.state === 'spawn' ? m.t / SPAWN_TIME : 1;
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
       poseChafer(v.rig, a, CHAR_SCALE * (m.def.scale ?? 1));
-      v.hpBar.visible = m !== game.boss && m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
+      v.hpBar.visible = m !== game.boss && m !== game.elite && m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
       if (v.hpBar.visible) {
         const w = 46;
         v.hpBar.clear().roundRect(-w / 2 - 2, -2, w + 4, 9, 4).fill({ color: 0x1a0e0a, alpha: 0.85 })
           .roundRect(-w / 2, 0, (w * Math.max(0, m.hp)) / m.maxHp, 5, 2.5).fill({ color: m.def.behavior === 'brute' ? 0xff8a2a : 0xe8343c });
       }
-      if (m.state === 'windup') drawTelegraph(m, Math.min(1, m.t / m.def.attack.windup));
+      if (m.state === 'windup') drawTelegraph(m, Math.min(1, m.t / m.atk.windup));
     }
 
     // Grille de sortie
@@ -765,7 +791,9 @@ async function main() {
     fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
     drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive);
-    if (game.boss && game.phase === 'fight') hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
+    const big = game.boss ?? game.elite;
+    if (big && game.phase === 'fight') hud.setBoss(big.def.name, big.hp, big.maxHp);
+    else if (game.elite && game.phase === 'cleared') hud.setBoss(null);
     hud.setPa(h.pa);
     hud.setSlots(slotViews());
     game.run.slots.forEach((sl, i) => {
@@ -785,7 +813,7 @@ async function main() {
   });
 
   function drawTelegraph(m: Monster, k: number) {
-    const a = m.def.attack, col = 0xff2a2a;
+    const a = m.atk, col = 0xff2a2a;
     const flat = (pts: number[]) => pts.map((v, i) => (i % 2 ? m.y + v * PERSP : m.x + v));
     const ang = Math.atan2(m.dir.y, m.dir.x);
     if (a.shape === 'circle') {

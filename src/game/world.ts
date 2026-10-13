@@ -1,7 +1,7 @@
 import { rng } from '../iso';
 import { resolveHit } from './formulas';
 import { startingHero, type HeroDef } from './data/hero';
-import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterDef } from './data/monsters';
+import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
 import { CAST_DELAY, MELEE, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
@@ -69,6 +69,9 @@ export interface Monster {
   summonT: number;
   /** Invocation : uid de son invocateur (meurt avec lui, comme dans Dofus). */
   summoner: number | null;
+  /** Attaque en cours (normale ou charge) et délai avant la prochaine charge. */
+  atk: MonsterAttack;
+  chargeT: number;
   /** Effets des sorts du Sacrieur (durées restantes, s). */
   markT: number;
   weakT: number;
@@ -158,12 +161,18 @@ export class World {
   /** Gel de l'image à l'impact (s). */
   hitstop = 0;
   run: RunState;
+  /** Statistiques de la partie (bilan de fin). */
+  stats = freshStats();
   bounds = { x0: 76, x1: ROOM_W - 76, y0: FLOOR_TOP + 24, y1: 1500 };
   /** Deuxième vague : monstres en réserve, et temps écoulé dans la salle. */
   reserve: { def: MonsterDef; grade: number }[] = [];
   roomT = 0;
   /** Boss de la salle (salle finale), s'il y en a un. */
   boss: Monster | null = null;
+  /** Mini-boss (salle du milieu), s'il y en a un. */
+  elite: Monster | null = null;
+  /** Salle du mini-boss (indice) : on y gagne une carte de plus. */
+  static readonly ELITE_ROOM = 4;
   private pending: Monster[] = [];
   private events: WorldEvent[] = [];
   private uid = 1;
@@ -196,6 +205,7 @@ export class World {
     const def = startingHero();
     Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
     this.run = freshRun(def.level);
+    this.stats = freshStats();
     this.startRoom(0);
   }
 
@@ -212,6 +222,19 @@ export class World {
     this.monsters = [];
     this.roomT = 0;
     this.boss = null;
+    this.elite = null;
+    if (index === World.ELITE_ROOM) {
+      // salle du mini-boss : le Sergent d'élite et deux Chafers
+      this.reserve = [];
+      this.elite = this.makeMonster(MONSTERS.sergentElite, 5, ROOM_W / 2, this.bounds.y0 + 200);
+      this.monsters.push(this.elite);
+      for (let i = 0; i < 2; i++) {
+        const p = this.findSpawn();
+        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 3, p.x, p.y));
+      }
+      this.events.push({ type: 'roomStart', index });
+      return;
+    }
     if (index === TOTAL_ROOMS - 1) {
       // salle du boss : Kardorim (grade 5) et deux Chafers aguerris
       this.reserve = [];
@@ -258,7 +281,7 @@ export class World {
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
       hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
-      markT: 0, weakT: 0, critDownT: 0,
+      markT: 0, weakT: 0, critDownT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0,
     };
   }
 
@@ -269,6 +292,7 @@ export class World {
       this.hitstop = Math.max(0, this.hitstop - STEP);
       return;
     }
+    if (this.phase === 'fight') this.stats.time += STEP;
     this.stepHero(input);
     for (const m of this.monsters) this.stepMonster(m);
     if (this.pending.length) {
@@ -489,11 +513,13 @@ export class World {
     const heal = Math.min(amount, h.maxHp - h.hp);
     if (heal <= 0 || !h.alive) return;
     h.hp += heal;
+    this.stats.healed += heal;
     this.events.push({ type: 'heal', x: h.x, y: h.y, amount: heal });
   }
 
   private damageMonster(m: Monster, damage: number, crit: boolean) {
     m.hp -= damage;
+    this.stats.dealt += damage;
     m.hurtT = 0.18;
     this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit });
     if (m.hp <= 0) this.kill(m);
@@ -521,6 +547,7 @@ export class World {
       // Supplice : frapper une cible marquée soigne de 20 % des dommages
       if (m.markT > 0) this.healHero(Math.floor(hit.damage * SUPPLICE_MARK));
       m.hp -= hit.damage;
+      this.stats.dealt += hit.damage;
       m.hurtT = 0.18;
       m.knock.x += (dx / (d || 1)) * 34;
       m.knock.y += (dy / (d || 1)) * 34;
@@ -537,6 +564,7 @@ export class World {
   }
 
   private kill(m: Monster) {
+    this.stats.kills++;
     m.state = 'dead';
     m.t = 0;
     m.hp = Math.min(m.hp, 0);
@@ -577,7 +605,8 @@ export class World {
     m.t += STEP;
     m.hurtT = Math.max(0, m.hurtT - STEP);
     if (m.state === 'dead') return;
-    const h = this.hero, a = m.def.attack;
+    const h = this.hero;
+    let a = m.atk;
 
     // recul
     m.x += m.knock.x * STEP * 8;
@@ -609,7 +638,15 @@ export class World {
 
     if (m.state === 'chase') {
       m.cd -= STEP;
+      if (m.def.charge) m.chargeT -= STEP;
       if (h.alive) {
+        // monstre d'élite : charge quand le héros est à moyenne distance
+        const ch = m.def.charge;
+        if (ch && m.chargeT <= 0 && d > 170 && d <= ch.attack.trigger) {
+          m.atk = a = ch.attack;
+          m.chargeT = ch.every;
+          m.cd = 0;
+        }
         let want = 0;
         if (m.def.behavior === 'lancer') {
           // le piquier garde ses distances
@@ -635,9 +672,10 @@ export class World {
       if (m.t >= a.windup) {
         this.events.push({ type: 'strike', uid: m.uid });
         if (h.alive && h.invulnT <= 0 && this.inAttack(m)) this.hurtHero(m);
-        // fente vers l'avant
-        m.knock.x += m.dir.x * 40;
-        m.knock.y += m.dir.y * 40;
+        // fente vers l'avant (la charge traverse toute la ligne)
+        const lunge = m.def.charge && a === m.def.charge.attack ? m.def.charge.dash : 40;
+        m.knock.x += m.dir.x * lunge;
+        m.knock.y += m.dir.y * lunge;
         m.state = 'recover';
         m.t = 0;
       }
@@ -646,13 +684,14 @@ export class World {
         m.state = 'chase';
         m.t = 0;
         m.cd = a.cooldown[0] + this.rnd() * (a.cooldown[1] - a.cooldown[0]);
+        m.atk = m.def.attack;
       }
     }
   }
 
   /** Le héros est-il dans la zone d'attaque annoncée du monstre ? (repère à plat) */
   inAttack(m: Monster): boolean {
-    const a = m.def.attack, h = this.hero;
+    const a = m.atk, h = this.hero;
     const px = h.x - m.x, py = (h.y - m.y) / PERSP;
     const r = h.def.radius * 0.6;
     if (a.shape === 'circle') {
@@ -674,11 +713,12 @@ export class World {
     const st = m.weakT > 0 || m.critDownT > 0
       ? { ...m.stats, puissance: m.stats.puissance - (m.weakT > 0 ? 50 : 0), critique: m.stats.critique - (m.critDownT > 0 ? 10 : 0) }
       : m.stats;
-    const hit = resolveHit(m.def.attack.roll, st, h.def.stats, this.rnd);
+    const hit = resolveHit(m.atk.roll, st, h.def.stats, this.rnd);
     const dmg = Math.round(hit.damage * (1 - this.passive('endurance')));
     const absorbed = Math.min(h.shield, dmg);
     h.shield -= absorbed;
     h.hp = Math.max(0, h.hp - (dmg - absorbed));
+    this.stats.taken += dmg - absorbed;
     // Épines : une partie des dégâts revient à l'attaquant
     const thorns = Math.floor(dmg * this.passive('epines'));
     if (thorns > 0 && m.state !== 'dead') this.damageMonster(m, thorns, false);
@@ -766,4 +806,8 @@ function freshCombat() {
 
 function freshRun(level: number): RunState {
   return { slots: Array(slotsForLevel(level)).fill(null), force: 0, vitalite: 0, critique: 0, speed: 0, passives: {} };
+}
+
+function freshStats() {
+  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0 };
 }

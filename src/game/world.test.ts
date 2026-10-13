@@ -146,4 +146,26 @@ describe('World', () => {
     run(w, 3);
     expect(w.gate).toBe(0); // pas de sortie après le boss
   });
+
+  it('salle 5 : le Sergent d’élite charge en ligne et la salle se termine sans victoire', () => {
+    const w = new World(3);
+    w.startRoom(World.ELITE_ROOM);
+    const e = w.elite!;
+    expect(e.def.id).toBe('sergentElite');
+    expect(e.maxHp).toBeGreaterThan(200);
+    for (const m of w.monsters) if (m !== e) m.hp = 0, m.state = 'dead';
+    w.hero.hp = w.hero.maxHp = 1e6;
+    Object.assign(e, { state: 'chase', x: w.hero.x, y: w.hero.y - 300 * PERSP, chargeT: 0 });
+    w.hero.def = { ...w.hero.def, weapon: { ...w.hero.def.weapon, reach: 0 } };
+    const ev = run(w, 0.3);
+    expect(ev.some((x) => x.type === 'telegraph')).toBe(true);
+    expect(e.atk).toBe(e.def.charge!.attack);
+    const y0 = e.y;
+    run(w, 1.2);
+    expect(Math.abs(e.y - y0)).toBeGreaterThan(100); // il a foncé
+    e.hp = 0; e.state = 'dead';
+    const end = run(w, 0.1);
+    expect(end.some((x) => x.type === 'roomCleared')).toBe(true);
+    expect(end.some((x) => x.type === 'victory')).toBe(false);
+  });
 });
