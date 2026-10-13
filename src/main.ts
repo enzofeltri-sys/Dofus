@@ -21,12 +21,7 @@ import { installTheme } from './ui/theme';
  */
 
 const DEMO = new URLSearchParams(location.search).has('demo');
-/** ?sprite=comfy : Sacrieur dessiné par ComfyUI (test de style) au lieu du dessin vectoriel. */
-const SPRITE_KEY = 'dofus-enzo-sprite';
-const COMFY = new URLSearchParams(location.search).get('sprite') === 'comfy' || readPref(SPRITE_KEY) === 'comfy';
-function readPref(k: string): string | null {
-  try { return localStorage.getItem(k); } catch { return null; }
-}
+
 /** ?salle=9 : commence directement à une salle (tests). */
 const START_ROOM = Math.max(0, Math.min(TOTAL_ROOMS - 1, (Number(new URLSearchParams(location.search).get('salle')) || 1) - 1));
 const CHAR_SCALE = 0.8;
@@ -134,13 +129,6 @@ async function main() {
   // ---------- Monde ----------
   const game = new World(Math.floor(Math.random() * 1e6));
   hud.setLevel(game.hero.def.level);
-  // toucher le portrait bascule entre le Sacrieur vectoriel et celui de ComfyUI (test de style)
-  hud.portrait.addEventListener('click', () => {
-    try { localStorage.setItem(SPRITE_KEY, COMFY ? 'svg' : 'comfy'); } catch { /* stockage indisponible */ }
-    const url = new URL(location.href);
-    url.searchParams.delete('sprite');
-    location.replace(url.toString());
-  });
   (window as unknown as { __game: World }).__game = game;
   const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
   game.setPlayBottom(playBottom());
@@ -290,20 +278,14 @@ async function main() {
   // ---------- Personnages ----------
   const shadowOf = (r: number) => new Graphics().ellipse(0, 0, r, r * PERSP * 0.6).fill({ color: 0x2a1404, alpha: 0.38 });
 
-  const comfy = COMFY ? await loadComfySacrieur() : null;
-  // l'image ComfyUI fait 455 px de haut pour ≈ 175 unités de jeu
-  const ART = comfy ? 175 / comfy.rig.height : 1;
-  const pivots: Record<string, [number, number]> = comfy ? comfy.rig.pivots : SACRI_PIVOTS;
   const heroRig = new Rig(
-    SACRI_PARTS.map((p, i) => ({ name: p, tex: comfy ? comfy.tex[p] : sacriTex[i], pivot: pivots[p] })),
-    comfy ? comfy.rig.foot : SACRIEUR_FOOT, CHAR_SCALE * ART, false,
+    SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRI_PIVOTS[p] })),
+    SACRIEUR_FOOT, CHAR_SCALE, false,
   );
   const sword = new Sprite(swordTex);
   sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
-  sword.scale.set(1 / ART);
   const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'épée suit sa rotation
-  const hand = comfy ? comfy.rig.hand : SACRIEUR_HAND;
-  sword.position.set(hand[0] - pivots.armF[0], hand[1] - pivots.armF[1]);
+  sword.position.set(SACRIEUR_HAND[0] - SACRI_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRI_PIVOTS.armF[1]);
   armF.addChild(sword);
   const heroC = new Container();
   heroC.addChild(shadowOf(28 * CHAR_SCALE), heroRig.root);
@@ -714,20 +696,3 @@ async function main() {
 
 main();
 
-/** Sacrieur découpé depuis une image ComfyUI (tools/cut-sprite.py). */
-async function loadComfySacrieur() {
-  const urls = import.meta.glob('./art/comfy/sacrieur/*.png', { eager: true, import: 'default' }) as Record<string, string>;
-  const rig = (await import('./art/comfy/sacrieur/rig.json')).default as unknown as {
-    height: number; pivots: Record<string, [number, number]>; foot: [number, number]; hand: [number, number];
-  };
-  const tex: Record<string, Texture> = {};
-  await Promise.all(
-    Object.entries(urls).map(async ([path, url]) => {
-      const img = new Image();
-      img.src = url;
-      await img.decode();
-      tex[path.split('/').pop()!.replace('.png', '')] = Texture.from(img);
-    }),
-  );
-  return { rig, tex };
-}

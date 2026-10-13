@@ -169,10 +169,6 @@ export class Hud {
     this.root.querySelector('.spells')!.classList.toggle('locked', locked);
   }
 
-  get portrait(): HTMLElement {
-    return this.root.querySelector('.medal')!;
-  }
-
   get pauseButton(): HTMLButtonElement {
     return this.root.querySelector('.pause')!;
   }
