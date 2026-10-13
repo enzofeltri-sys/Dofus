@@ -51,6 +51,7 @@ Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
 - Références visuelles : illustrations des monstres et **cartes réelles des donjons** (DofusDB), utilisées **uniquement comme modèle**, jamais intégrées au jeu.
   - Ex. Crypte de Kardorim : grès doré, colonnade d'arcades rouge-brun, piliers rouges peints de flammes, chapiteaux crème sculptés de crânes, mur ocre, braseros.
 - Limite assumée : rendu « esprit Dofus », pas une copie conforme ni un niveau d'illustrateur professionnel.
+- **Personnages vectoriels conservés** : un essai de Sacrieur dessiné par ComfyUI (image vers image depuis le rendu officiel, découpé et animé) a été écarté par Enzo ; on garde le Sacrieur vectoriel D2 et le même style pour tous les personnages.
 
 ---
 
