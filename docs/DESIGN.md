@@ -270,7 +270,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
    IA des 4 Chafers (contact, furtif, lancier, brute) avec attaques annoncées au sol, glissement autour des obstacles,
    salles enchaînées et grille de sortie, défaite / pause / fin de démo, personnages articulés
    (marche, coup, préparation, frappe, recul, chute, effondrement en tas d'os). Sorts verrouillés jusqu'à l'étape 3.
-3. 🔎 Sorts automatiques du Sacrieur (Souffrance), boss Kardorim.
+3. 🔎 **Sorts et boss** (à valider) : 6 sorts du Sacrieur niv 10 (données DofusDB traduites, 1 tour = 4 s, vol de vie), Souffrance, Mutilation et Coagulation, cartes entre les salles (sort, amélioration, bonus) avec ordre de priorité, boss Kardorim (Casse-crâne, Craquement d'Os, Appel de Kardorib).
 4. Structure d'un run : bonus entre les salles, mini-boss, mort.
 5. Stats, niveaux, répartition des points.
 6. Drop, inventaire, équipement, panoplies.

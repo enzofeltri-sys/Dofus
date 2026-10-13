@@ -1,20 +1,17 @@
 import './hud.css';
 import { sacrieurSvg } from '../art/sacrieur';
 import { ICONS } from './grimoire-icons';
-import { ICON_ABSORPTION, ICON_ATTIRANCE, ICON_MUTILATION, ICON_SUPPLICE } from './icons';
 
-export interface SpellSlot {
-  name: string;
+/** Une case de sort telle qu'affichée (null = case vide). */
+export type SlotView = { icon: string; name: string; pa: number } | null;
+/** Une carte de l'écran de choix entre les salles. */
+export interface CardView {
+  tag: string;
+  title: string;
+  text: string;
   icon: string;
-  cost: number;
+  kind: 'spell' | 'upgrade' | 'stat';
 }
-
-export const SPELL_BAR: SpellSlot[] = [
-  { name: 'Supplice', icon: ICON_SUPPLICE, cost: 3 },
-  { name: 'Absorption', icon: ICON_ABSORPTION, cost: 3 },
-  { name: 'Attirance', icon: ICON_ATTIRANCE, cost: 2 },
-  { name: 'Mutilation', icon: ICON_MUTILATION, cost: 2 },
-];
 
 const PA_MAX = 6;
 const SUFFERING_MAX = 10;
@@ -23,7 +20,6 @@ const SUFFERING_MAX = 10;
 const portraitSvg = () => sacrieurSvg('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="31 13 66 66"');
 
 const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/></svg>`;
-const LOCK_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 10V8a4.5 4.5 0 0 1 9 0v2" fill="none" stroke="#3b2414" stroke-width="2.4" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="3" fill="#e3a838" stroke="#3b2414" stroke-width="2.2"/><circle cx="12" cy="15" r="1.6" fill="#3b2414"/></svg>`;
 
 /** Interface de combat (DOM au-dessus du canvas), charte « grimoire d'aventurier ». */
 export class Hud {
@@ -74,13 +70,18 @@ export class Hud {
             <span class="val">0</span>
           </div>
         </div>
-        <div class="spells"><div class="lock"><span>${LOCK_SVG}Sorts : étape 3</span></div></div>
+        <div class="spells"></div>
       </div>
       <div class="bossbar gr-panel" hidden>
         <div class="bname"></div>
         <div class="gr-gauge"><span class="track"><span class="fill" style="--c: var(--magic)"></span></span><span class="val gr-num"></span></div>
       </div>
       <div class="toast-wrap"><div class="gr-toast toast" hidden></div></div>
+      <div class="picker" hidden>
+        <div class="pk-head"><h2 class="gr-title"></h2><p class="pk-sub"></p></div>
+        <div class="pk-cards"></div>
+        <div class="pk-book gr-panel"><div class="gr-label pk-booklbl"></div><div class="pk-slots"></div></div>
+      </div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.hpFill = root.querySelector('.hp .fill')!;
     this.hpVal = root.querySelector('.hp .val')!;
@@ -94,13 +95,85 @@ export class Hud {
     this.bar = root.querySelector('.bar')!;
 
     this.setRooms(1, 9);
-    const spells = root.querySelector('.spells')!;
-    SPELL_BAR.forEach((s, i) => {
+  }
+
+  private slotsKey = '';
+  /** Cases de sorts du combat (ordre = priorité). Ne reconstruit que si le contenu change. */
+  setSlots(slots: SlotView[]) {
+    const key = slots.map((s) => s?.name ?? '-').join('|');
+    if (key === this.slotsKey) return;
+    this.slotsKey = key;
+    const box = this.root.querySelector('.spells')!;
+    box.innerHTML = '';
+    this.spellEls = slots.map((s, i) => {
       const el = document.createElement('div');
-      el.className = 'spell';
-      el.innerHTML = `<div class="art">${s.icon}</div><div class="cd"></div><div class="prio gr-num">${i + 1}</div><div class="cost gr-num">${s.cost}</div>`;
-      spells.appendChild(el);
-      this.spellEls.push(el);
+      el.className = s ? 'spell' : 'spell empty';
+      el.innerHTML = s
+        ? `<div class="art">${s.icon}</div><div class="cd"></div><div class="prio gr-num">${i + 1}</div><div class="cost gr-num">${s.pa}</div>`
+        : `<div class="prio gr-num">${i + 1}</div><span class="plus">+</span>`;
+      box.appendChild(el);
+      return el;
+    });
+  }
+
+  /**
+   * Écran de choix entre deux salles : 3 cartes, et les cases de sorts en dessous
+   * (toucher deux sorts les échange : c'est l'ordre de priorité). Résout l'indice de la carte choisie.
+   */
+  pickCard(cards: CardView[], slots: SlotView[], onSwap: (a: number, b: number) => SlotView[]): Promise<number> {
+    const el = this.root.querySelector<HTMLElement>('.picker')!;
+    el.querySelector('h2')!.textContent = 'Choisis une carte';
+    el.querySelector('.pk-sub')!.textContent = 'Valable jusqu’à la fin du donjon.';
+    el.querySelector('.pk-booklbl')!.textContent = 'Tes sorts · touche deux sorts pour changer leur ordre';
+    const box = el.querySelector('.pk-cards')!;
+    box.innerHTML = cards.map((c, i) => `
+      <button type="button" class="pk-card gr-panel k-${c.kind}" data-i="${i}" style="animation-delay:${i * 70}ms">
+        <span class="pk-tag gr-chip">${c.tag}</span>
+        <span class="pk-ico">${c.icon}</span>
+        <span class="pk-title">${c.title}</span>
+        <span class="pk-text">${c.text}</span>
+      </button>`).join('');
+    let sel = -1;
+    const drawSlots = (list: SlotView[]) => {
+      const sb = el.querySelector('.pk-slots')!;
+      sb.innerHTML = list.map((s, i) => `<button type="button" class="pk-slot ${s ? '' : 'empty'} ${i === sel ? 'sel' : ''}" data-s="${i}">
+        <span class="prio gr-num">${i + 1}</span>${s ? `<span class="art">${s.icon}</span>` : '<span class="plus">+</span>'}</button>`).join('');
+      sb.querySelectorAll<HTMLButtonElement>('.pk-slot').forEach((b) => (b.onclick = () => {
+        const i = Number(b.dataset.s);
+        if (!list[i]) return;
+        if (sel < 0) sel = i;
+        else {
+          if (sel !== i) list = onSwap(sel, i);
+          sel = -1;
+        }
+        drawSlots(list);
+      }));
+    };
+    drawSlots(slots);
+    el.hidden = false;
+    return new Promise((resolve) => {
+      box.querySelectorAll<HTMLButtonElement>('.pk-card').forEach((b) => (b.onclick = () => {
+        el.hidden = true;
+        resolve(Number(b.dataset.i));
+      }));
+    });
+  }
+
+  /** Toutes les cases sont prises : quel sort remplacer ? */
+  chooseReplace(title: string, slots: SlotView[]): Promise<number> {
+    const el = this.root.querySelector<HTMLElement>('.picker')!;
+    el.querySelector('h2')!.textContent = title;
+    el.querySelector('.pk-sub')!.textContent = 'Toutes tes cases sont prises : touche le sort à remplacer.';
+    el.querySelector('.pk-booklbl')!.textContent = 'Tes sorts';
+    el.querySelector('.pk-cards')!.innerHTML = '';
+    const sb = el.querySelector('.pk-slots')!;
+    sb.innerHTML = slots.map((s, i) => `<button type="button" class="pk-slot big" data-s="${i}"><span class="prio gr-num">${i + 1}</span>${s ? `<span class="art">${s.icon}</span><span class="nm">${s.name}</span>` : ''}</button>`).join('');
+    el.hidden = false;
+    return new Promise((resolve) => {
+      sb.querySelectorAll<HTMLButtonElement>('.pk-slot').forEach((b) => (b.onclick = () => {
+        el.hidden = true;
+        resolve(Number(b.dataset.s));
+      }));
     });
   }
 
@@ -150,23 +223,22 @@ export class Hud {
     this.sufFill.style.setProperty('--v', `${(100 * Math.min(n, SUFFERING_MAX)) / SUFFERING_MAX}%`);
     this.sufVal.textContent = String(n);
   }
-  /** cd : fraction restante du cooldown (0 = prêt). */
-  setCooldown(i: number, cd: number) {
-    this.spellEls[i].style.setProperty('--cd', String(Math.max(0, Math.min(1, cd))));
+  /** cd : fraction restante du cooldown (0 = prêt) ; noPa : pas assez de PA. */
+  setCooldown(i: number, cd: number, noPa = false) {
+    const el = this.spellEls[i];
+    if (!el) return;
+    el.style.setProperty('--cd', String(Math.max(0, Math.min(1, cd))));
+    el.classList.toggle('nopa', noPa);
   }
   flashCast(i: number) {
     const el = this.spellEls[i];
+    if (!el) return;
     el.classList.remove('cast');
     void el.offsetWidth;
     el.classList.add('cast');
   }
   placeHint(y: number) {
     this.hint.style.top = `${y}px`;
-  }
-
-  /** Barre de sorts verrouillée (les sorts arrivent à l'étape 3). */
-  lockSpells(locked: boolean) {
-    this.root.querySelector('.spells')!.classList.toggle('locked', locked);
   }
 
   get pauseButton(): HTMLButtonElement {
@@ -203,6 +275,6 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return !this.root.querySelector<HTMLElement>('.overlay')!.hidden;
+    return !this.root.querySelector<HTMLElement>('.overlay')!.hidden || !this.root.querySelector<HTMLElement>('.picker')!.hidden;
   }
 }

@@ -17,8 +17,14 @@ await p.screenshot({ path: 'shots/flow_cleared.png' });
 // 2) marcher vers la grille (clavier)
 await p.evaluate(() => { const g = window.__game; g.hero.x = 360; g.hero.y = g.bounds.y0 + 60; });
 await p.keyboard.down('ArrowUp');
-await p.waitForFunction(() => window.__game.roomIndex === 1, null, { timeout: 20000 }).catch(() => {});
+// écran des cartes entre les salles : on choisit la première
+await p.waitForSelector('.picker:not([hidden]) .pk-card', { timeout: 20000 }).catch(() => {});
 await p.keyboard.up('ArrowUp');
+await p.screenshot({ path: 'shots/flow_cards.png' });
+console.log('cartes :', await p.evaluate(() => [...document.querySelectorAll('.pk-card .pk-title')].map((e) => e.textContent).join(' | ')));
+await p.click('.pk-card');
+await p.waitForFunction(() => window.__game.roomIndex === 1, null, { timeout: 20000 }).catch(() => {});
+console.log('sorts :', await p.evaluate(() => window.__game.run.slots.map((s) => s?.id ?? '-').join(',')));
 await p.waitForTimeout(2500);
 console.log('salle suivante', JSON.stringify(await state()));
 await p.screenshot({ path: 'shots/flow_room2.png' });

@@ -12,7 +12,11 @@ import { Rig } from './render/rig';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
-import { Hud } from './ui/hud';
+import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
+import { SPELLS } from './game/data/spells';
+import { Hud, type SlotView } from './ui/hud';
+import { ICONS } from './ui/grimoire-icons';
+import { ELEMENT_COLOR, SPELL_ICONS } from './ui/spell-icons';
 import { installTheme } from './ui/theme';
 
 /**
@@ -70,7 +74,6 @@ async function main() {
   await app.init({ resizeTo: window, background: '#2a160c', antialias: true, resolution: Math.min(window.devicePixelRatio || 1, 3), autoDensity: true });
   document.getElementById('game')!.appendChild(app.canvas);
   const hud = new Hud(document.getElementById('hud')!);
-  hud.lockSpells(true);
 
   let zoom = window.innerWidth / ROOM_W;
   const RES = Math.min(3.2, Math.max(1, (window.devicePixelRatio || 1) * zoom * 1.1));
@@ -288,7 +291,8 @@ async function main() {
   sword.position.set(SACRIEUR_HAND[0] - SACRIEUR_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRIEUR_PIVOTS.armF[1]);
   armF.addChild(sword);
   const heroC = new Container();
-  heroC.addChild(shadowOf(28 * CHAR_SCALE), heroRig.root);
+  const heroAura = new Graphics();
+  heroC.addChild(shadowOf(28 * CHAR_SCALE), heroAura, heroRig.root);
   actors.addChild(heroC);
   const heroView: HeroView = { rig: heroRig, c: heroC, sword, deadT: 0, anim: { t: 0, moving: false, walkPh: 0, swing: null, hurt: 0, dead: null } };
 
@@ -458,6 +462,56 @@ async function main() {
           busy = false;
         });
         break;
+      case 'cast': {
+        hud.flashCast(ev.slot);
+        const sp = SPELLS[ev.spell];
+        const col = ELEMENT_COLOR[sp.element ?? 'neutre'];
+        const hx = ev.x, hy = ev.y - 70 * CHAR_SCALE, tx = ev.tx, ty = ev.ty - 60 * CHAR_SCALE;
+        if (sp.kind.type === 'steal') {
+          const melee = sp.range[1] <= 130;
+          // trait de l'élément vers la cible, éclats à l'impact, puis gouttes de sang qui reviennent au Sacrieur
+          if (!melee) {
+            addFx(0.22, (g, k) => {
+              g.clear().moveTo(hx, hy).lineTo(tx, ty).stroke({ width: 10 * k, color: col, alpha: 0.35 * k })
+                .moveTo(hx, hy).lineTo(tx, ty).stroke({ width: 3.5 * k, color: 0xfff6dc, alpha: k });
+            });
+          } else {
+            addFx(0.25, (g, k) => {
+              g.clear().circle(tx, ty, 26 + 30 * (1 - k)).stroke({ width: 7 * k, color: col, alpha: k });
+            });
+          }
+          for (let i = 0; i < 10; i++) emit(tx, ty, col, { vx: rand(-160, 160), vy: rand(-180, -30), life: 0.35, size: 0.09 });
+          later(0.12, () => {
+            for (let i = 0; i < 7; i++) {
+              const t = 0.35 + i * 0.03;
+              emit(tx + rand(-10, 10), ty + rand(-10, 10), 0xd8303c, { vx: (hx - tx) / t, vy: (hy - ty) / t - 60, life: t, size: 0.075, grav: 0 });
+            }
+          });
+        } else if (sp.kind.type === 'mutilation') {
+          addFx(0.45, (g, k) => {
+            g.clear().ellipse(hx, ev.y, 70 * (1.2 - k), 70 * (1.2 - k) * PERSP).stroke({ width: 8 * k, color: 0xc8303c, alpha: k });
+          });
+        }
+        break;
+      }
+      case 'pull': {
+        // Attirance : traînée violette de l'ancienne à la nouvelle position
+        const y0 = ev.fy - 60 * CHAR_SCALE, y1 = ev.y - 60 * CHAR_SCALE;
+        addFx(0.35, (g, k) => {
+          g.clear().moveTo(ev.fx, y0).lineTo(ev.x, y1).stroke({ width: 14 * k, color: 0x8b52c9, alpha: 0.35 * k })
+            .moveTo(ev.fx, y0).lineTo(ev.x, y1).stroke({ width: 4 * k, color: 0xe4d2f6, alpha: k });
+        });
+        for (let i = 0; i < 12; i++) emit(ev.x, y1, 0xa77ad8, { vx: rand(-120, 120), vy: rand(-140, -20), life: 0.4, size: 0.08 });
+        shake = Math.max(shake, 3);
+        break;
+      }
+      case 'mutilation':
+        numberAt(game.hero.x - 24, game.hero.y - 150 * CHAR_SCALE, `-${ev.sacrifice}`, '#b8432c');
+        if (ev.stage > 1) hud.toast(`Mutilation ${ev.stage}`, 900);
+        break;
+      case 'coagulation':
+        numberAt(game.hero.x, game.hero.y - 160 * CHAR_SCALE, `Bouclier ${ev.shield}`, '#8ddccf');
+        break;
       case 'telegraph':
         break;
     }
@@ -479,9 +533,38 @@ async function main() {
     busy = false;
   }
 
+  const STAT_ICON: Record<StatBonus, string> = { force: ICONS.force.svg, vitalite: ICONS.vie.svg, critique: ICONS.xp.svg, speed: ICONS.pm.svg };
+  const slotViews = (): SlotView[] => game.run.slots.map((sl) => (sl ? { icon: SPELL_ICONS[sl.id], name: SPELLS[sl.id].name, pa: SPELLS[sl.id].pa } : null));
+
+  /** Entre deux salles : 1 carte parmi 3 (sort, amélioration, bonus), et l'ordre des sorts. */
+  async function offerCards() {
+    const cards = drawCards(game, Math.random);
+    let i = 0;
+    if (DEMO) await new Promise((r) => setTimeout(r, 300));
+    else {
+      const views = cards.map((c) => {
+        const info = cardInfo(game, c);
+        return { ...info, kind: c.kind, icon: info.spell ? SPELL_ICONS[info.spell] : STAT_ICON[info.stat!] };
+      });
+      i = await hud.pickCard(views, slotViews(), (a, b) => {
+        swapSlots(game, a, b);
+        return slotViews();
+      });
+    }
+    const card = cards[i];
+    let replace: number | undefined;
+    if (needsReplace(game, card) && card.kind === 'spell') {
+      replace = DEMO ? game.run.slots.length - 1 : await hud.chooseReplace(`Apprendre ${SPELLS[card.spell].name}`, slotViews());
+    }
+    applyCard(game, card, replace);
+    hud.setSlots(slotViews());
+  }
+
   async function nextRoom() {
     const next = game.roomIndex + 1;
     if (next >= TOTAL_ROOMS) return;
+    busy = true;
+    await offerCards();
     await transition(() => {
       game.startRoom(next);
       return buildRoom(next);
@@ -648,8 +731,23 @@ async function main() {
 
     hud.setHp(h.hp, h.maxHp);
     if (game.boss && game.phase === 'fight') hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
-    hud.setPa(6);
-    hud.setSuffering(0);
+    hud.setPa(h.pa);
+    hud.setSuffering(h.souffrance);
+    hud.setSlots(slotViews());
+    game.run.slots.forEach((sl, i) => {
+      if (!sl) return;
+      const sp = SPELLS[sl.id];
+      hud.setCooldown(i, sl.cd / (sp.cooldown * (1 - sl.cdBonus)), h.pa < sp.pa);
+    });
+    // aura de Mutilation (rouge, plus forte à chaque palier) et bouclier de Coagulation (turquoise)
+    heroAura.clear();
+    if (h.mutStage > 0 && h.alive) {
+      const k = 0.25 + 0.15 * h.mutStage + 0.08 * Math.sin(time * 9);
+      heroAura.ellipse(0, 0, 46, 46 * PERSP).fill({ color: 0xc8303c, alpha: k * 0.5 }).stroke({ width: 3, color: 0xff6a5a, alpha: k });
+    }
+    if (h.shield > 0 && h.alive) {
+      heroAura.ellipse(0, -60 * CHAR_SCALE, 58, 78).stroke({ width: 4, color: 0x8ddccf, alpha: 0.55 + 0.2 * Math.sin(time * 6) });
+    }
   });
 
   function drawTelegraph(m: Monster, k: number) {
