@@ -28,7 +28,7 @@ const score = (c: Card) => (c.kind === 'spell' ? 3 : c.kind === 'upgrade' ? (c.u
 const avg = (a: number[]) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);
 for (const [name, pol] of Object.entries(POLICIES)) {
   const reached: number[] = [], hpAtBoss: number[] = [], roomTimes: number[] = [], bossTimes: number[] = [];
-  let wins = 0;
+  let wins = 0, xp = 0, time = 0;
   for (let seed = 1; seed <= runs; seed++) {
     const w = new World(seed);
     w.setPlayBottom(1380);
@@ -55,10 +55,14 @@ for (const [name, pol] of Object.entries(POLICIES)) {
       }
     }
     reached.push(w.roomIndex + 1);
+    // temps réel joué : combat + ≈ 8 s par salle (cartes, transitions)
+    xp += w.stats.xp;
+    time += t + 8 * (w.roomIndex + 1);
   }
   const sorted = [...reached].sort((a, b) => a - b);
   console.log(
     `${name.padEnd(9)} boss atteint ${hpAtBoss.length}/${runs} (PV ${hpAtBoss.length ? Math.round(100 * avg(hpAtBoss)) + ' %' : '-'}) | boss vaincu ${wins}/${runs}` +
-    ` | salle médiane ${sorted[Math.floor(runs / 2)]} | salle ${avg(roomTimes).toFixed(1)} s | boss ${bossTimes.length ? avg(bossTimes).toFixed(1) + ' s' : '-'}`,
+    ` | salle médiane ${sorted[Math.floor(runs / 2)]} | salle ${avg(roomTimes).toFixed(1)} s | boss ${bossTimes.length ? avg(bossTimes).toFixed(1) + ' s' : '-'}` +
+    ` | XP/min ${Math.round(xp / (time / 60))}`,
   );
 }

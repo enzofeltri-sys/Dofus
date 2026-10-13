@@ -1,9 +1,10 @@
 import { rng } from '../iso';
-import { resolveHit } from './formulas';
+import { erosionLoss, escapeChance, escapeOf, initiativeOf, pushDamage, resolveHit, tackleOf, type Element, type HitContext } from './formulas';
+import { xpGain } from './progression';
 import { startingHero, type HeroDef } from './data/hero';
 import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
-import { CAST_DELAY, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
+import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
 
 /**
@@ -20,6 +21,17 @@ export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
 /** Durée de l'apparition d'un monstre (s). */
 export const SPAWN_TIME = 0.4;
+/** Initiative perdue : délai avant la première action (s). */
+export const INITIATIVE_DELAY = 0.8;
+/** Tacle : distance de contact en plus des rayons (px) et vitesse minimale quand on est taclé. */
+export const TACKLE_REACH = 16;
+export const TACKLE_MIN = 0.4;
+/** Poussée : fenêtre après un coup d'épée (s) et recul minimal pour compter comme une poussée. */
+export const PUSH_WINDOW = 0.3;
+export const PUSH_MIN_KNOCK = 12;
+/** Une attaque de monstre déclenchée à moins de cette distance est une attaque de mêlée. */
+export const MONSTER_MELEE = 160;
+const WEAPON_HIT: HitContext = { melee: true, source: 'arme' };
 
 export interface Vec { x: number; y: number }
 
@@ -44,6 +56,8 @@ export interface Monster {
   grade: number;
   level: number;
   maxHp: number;
+  /** XP rapportée (grade DofusDB). */
+  xp: number;
   stats: Stats;
   x: number;
   y: number;
@@ -76,6 +90,8 @@ export interface Monster {
   markT: number;
   weakT: number;
   critDownT: number;
+  /** Fenêtre après un coup d'épée : heurter un obstacle pendant le recul inflige des dommages de poussée. */
+  pushT: number;
 }
 
 /** Sort placé dans une case pendant le donjon (avec ses améliorations de run). */
@@ -125,11 +141,15 @@ export interface Hero {
   /** Bouclier (Coagulation) : PV absorbés et durée. */
   shield: number;
   shieldT: number;
+  /** PV max perdus par érosion dans la salle (rendus à la salle suivante). */
+  eroded: number;
+  /** Ralenti par le tacle d'un monstre au contact (0 = libre, pour l'affichage). */
+  tackled: number;
 }
 
 export type WorldEvent =
   | { type: 'swing'; dir: Vec }
-  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean }
+  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean }
   | { type: 'telegraph'; uid: number }
   | { type: 'strike'; uid: number }
   | { type: 'death'; uid: number; x: number; y: number }
@@ -145,7 +165,9 @@ export type WorldEvent =
   | { type: 'cast'; spell: SpellId; slot: number; x: number; y: number; tx: number; ty: number; uid?: number }
   | { type: 'pull'; uid: number; fx: number; fy: number; x: number; y: number }
   | { type: 'mutilation'; stage: number; sacrifice: number }
-  | { type: 'coagulation'; shield: number };
+  | { type: 'coagulation'; shield: number }
+  | { type: 'initiative'; hero: boolean }
+  | { type: 'xp'; amount: number; x: number; y: number };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -178,9 +200,8 @@ export class World {
   private uid = 1;
   private rnd: () => number;
 
-  constructor(private seed = 1) {
+  constructor(private seed = 1, def: HeroDef = startingHero()) {
     this.rnd = rng(seed);
-    const def = startingHero();
     this.hero = {
       def, x: ROOM_W / 2, y: 1300, hp: def.hp, maxHp: def.hp, facing: 1, moving: false, alive: true,
       attackCd: 0, swing: null, hurtT: 0, invulnT: 0, ...freshCombat(),
@@ -200,9 +221,8 @@ export class World {
     return e;
   }
 
-  /** Recommence le donjon depuis la première salle, PV pleins. */
-  restart() {
-    const def = startingHero();
+  /** Recommence le donjon depuis la première salle, PV pleins (avec le Sacrieur du profil à jour). */
+  restart(def: HeroDef = this.hero.def) {
     Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
     this.run = freshRun(def.level);
     this.stats = freshStats();
@@ -219,6 +239,9 @@ export class World {
     this.hero.x = ROOM_W / 2;
     this.hero.y = this.bounds.y1 - 240; // au-dessus du joystick
     this.hero.swing = null;
+    // l'érosion dure le temps d'un combat
+    this.hero.maxHp += this.hero.eroded;
+    this.hero.eroded = 0;
     this.monsters = [];
     this.roomT = 0;
     this.boss = null;
@@ -232,6 +255,7 @@ export class World {
         const p = this.findSpawn();
         this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 3, p.x, p.y));
       }
+      this.rollInitiative();
       this.events.push({ type: 'roomStart', index });
       return;
     }
@@ -244,6 +268,7 @@ export class World {
         const p = this.findSpawn();
         this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 4 + (i % 2), p.x, p.y));
       }
+      this.rollInitiative();
       this.events.push({ type: 'roomStart', index });
       return;
     }
@@ -259,7 +284,22 @@ export class World {
       const p = this.findSpawn();
       this.monsters.push(this.makeMonster(def, grade, p.x, p.y));
     }
+    this.rollInitiative();
     this.events.push({ type: 'roomStart', index });
+  }
+
+  /**
+   * Initiative (Dofus) : le camp qui a la plus haute initiative agit en premier.
+   * Temps réel : le gagnant attaque tout de suite, le perdant attend un moment avant sa première action.
+   */
+  private rollInitiative() {
+    const h = this.hero;
+    const mine = initiativeOf(this.heroStats(), h.hp, h.maxHp);
+    const theirs = Math.max(0, ...this.monsters.map((m) => initiativeOf(m.stats)));
+    const first = mine >= theirs;
+    if (first) for (const m of this.monsters) m.cd += INITIATIVE_DELAY;
+    else h.castCd = Math.max(h.castCd, INITIATIVE_DELAY);
+    this.events.push({ type: 'initiative', hero: first });
   }
 
   private findSpawn(): Vec {
@@ -277,11 +317,11 @@ export class World {
   private makeMonster(def: MonsterDef, grade: number, x: number, y: number): Monster {
     const g = gradeStats(def, grade);
     return {
-      uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
+      uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
       hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
-      markT: 0, weakT: 0, critDownT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0,
+      markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0,
     };
   }
 
@@ -343,9 +383,11 @@ export class World {
     let ix = input.x, iy = input.y;
     const m = Math.hypot(ix, iy);
     h.moving = m > 0.05;
+    h.tackled = 1;
     if (h.moving) {
       if (m > 1) { ix /= m; iy /= m; }
-      const speed = h.def.speed * (1 + this.run.speed);
+      h.tackled = this.tackleFactor();
+      const speed = h.def.speed * (1 + this.run.speed) * h.tackled;
       let [nx, ny] = this.slideMove(h.x, h.y, ix * speed * STEP, iy * speed * STEP * 0.85, h.def.radius);
       // la grille ouverte laisse passer le joueur au fond de la salle
       const y0 = this.phase === 'cleared' && this.gate >= 1 && Math.abs(nx - GATE.x) < GATE.halfWidth ? this.bounds.y0 - 10 : this.bounds.y0;
@@ -381,6 +423,22 @@ export class World {
     }
 
     this.stepSpells();
+  }
+
+  /**
+   * Tacle (Dofus) : au contact d'un monstre, on garde (fuite + 2) / (2 × (tacle + 2)) de ses PM.
+   * Temps réel : la vitesse tombe entre 40 % (tacle écrasant) et 100 % (fuite suffisante), selon le plus gros tacleur au contact.
+   */
+  tackleFactor(): number {
+    const h = this.hero;
+    let worst = 1;
+    const fuite = escapeOf(this.heroStats());
+    for (const m of this.monsters) {
+      if (m.state === 'dead' || m.state === 'spawn' || m.hidden) continue;
+      if (flatDist(m.x, m.y, h.x, h.y) > m.def.radius + h.def.radius + TACKLE_REACH) continue;
+      worst = Math.min(worst, TACKLE_MIN + (1 - TACKLE_MIN) * escapeChance(fuite, tackleOf(m.stats)));
+    }
+    return worst;
   }
 
   /** Caractéristiques du Sacrieur en combat : base + cartes + Souffrance + Mutilation. */
@@ -476,16 +534,17 @@ export class World {
       this.events.push({ type: 'pull', uid: m.uid, fx, fy, x: m.x, y: m.y });
       return true;
     }
-    const m = this.targets(sp.range[0], sp.range[1])[0];
+    const ranged = sp.range[1] > MELEE;
+    const m = this.targets(sp.range[0], sp.range[1] + (ranged ? this.heroStats().portee * CELL : 0))[0];
     if (!m) return false;
     this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
     const mult = SPELL_POWER * (1 + sl.dmgBonus);
     const roll = { ...k.roll, min: Math.max(1, Math.round(k.roll.min * mult)), max: Math.max(1, Math.round(k.roll.max * mult)), critBonus: Math.round(k.roll.critBonus * mult) };
-    const hit = resolveHit(roll, this.heroStats(), m.stats, this.rnd);
+    const hit = resolveHit(roll, this.heroStats(), m.stats, this.rnd, { melee: !ranged, source: 'sort' });
     if (k.debuff === 'mark') m.markT = TURN;
     if (k.debuff === 'power') m.weakT = TURN;
     if (k.debuff === 'crit') m.critDownT = TURN;
-    this.damageMonster(m, hit.damage, hit.crit);
+    this.damageMonster(m, hit.damage, hit.crit, roll.element);
     this.healHero(Math.floor(hit.damage * (0.5 + this.passive('vampirisme'))));
     return true;
   }
@@ -518,11 +577,11 @@ export class World {
     this.events.push({ type: 'heal', x: h.x, y: h.y, amount: heal });
   }
 
-  private damageMonster(m: Monster, damage: number, crit: boolean) {
+  private damageMonster(m: Monster, damage: number, crit: boolean, element?: Element, push = false) {
     m.hp -= damage;
     this.stats.dealt += damage;
     m.hurtT = 0.18;
-    this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit });
+    this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit, element, eff: element && resEffect(m.stats, element), push });
     if (m.hp <= 0) this.kill(m);
   }
 
@@ -544,7 +603,7 @@ export class World {
       if (d - m.def.radius > w.reach + 6) continue;
       const ang = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / (d || 1))));
       if (d > 30 && ang > w.arc) continue;
-      const hit = resolveHit(w.roll, this.heroStats(), m.stats, this.rnd);
+      const hit = resolveHit(w.roll, this.heroStats(), m.stats, this.rnd, WEAPON_HIT);
       // Supplice : frapper une cible marquée soigne de 20 % des dommages
       if (m.markT > 0) this.healHero(Math.floor(hit.damage * SUPPLICE_MARK));
       m.hp -= hit.damage;
@@ -552,7 +611,9 @@ export class World {
       m.hurtT = 0.18;
       m.knock.x += (dx / (d || 1)) * 34;
       m.knock.y += (dy / (d || 1)) * 34;
-      this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage: hit.damage, crit: hit.crit });
+      m.pushT = PUSH_WINDOW;
+      const el = w.roll.element;
+      this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage: hit.damage, crit: hit.crit, element: el, eff: resEffect(m.stats, el) });
       this.hitstop = Math.max(this.hitstop, hit.crit ? 0.075 : 0.035);
       if (m.hp <= 0) {
         this.kill(m);
@@ -566,6 +627,11 @@ export class World {
 
   private kill(m: Monster) {
     this.stats.kills++;
+    const xp = xpGain(m.xp, m.level, this.hero.def.level, this.heroStats().sagesse);
+    if (xp > 0) {
+      this.stats.xp += xp;
+      this.events.push({ type: 'xp', amount: xp, x: m.x, y: m.y });
+    }
     m.state = 'dead';
     m.t = 0;
     m.hp = Math.min(m.hp, 0);
@@ -609,11 +675,22 @@ export class World {
     const h = this.hero;
     let a = m.atk;
 
-    // recul
-    m.x += m.knock.x * STEP * 8;
-    m.y += m.knock.y * PERSP * STEP * 8;
+    // recul ; heurter un mur ou un obstacle juste après un coup d'épée = dommages de poussée
+    const kn = Math.hypot(m.knock.x, m.knock.y);
+    if (kn > 0.5) {
+      const rx = m.x + m.knock.x * STEP * 8, ry = m.y + m.knock.y * PERSP * STEP * 8;
+      const [nx, ny] = this.pushOut(Math.max(this.bounds.x0, Math.min(this.bounds.x1, rx)), Math.max(this.bounds.y0, Math.min(this.bounds.y1, ry)), m.def.radius);
+      if (m.pushT > 0 && kn > PUSH_MIN_KNOCK && Math.hypot(nx - rx, (ny - ry) / PERSP) > 0.5) {
+        m.pushT = 0;
+        m.knock.x = m.knock.y = 0;
+        this.damageMonster(m, pushDamage(this.hero.def.level, this.heroStats(), m.stats, 1), false, undefined, true);
+        if ((m.state as MonsterState) === 'dead') return;
+      }
+      [m.x, m.y] = [nx, ny];
+    }
     m.knock.x *= 1 - STEP * 9;
     m.knock.y *= 1 - STEP * 9;
+    m.pushT = Math.max(0, m.pushT - STEP);
 
     if (m.state === 'spawn') {
       if (m.t >= SPAWN_TIME) { m.state = 'chase'; m.t = 0; }
@@ -714,12 +791,21 @@ export class World {
     const st = m.weakT > 0 || m.critDownT > 0
       ? { ...m.stats, puissance: m.stats.puissance - (m.weakT > 0 ? 50 : 0), critique: m.stats.critique - (m.critDownT > 0 ? 10 : 0) }
       : m.stats;
-    const hit = resolveHit(m.atk.roll, st, h.def.stats, this.rnd);
+    const melee = m.atk.trigger <= MONSTER_MELEE;
+    const mine = this.heroStats();
+    const hit = resolveHit(m.atk.roll, st, mine, this.rnd, { melee, source: 'sort' });
     const dmg = Math.round(hit.damage * (1 - this.passive('endurance')));
     const absorbed = Math.min(h.shield, dmg);
     h.shield -= absorbed;
     h.hp = Math.max(0, h.hp - (dmg - absorbed));
     this.stats.taken += dmg - absorbed;
+    // érosion : une part des dommages subis réduit les PV max jusqu'à la fin de la salle
+    const eroded = Math.min(erosionLoss(dmg - absorbed, mine), h.maxHp - 1);
+    h.maxHp -= eroded;
+    h.eroded += eroded;
+    h.hp = Math.min(h.hp, h.maxHp);
+    // renvoi de dommages : sur les attaques de mêlée
+    if (melee && mine.renvoi > 0 && m.state !== 'dead') this.damageMonster(m, mine.renvoi, false);
     // Épines : une partie des dégâts revient à l'attaquant
     const thorns = Math.floor(dmg * this.passive('epines'));
     if (thorns > 0 && m.state !== 'dead') this.damageMonster(m, thorns, false);
@@ -802,7 +888,13 @@ export class World {
 }
 
 function freshCombat() {
-  return { pa: PA_MAX, castCd: 0, souffrance: 0, souffranceT: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0 };
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, souffranceT: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1 };
+}
+
+/** Le coup touche-t-il une faiblesse (résistance négative) ou une résistance de la cible ? */
+export function resEffect(s: Stats, el: Element): 'weak' | 'resist' | undefined {
+  const r = s.resPct[el];
+  return r < 0 ? 'weak' : r > 0 ? 'resist' : undefined;
 }
 
 function freshRun(level: number): RunState {
@@ -810,5 +902,5 @@ function freshRun(level: number): RunState {
 }
 
 function freshStats() {
-  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0 };
+  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0 };
 }

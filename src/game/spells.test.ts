@@ -24,6 +24,7 @@ function duel(dist: number, spells: SpellId[]) {
   m.x = w.hero.x;
   m.y = w.hero.y - dist * PERSP;
   w.hero.def = { ...w.hero.def, weapon: { ...w.hero.def.weapon, reach: 0 } }; // pas d'épée : on teste les sorts
+  w.hero.castCd = 0; // pas de délai d'initiative
   spells.forEach((id) => applyCard(w, { kind: 'spell', spell: id }));
   w.drain();
   return { w, m };

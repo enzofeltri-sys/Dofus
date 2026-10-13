@@ -164,6 +164,22 @@ Profondeur de build = **stats** + **variantes de sorts** + **ordre de priorité*
   - Vitalité : 1 point = 1 ;
   - Sagesse : 3 points pour 1.
 
+### 6.1 Fiche complète et traduction en temps réel (étape 5)
+Toutes les caractéristiques de la fiche Dofus existent ; celles qu'aucun sort, monstre ou objet n'utilise encore sont affichées et prêtes pour l'équipement (étape 6).
+
+| Mécanique | Formule Dofus | En temps réel |
+|---|---|---|
+| Dommages | base × (100 + carac + Puissance) / 100 + Dommages + Dommages de l'élément (+ Dommages critiques) | Identique |
+| Résistances | − fixes (− Résistance critique sur un critique), puis × (100 − %) ; plafond 50 %, faiblesse négative = plus de dégâts | Identique ; chiffre corail sur une faiblesse, grisé sur une résistance, « Faible Terre ! » la 1re fois |
+| Dommages / résistances finaux | % mêlée ou distance, % arme ou sort | Identique (épée et sorts au CàC = mêlée) |
+| Poussée | (niveau / 2 + Do Pou − Ré Pou + 32) × cases / 4 | Un monstre projeté par l'épée contre un mur ou un obstacle subit 1 case de poussée |
+| Tacle / fuite | on garde (fuite + 2) / (2 × (tacle + 2)) de ses PM | Au contact, vitesse entre 40 % et 100 % selon le plus gros tacleur (poussière grise aux pieds) |
+| Érosion | 10 % des dégâts subis réduisent les PV max | Identique, jusqu'à la fin de la salle (partie grisée de la barre de vie) |
+| Initiative | carac + bonus, × PV / PV max | Le camp le plus rapide agit tout de suite, l'autre attend 0,8 s |
+| Sagesse | + % d'XP | Identique ; aussi esquive et retrait PA/PM (Sagesse / 10) |
+| Tacle, fuite (Agilité / 10), prospection (Chance / 10) | Dofus | Identique (prospection utilisée à l'étape 6) |
+| Retrait / esquive PA-PM, Soins, Renvoi, Invocations | Dofus | Affichés ; Renvoi déjà actif sur les attaques de mêlée ; le reste s'activera avec les sorts et objets qui s'en servent |
+
 ---
 
 ## 7. Mode Histoire
@@ -214,7 +230,8 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 | 149 → 150 | ≈ 4 h | ≈ 140 h |
 | 199 → 200 | ≈ 18 h | **≈ 600 h** |
 
-- L'XP gagnée vient des monstres (leur niveau réel) et du boss ; la table d'XP est réglée pour tenir ces temps.
+- L'XP gagnée vient des monstres (XP réelle de leur grade sur DofusDB, ×2,5 pour le mini-boss) et du boss, × bonus de Sagesse ; dégressive au-delà de 10 niveaux d'écart (−15 % par niveau de plus).
+- Table : XP pour passer le niveau n = (XP gagnée par minute au niveau n) × (temps visé). Mesuré au niveau 10 : ≈ 3 500 XP/min, soit 14 000 XP pour passer 10 → 11 (≈ une Crypte complète, qui rapporte ≈ 15 000 XP). Au-delà, extrapolé (×(n/10)^1,6) en attendant les donjons suivants.
 - Les temps sont des **cibles réglables** : on les corrigera en jouant.
 
 ---
@@ -275,7 +292,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
    (marche, coup, préparation, frappe, recul, chute, effondrement en tas d'os). Sorts verrouillés jusqu'à l'étape 3.
 3. ✅ **Sorts et boss** (validé, avec passifs et écran épuré) : 6 sorts du Sacrieur niv 10 (données DofusDB traduites, 1 tour = 4 s, vol de vie), Souffrance, Mutilation et Coagulation, cartes entre les salles (sort, amélioration, bonus) avec ordre de priorité, boss Kardorim (Casse-crâne, Craquement d'Os, Appel de Kardorib).
 4. ✅ **Structure d'un run** (validé) : mini-boss en salle 5 (Sergent Chafer d'élite : grade 5, PV ×2,5, charge annoncée ; une carte de plus), camp (écran d'accueil, records), bilan de fin de partie, sauvegarde locale, règle de mort préparée (XP et ressources gardées, butin du boss perdu).
-5. Stats, niveaux, répartition des points.
+5. 🔶 **Stats, niveaux, répartition des points** (à valider en jeu) : fiche complète de Dofus (§6.1), vraies données DofusDB des monstres (résistances, tacle, esquive, XP), XP par monstre gardée même en cas de défaite, table d'XP (§7.7), 5 points par niveau avec les paliers du Sacrieur, écran Caractéristiques au camp (remise à zéro gratuite), XP et montée de niveau dans le bilan.
 6. Drop, inventaire, équipement, panoplies.
 7. Artisan (craft).
 8. Raretés, fusion, brisage, forgemagie.

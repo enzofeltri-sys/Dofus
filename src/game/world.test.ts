@@ -169,3 +169,71 @@ describe('World', () => {
     expect(end.some((x) => x.type === 'victory')).toBe(false);
   });
 });
+
+describe('Mécaniques de Dofus en temps réel', () => {
+  const lone = (seed = 1) => {
+    const w = new World(seed);
+    w.startRoom(0);
+    const m = w.monsters[0];
+    w.monsters = [m];
+    Object.assign(m, { def: { ...MONSTERS.chaferPiquier, speed: 0 }, state: 'chase', cd: 1e9 });
+    w.drain();
+    return { w, m };
+  };
+
+  it('vaincre un monstre rapporte son XP de grade (Sagesse comprise)', () => {
+    const { w, m } = lone();
+    m.hp = 1;
+    m.x = w.hero.x + 60;
+    m.y = w.hero.y;
+    const ev = run(w, 1.5);
+    const xp = ev.find((e) => e.type === 'xp');
+    expect(xp && xp.type === 'xp' && xp.amount).toBe(m.xp);
+    expect(w.stats.xp).toBe(m.xp);
+  });
+
+  it('érosion : les PV max baissent avec les dégâts subis, et reviennent à la salle suivante', () => {
+    const { w, m } = lone();
+    const max = w.hero.maxHp;
+    Object.assign(m, { cd: 0, hp: 1e5, maxHp: 1e5 });
+    m.x = w.hero.x;
+    m.y = w.hero.y - 80 * PERSP;
+    w.hero.def = { ...w.hero.def, weapon: { ...w.hero.def.weapon, reach: 0 } };
+    run(w, 3);
+    expect(w.stats.taken).toBeGreaterThan(0);
+    expect(w.hero.eroded).toBe(max - w.hero.maxHp);
+    expect(w.hero.eroded).toBeGreaterThan(0);
+    w.startRoom(1);
+    expect(w.hero.maxHp).toBe(max);
+  });
+
+  it('tacle : au contact d’un Piquier (tacle 15), le Sacrieur sans fuite ralentit', () => {
+    const { w, m } = lone();
+    m.x = w.hero.x + 50;
+    m.y = w.hero.y;
+    expect(w.tackleFactor()).toBeLessThan(0.5);
+    m.x = w.hero.x + 300;
+    expect(w.tackleFactor()).toBe(1);
+  });
+
+  it('poussée : un monstre frappé contre un mur subit des dommages de poussée', () => {
+    const { w, m } = lone();
+    Object.assign(m, { hp: 1e5, maxHp: 1e5 });
+    w.hero.x = w.bounds.x1 - 90;
+    m.x = w.bounds.x1;
+    m.y = w.hero.y;
+    const ev = run(w, 1.5);
+    expect(ev.some((e) => e.type === 'hit' && e.push)).toBe(true);
+  });
+
+  it('initiative : le camp le plus rapide agit en premier', () => {
+    const w = new World(1);
+    w.startRoom(0);
+    const ev = w.drain().find((e) => e.type === 'initiative');
+    expect(ev).toBeDefined();
+    w.startRoom(TOTAL_ROOMS - 1); // Kardorim : 200 d'initiative, plus que le Sacrieur
+    const boss = w.drain().find((e) => e.type === 'initiative');
+    expect(boss && boss.type === 'initiative' && boss.hero).toBe(false);
+    expect(w.hero.castCd).toBeGreaterThan(0);
+  });
+});

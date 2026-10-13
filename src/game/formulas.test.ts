@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyResistances, baseStats, maxHp, rawDamage, resolveHit } from './formulas';
+import { addStats, applyResistances, baseStats, dodgePaOf, erosionLoss, escapeChance, escapeOf, finalMultiplier, initiativeOf, maxHp, prospectionOf, pushDamage, rawDamage, resolveHit, tackleOf } from './formulas';
 
 describe('rawDamage', () => {
   it('applique la caractéristique et la puissance', () => {
@@ -51,5 +51,52 @@ describe('resolveHit', () => {
     const rnd = () => seq.shift() ?? 0;
     const hit = resolveHit({ min: 5, max: 9, critBonus: 3, critBase: 5, element: 'neutre' }, baseStats(), baseStats(), rnd);
     expect(hit).toEqual({ crit: false, damage: 9 });
+  });
+});
+
+describe('fiche complète', () => {
+  it('dommages élémentaires fixes et résistance critique', () => {
+    const a = baseStats({ dommagesElem: { neutre: 0, terre: 4, feu: 0, eau: 0, air: 0 } });
+    expect(rawDamage(10, 'terre', a, false)).toBe(14);
+    expect(rawDamage(10, 'feu', a, false)).toBe(10);
+    const t = baseStats({ resCrit: 5 });
+    expect(applyResistances(20, 'neutre', t, true)).toBe(15);
+    expect(applyResistances(20, 'neutre', t, false)).toBe(20);
+  });
+  it('une faiblesse (résistance négative) augmente les dommages', () => {
+    const t = baseStats({ resPct: { neutre: 0, terre: -15, feu: 0, eau: 0, air: 0 } });
+    expect(applyResistances(20, 'terre', t)).toBe(23);
+  });
+  it('dommages finaux : mêlée / distance, arme / sort, et résistances mêlée de la cible', () => {
+    const a = baseStats({ pctMelee: 10, pctArme: 20, pctDistance: 50 });
+    const t = baseStats({ resMelee: 10 });
+    expect(finalMultiplier({ melee: true, source: 'arme' }, a, t)).toBeCloseTo(1.1 * 1.2 * 0.9);
+    expect(finalMultiplier({ melee: false, source: 'sort' }, a, t)).toBeCloseTo(1.5);
+    const rnd = () => 0.99;
+    expect(resolveHit({ min: 10, max: 10, critBonus: 0, critBase: 0, element: 'neutre' }, a, t, rnd, { melee: true, source: 'arme' }).damage).toBe(11);
+  });
+  it('dommages de poussée (formule Dofus)', () => {
+    // (10 / 2 + 0 − 0 + 32) × 1 / 4 = 9
+    expect(pushDamage(10, baseStats(), baseStats(), 1)).toBe(9);
+    expect(pushDamage(10, baseStats({ dommagesPoussee: 8 }), baseStats({ resPoussee: 4 }), 2)).toBe(20);
+  });
+  it('érosion de base 10 %, plafonnée à 50 %', () => {
+    expect(erosionLoss(40, baseStats())).toBe(4);
+    expect(erosionLoss(40, baseStats({ erosion: 90 }))).toBe(20);
+  });
+  it('tacle / fuite, esquive, prospection, initiative dérivés des caractéristiques', () => {
+    const s = baseStats({ agilite: 45, sagesse: 32, chance: 25, force: 85, tacle: 2 });
+    expect(tackleOf(s)).toBe(6);
+    expect(escapeOf(s)).toBe(4);
+    expect(dodgePaOf(s)).toBe(3);
+    expect(prospectionOf(s)).toBe(102);
+    expect(initiativeOf(s, 50, 100)).toBe(Math.floor((85 + 25 + 45) / 2));
+    expect(escapeChance(10, 10)).toBe(0.5);
+    expect(escapeChance(50, 0)).toBe(1);
+  });
+  it('addStats additionne aussi les champs par élément', () => {
+    const s = addStats(baseStats({ force: 10 }), { force: 5, resPct: { neutre: 0, terre: 0, feu: 3, eau: 0, air: 0 } });
+    expect(s.force).toBe(15);
+    expect(s.resPct.feu).toBe(3);
   });
 });

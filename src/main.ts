@@ -15,6 +15,9 @@ import { autopilotInput } from './game/autopilot';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
 import { applyRun, loadSave, storeSave, type RunResult } from './game/save';
 import { SPELLS } from './game/data/spells';
+import { startingHero } from './game/data/hero';
+import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
+import { elementName, resLine, sheetView } from './ui/sheet-view';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
@@ -133,7 +136,8 @@ async function main() {
   let fadeA = 1;
 
   // ---------- Monde ----------
-  const game = new World(Math.floor(Math.random() * 1e6));
+  let save = loadSave();
+  const game = new World(Math.floor(Math.random() * 1e6), startingHero(save.profile));
   hud.setLevel(game.hero.def.level);
   (window as unknown as { __game: World }).__game = game;
   const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
@@ -175,6 +179,17 @@ async function main() {
     t.resolution = RES * 1.2;
     floatLayer.addChild(t);
     floaters.push({ t, life: 1, vy: -80, x: x + rand(-12, 12), y });
+  };
+  /** Petit texte flottant (« Faible Terre ! », « +230 XP »). */
+  const labelAt = (x: number, y: number, txt: string, color: string) => {
+    const t = new Text({
+      text: txt,
+      style: { fontFamily: 'Lilita One', fontSize: 22, fill: color, letterSpacing: 0.5, stroke: { color: '#3b2414', width: 5, join: 'round' } },
+    });
+    t.anchor.set(0.5);
+    t.resolution = RES * 1.2;
+    floatLayer.addChild(t);
+    floaters.push({ t, life: 1.2, vy: -55, x, y });
   };
   let shake = 0;
 
@@ -310,15 +325,18 @@ async function main() {
   floatLayer.addChild(heroHpBox);
   actors.addChild(heroC);
   const HP_Y = -180 * CHAR_SCALE;
-  function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean) {
+  function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean, eroded = 0) {
     heroHpBox.visible = alive;
     if (!alive) return;
     heroHpBox.position.set(heroView.c.x, heroView.c.y);
     // l'écran est réduit (≈ ×0,54 sur téléphone) : tailles prévues pour rester lisibles
-    const W = 112, H = 15, R = 7.5, k = Math.max(0, hp) / max;
-    const low = k <= 0.3;
+    const W = 112, H = 15, R = 7.5, total = max + eroded, k = Math.max(0, hp) / total;
+    const low = hp / max <= 0.3;
     heroHp.clear()
-      .roundRect(-W / 2, HP_Y, W, H, R).fill({ color: 0x3b1a12 })
+      .roundRect(-W / 2, HP_Y, W, H, R).fill({ color: 0x3b1a12 });
+    // érosion : la fin de la barre est perdue jusqu'à la salle suivante
+    if (eroded > 0) heroHp.roundRect(-W / 2 + W * (max / total), HP_Y + 2, W * (eroded / total), H - 4, 3).fill({ color: 0x8a7a6e, alpha: 0.75 });
+    heroHp
       .roundRect(-W / 2, HP_Y, Math.max(H, W * k), H, R).fill({ color: low ? (Math.sin(performance.now() / 120) > 0 ? 0xff4a3a : 0xd8303c) : 0xe8664a })
       .roundRect(-W / 2 + 4, HP_Y + 2.5, Math.max(0, W * k - 8), 3.5, 2).fill({ color: 0xffffff, alpha: 0.35 })
       .roundRect(-W / 2, HP_Y, W, H, R).stroke({ width: 3, color: 0x3b2414 });
@@ -434,7 +452,15 @@ async function main() {
       }
       case 'hit': {
         const y = ev.target === 'hero' ? ev.y - 130 * CHAR_SCALE : ev.y - 120 * CHAR_SCALE;
-        numberAt(ev.x, y, `-${ev.damage}`, ev.target === 'hero' ? '#e8664a' : ev.crit ? '#f2c45c' : '#fffaf0', ev.crit);
+        // faiblesse : chiffre corail ; résistance : chiffre grisé ; poussée : violet
+        const col = ev.target === 'hero' ? '#e8664a' : ev.push ? '#cdaaf2' : ev.crit ? '#f2c45c' : ev.eff === 'weak' ? '#ff9a5a' : ev.eff === 'resist' ? '#b9b0a0' : '#fffaf0';
+        numberAt(ev.x, y, `-${ev.damage}`, col, ev.crit || ev.eff === 'weak');
+        const mon = ev.uid !== undefined ? game.monsters.find((x) => x.uid === ev.uid) : undefined;
+        if (ev.push) labelAt(ev.x, y - 40, 'Poussée !', '#cdaaf2');
+        else if (mon && ev.eff && ev.element && !resSeen.has(`${mon.def.id}:${ev.element}`)) {
+          resSeen.add(`${mon.def.id}:${ev.element}`);
+          labelAt(ev.x, y - 40, ev.eff === 'weak' ? `Faible ${elementName(ev.element)} !` : `Résiste ${elementName(ev.element)}`, ev.eff === 'weak' ? '#ff9a5a' : '#d8cfbd');
+        }
         for (let i = 0; i < (ev.crit ? 12 : 6); i++) emit(ev.x, ev.y - 50 * CHAR_SCALE, ev.crit ? 0xffd070 : 0xffffff, { vx: rand(-140, 140), vy: rand(-170, -40), life: 0.35, size: 0.08 });
         if (ev.target === 'hero') {
           shake = Math.max(shake, 8);
@@ -451,6 +477,12 @@ async function main() {
       }
       case 'death':
         for (let i = 0; i < 18; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-150, 150), vy: rand(-210, -40), life: 0.6, size: 0.1, add: false, grav: 320 });
+        break;
+      case 'xp':
+        later(0.25, () => labelAt(ev.x, ev.y - 110 * CHAR_SCALE, `+${ev.amount} XP`, '#cdaaf2'));
+        break;
+      case 'initiative':
+        hud.toast(ev.hero ? 'Initiative !' : 'L’ennemi a l’initiative', 900);
         break;
       case 'heal':
         numberAt(ev.x + 22, ev.y - 150 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
@@ -471,11 +503,11 @@ async function main() {
         break;
       case 'roomStart':
         if (game.boss) {
-          hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp);
-          later(0.4, () => hud.toast('Kardorim !', 1400));
+          hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp, resLine(game.boss.stats.resPct));
+          later(1.0, () => hud.toast('Kardorim !', 1400));
         } else if (game.elite) {
-          hud.setBoss(game.elite.def.name, game.elite.hp, game.elite.maxHp);
-          later(0.4, () => hud.toast('Mini-boss !', 1400));
+          hud.setBoss(game.elite.def.name, game.elite.hp, game.elite.maxHp, resLine(game.elite.stats.resPct));
+          later(1.0, () => hud.toast('Mini-boss !', 1400));
         } else hud.setBoss(null);
         break;
       case 'bossCrack': {
@@ -571,16 +603,31 @@ async function main() {
   const STAT_ICON: Record<StatBonus, string> = { force: ICONS.force.svg, vitalite: ICONS.vie.svg, critique: ICONS.xp.svg, speed: ICONS.pm.svg };
   const slotViews = (): SlotView[] => game.run.slots.map((sl) => (sl ? { icon: SPELL_ICONS[sl.id], name: SPELLS[sl.id].name, pa: SPELLS[sl.id].pa } : null));
 
-  let save = loadSave();
   const cardsTaken: string[] = [];
+
+  const currentSheet = () => sheetView(save.profile, startingHero(save.profile));
+  /** Camp : records, niveau, fiche de caractéristiques (les points se répartissent ici). */
+  const openCamp = () => hud.camp(save, currentSheet, {
+    invest(id, n) {
+      save = { ...save, profile: invest(save.profile, id as CaracId, n) };
+      storeSave(save);
+    },
+    reset() {
+      save = { ...save, profile: resetCarac(save.profile) };
+      storeSave(save);
+    },
+  });
+  /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
+  const resSeen = new Set<string>();
 
   /** Fin de partie : bilan, sauvegarde, retour au camp, nouvelle partie. */
   async function endRun(won: boolean) {
     const st = game.stats;
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
-      cards: [...cardsTaken], loot: { xp: 0, resources: {} }, bossLoot: { xp: 0, resources: {} },
+      cards: [...cardsTaken], loot: { xp: st.xp, resources: {} }, bossLoot: { xp: 0, resources: {} },
     };
+    const levelBefore = levelForXp(save.profile.xp);
     save = applyRun(save, result);
     storeSave(save);
     hud.setBoss(null);
@@ -592,10 +639,12 @@ async function main() {
       ['Dégâts infligés', String(st.dealt)],
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
-    ], result.cards, 'XP et ressources arrivent aux étapes 5 et 6 : en cas de défaite tu garderas ce que tu as ramassé, mais pas le butin du boss.');
-    if (SHOW_CAMP) await hud.camp(save);
+    ], result.cards, won ? 'Les drops arrivent à l’étape 6.' : 'L’XP gagnée est gardée, même en cas de défaite.',
+    { gained: st.xp, before: levelBefore, view: currentSheet() });
+    if (SHOW_CAMP) await openCamp();
     await transition(() => {
-      game.restart();
+      game.restart(startingHero(save.profile));
+      hud.setLevel(game.hero.def.level);
       cardsTaken.length = 0;
       return buildRoom(0);
     });
@@ -661,7 +710,14 @@ async function main() {
   await buildRoom(START_ROOM);
   camY = camTarget();
   document.getElementById('loading')?.classList.add('done');
-  if (SHOW_CAMP) void hud.camp(save);
+  if (SHOW_CAMP) {
+    void openCamp().then(() => {
+      // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
+      game.restart(startingHero(save.profile));
+      hud.setLevel(game.hero.def.level);
+      hud.setSlots(slotViews());
+    });
+  }
 
   let acc = 0;
   let time = 0;
@@ -799,7 +855,9 @@ async function main() {
     if (!busy) fadeA = Math.max(0, fadeA - dt * 3);
     fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
-    drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive);
+    drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive, h.eroded);
+    // taclé : poussière grise aux pieds quand un monstre au contact freine le Sacrieur
+    if (h.alive && h.moving && h.tackled < 0.95 && Math.random() < 0.35) emit(h.x + rand(-18, 18), h.y - 6, 0x9a8f80, { vx: rand(-40, 40), vy: rand(-60, -20), life: 0.35, size: 0.06, add: false });
     const big = game.boss ?? game.elite;
     if (big && game.phase === 'fight') hud.setBoss(big.def.name, big.hp, big.maxHp);
     else if (game.elite && game.phase === 'cleared') hud.setBoss(null);
