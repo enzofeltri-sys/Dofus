@@ -20,7 +20,7 @@ const PA_MAX = 6;
 const SUFFERING_MAX = 10;
 
 /** Tête du Sacrieur recadrée pour le médaillon (même dessin que le personnage en jeu). */
-const portraitSvg = () => sacrieurSvg('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="30 12 68 68"');
+const portraitSvg = () => sacrieurSvg('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="29 10 70 70"');
 
 const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/></svg>`;
 const LOCK_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.5 10V8a4.5 4.5 0 0 1 9 0v2" fill="none" stroke="#3b2414" stroke-width="2.4" stroke-linecap="round"/><rect x="5" y="10" width="14" height="10" rx="3" fill="#e3a838" stroke="#3b2414" stroke-width="2.2"/><circle cx="12" cy="15" r="1.6" fill="#3b2414"/></svg>`;

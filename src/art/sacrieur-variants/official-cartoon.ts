@@ -32,6 +32,8 @@ interface Opts {
   legLen?: number;
   /** Largeur du buste (1 = D2) ; les bras se rapprochent d'autant. */
   chest?: number;
+  /** Largeur relative de la tête (visage plus fin). */
+  headW?: number;
 }
 
 const WRAP = '#a3283a';
@@ -252,7 +254,7 @@ function build(o: Opts, part?: SacriPart): string {
   h.push(`<ellipse cx="76" cy="31" rx="8.5" ry="5.6" fill="#e8c040" stroke="#7a5a08" stroke-width="1.4" transform="rotate(-6 76 31)"/>`);
   h.push(`<ellipse cx="76" cy="31" rx="6.2" ry="3.6" fill="none" stroke="#6a3a1a" stroke-width="1.3" stroke-dasharray="1.6 1.8" transform="rotate(-6 76 31)"/>`);
 
-  const head = `<g transform="translate(70,84) scale(${o.headScale ?? 0.86}) translate(-70,-84)">${h.join('\n')}</g>`;
+  const head = `<g transform="translate(70,84) scale(${(o.headScale ?? 0.86) * (o.headW ?? 1)},${o.headScale ?? 0.86}) translate(-70,-84)">${h.join('\n')}</g>`;
   const upper = (x: string) => `<g transform="translate(0,-14)">${x}</g>`;
   const parts: Record<SacriPart, string> = {
     legB: legB.join('\n'),
@@ -286,11 +288,11 @@ export const variantF2 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.45, d
 /** F3 : F2 + tête un peu plus petite (silhouette plus élancée). */
 const F3_OPTS: Opts = { ...D2_OPTS, line: 1.3, detail: 0.8, inkK: -0.52, brow: 2.4, slim: 1, hand: 0.85, headScale: 0.8 };
 export const variantF3 = (part?: SacriPart) => build(F3_OPTS, part);
-/** H : F3 choisi par Enzo, avec la tête plus petite. C'est le Sacrieur du jeu. */
-export const H_OPTS: Opts = { ...F3_OPTS, headScale: 0.72 };
+/** H : G3 (buste très fin) choisi par Enzo, tête plus petite et plus fine. C'est le Sacrieur du jeu. */
+export const H_OPTS: Opts = { ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.84, legLen: 4, chest: 0.7, headScale: 0.76, headW: 0.92 };
 export const variantH = (part?: SacriPart) => build(H_OPTS, part);
 /** H2 : tête encore plus petite (pour comparaison). */
-export const variantH2 = (part?: SacriPart) => build({ ...F3_OPTS, headScale: 0.66 }, part);
+export const variantH2 = (part?: SacriPart) => build({ ...H_OPTS, headScale: 0.7 }, part);
 /** F4 : F2 + jambes plus longues et tête plus petite (silhouette élancée). Pieds en (70, 166). */
 export const variantF4 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.86, headScale: 0.8, legLen: 6 }, part);
 
