@@ -8,9 +8,9 @@ img{height:var(--h,300px)}
 import { sacrieurSvg as a } from '../src/art/sacrieur-variants/a.ts';
 import { sacrieurSvg as b } from '../src/art/sacrieur-variants/b.ts';
 import { sacrieurSvg as c } from '../src/art/sacrieur-variants/c.ts';
-import { variantD as d, variantE as e, variantD1 as d1, variantD2 as d2, variantD3 as d3, variantD4 as d4, variantF1 as f1, variantF2 as f2, variantF3 as f3, variantF4 as f4 } from '../src/art/sacrieur-variants/official-cartoon.ts';
+import { variantD as d, variantE as e, variantD1 as d1, variantD2 as d2, variantD3 as d3, variantD4 as d4, variantF1 as f1, variantF2 as f2, variantF3 as f3, variantF4 as f4, variantG1 as g1, variantG2 as g2, variantG3 as g3 } from '../src/art/sacrieur-variants/official-cartoon.ts';
 const only = new URLSearchParams(location.search).get('only');
-const all = [['A', a, 'Le tout premier'], ['B', b, 'Moins mignon'], ['C', c, 'Juste milieu'], ['D', d, 'Tenue officielle, yeux blancs'], ['E', e, 'Tenue officielle, plus berserker'], ['D1', d1, 'Bras fins, tout bandés'], ['D2', d2, 'Avant-bras bandés'], ['D3', d3, 'Larges bandes rouges'], ['D4', d4, 'Fines bandes enroulées'], ['F1', f1, 'Traits fins'], ['F2', f2, 'Traits fins + silhouette affinée'], ['F3', f3, 'F2 + tête plus petite'], ['F4', f4, 'F2 + jambes longues, tête plus petite']];
+const all = [['A', a, 'Le tout premier'], ['B', b, 'Moins mignon'], ['C', c, 'Juste milieu'], ['D', d, 'Tenue officielle, yeux blancs'], ['E', e, 'Tenue officielle, plus berserker'], ['D1', d1, 'Bras fins, tout bandés'], ['D2', d2, 'Avant-bras bandés'], ['D3', d3, 'Larges bandes rouges'], ['D4', d4, 'Fines bandes enroulées'], ['F1', f1, 'Traits fins'], ['F2', f2, 'Traits fins + silhouette affinée'], ['F3', f3, 'F2 + tête plus petite'], ['F4', f4, 'F2 + jambes longues, tête plus petite'], ['G1', g1, 'Buste affiné'], ['G2', g2, 'Buste affiné, élancé'], ['G3', g3, 'Buste très fin']];
 const list = only ? all.filter(([k]) => only.split(',').includes(k)) : all;
 for (const [k, f, t] of list) {
   const fig = document.createElement('figure');

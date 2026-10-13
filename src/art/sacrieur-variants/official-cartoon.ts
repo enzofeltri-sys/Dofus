@@ -30,6 +30,8 @@ interface Opts {
   hand?: number;
   /** Allonge les jambes (pieds plus bas, en px). */
   legLen?: number;
+  /** Largeur du buste (1 = D2) ; les bras se rapprochent d'autant. */
+  chest?: number;
 }
 
 const WRAP = '#a3283a';
@@ -111,7 +113,7 @@ function arm(o: Opts, skin: string, skInk: string, side: 'back' | 'front'): stri
       : bandaged([[89, 90], [98, 95], [103, 105], [100, 118]], o.arm + 1, o.arm - 3, skin) + mitten(100, 122, 1);
   }
   // bras plus fins, plus près du corps, légèrement pliés
-  const sl = o.slim ?? 0, dx = (back ? 1 : -1) * 4 * sl;
+  const sl = o.slim ?? 0, dx = armShift(o, side);
   const pts: Pt[] = (back ? [[46, 88], [42, 98], [41, 108], [43, 118]] : [[94, 87], [99, 97], [100, 107], [97, 117]]).map(([x, y]) => [x + dx, y] as Pt);
   const w0 = 12.5 * (1 - 0.22 * sl), w1 = 9.5 * (1 - 0.2 * sl);
   const hs = 0.82 * (o.hand ?? 1);
@@ -129,6 +131,16 @@ function arm(o: Opts, skin: string, skInk: string, side: 'back' | 'front'): stri
   }
   // spiral : peau, fines bandes rouges enroulées en diagonale
   return limb(pts, w0, w1, SKIN_FILL, skInk, { color: '#a3283a', step: 5.5, width: 2, slant: 5 }) + fist;
+}
+
+/** Décalage horizontal des épaules quand le buste est affiné (le bras suit le bord du torse). */
+function armShift(o: Opts, side: 'back' | 'front'): number {
+  const w = torsoScale(o);
+  const edge = side === 'back' ? 45 : 96; // bord du torse côté épaule
+  return (70 + (edge - 70) * w) - edge;
+}
+function torsoScale(o: Opts): number {
+  return (1 - 0.1 * (o.slim ?? 0)) * (o.chest ?? 1);
 }
 
 /** Morceaux articulés du Sacrieur, dans l'ordre de dessin (du fond vers l'avant). */
@@ -246,7 +258,7 @@ function build(o: Opts, part?: SacriPart): string {
     legB: legB.join('\n'),
     legF: legF.join('\n'),
     armB: upper(armB.join('\n')),
-    torso: upper(sl ? `<g transform="translate(70,0) scale(${1 - 0.1 * sl},1) translate(-70,0)">${torso.join('\n')}</g>` : torso.join('\n')),
+    torso: upper(torsoScale(o) !== 1 ? `<g transform="translate(70,0) scale(${torsoScale(o)},1) translate(-70,0)">${torso.join('\n')}</g>` : torso.join('\n')),
     armF: upper(armF.join('\n')),
     head: upper(head),
   };
@@ -275,3 +287,16 @@ export const variantF2 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.45, d
 export const variantF3 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.3, detail: 0.8, inkK: -0.52, brow: 2.4, slim: 1, hand: 0.85, headScale: 0.8 }, part);
 /** F4 : F2 + jambes plus longues et tête plus petite (silhouette élancée). Pieds en (70, 166). */
 export const variantF4 = (part?: SacriPart) => build({ ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.86, headScale: 0.8, legLen: 6 }, part);
+
+/** Pivots d'une variante dont les épaules ont bougé (buste affiné). */
+export function pivotsFor(o: Opts): Record<SacriPart, [number, number]> {
+  const b = armShift(o, 'back'), f = armShift(o, 'front');
+  return { ...SACRI_PIVOTS, armB: [SACRI_PIVOTS.armB[0] + b, SACRI_PIVOTS.armB[1]], armF: [SACRI_PIVOTS.armF[0] + f, SACRI_PIVOTS.armF[1]] };
+}
+/** G : buste nettement affiné (le problème principal de D2). */
+export const G1_OPTS: Opts = { ...D2_OPTS, line: 1.45, detail: 0.9, inkK: -0.55, brow: 2.6, slim: 1, hand: 0.88, chest: 0.8 };
+export const G2_OPTS: Opts = { ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.86, headScale: 0.82, legLen: 6, chest: 0.8 };
+export const G3_OPTS: Opts = { ...D2_OPTS, line: 1.4, detail: 0.85, inkK: -0.54, brow: 2.5, slim: 1, hand: 0.84, headScale: 0.84, legLen: 4, chest: 0.7 };
+export const variantG1 = (part?: SacriPart) => build(G1_OPTS, part);
+export const variantG2 = (part?: SacriPart) => build(G2_OPTS, part);
+export const variantG3 = (part?: SacriPart) => build(G3_OPTS, part);
