@@ -15,6 +15,12 @@ export const PA_MAX = 6;
 export const PA_REGEN = PA_MAX / TURN;
 /** Portée « corps à corps » des sorts (comme l'arme). */
 export const MELEE = 120;
+/**
+ * Puissance des sorts en temps réel : dans Dofus on lance ~2 sorts par tour de ~30 s, ici 2 toutes les 4 s
+ * en plus de l'arme ; les dommages (et donc le vol de vie) sont réduits d'autant.
+ */
+export let SPELL_POWER = 0.5;
+export const setSpellPower = (v: number) => (SPELL_POWER = v);
 /** Délai minimal entre deux sorts (temps de l'animation de lancer). */
 export const CAST_DELAY = 0.35;
 

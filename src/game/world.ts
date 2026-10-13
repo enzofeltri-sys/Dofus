@@ -3,7 +3,7 @@ import { resolveHit } from './formulas';
 import { startingHero, type HeroDef } from './data/hero';
 import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
-import { CAST_DELAY, MELEE, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
+import { CAST_DELAY, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
 
 /**
@@ -479,7 +479,8 @@ export class World {
     const m = this.targets(sp.range[0], sp.range[1])[0];
     if (!m) return false;
     this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
-    const roll = { ...k.roll, min: Math.round(k.roll.min * (1 + sl.dmgBonus)), max: Math.round(k.roll.max * (1 + sl.dmgBonus)) };
+    const mult = SPELL_POWER * (1 + sl.dmgBonus);
+    const roll = { ...k.roll, min: Math.max(1, Math.round(k.roll.min * mult)), max: Math.max(1, Math.round(k.roll.max * mult)), critBonus: Math.round(k.roll.critBonus * mult) };
     const hit = resolveHit(roll, this.heroStats(), m.stats, this.rnd);
     if (k.debuff === 'mark') m.markT = TURN;
     if (k.debuff === 'power') m.weakT = TURN;

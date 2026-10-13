@@ -3,6 +3,9 @@
 import { autopilotInput } from '../src/game/autopilot';
 import { applyCard, drawCards, type Card } from '../src/game/cards';
 import { rng } from '../src/iso';
+import { setSpellPower } from '../src/game/data/spells';
+const sp = process.argv.find((a) => a.startsWith('sp='));
+if (sp) setSpellPower(Number(sp.slice(3)));
 import { STEP, TOTAL_ROOMS, World, type Vec } from '../src/game/world';
 
 type Policy = (w: World, t: number, mem: { lag: Vec; next: number }) => Vec;
