@@ -196,6 +196,7 @@ Les 8 donjons saisonniers (Nowel, Halouine…) sont listés ; leur inclusion res
 La difficulté n'est **jamais ajustée au personnage** : les monstres ont leurs vraies stats Dofus (grades 1 à 5, plus forts au fond du donjon), le personnage a ses vrais points et son équipement. C'est l'écart entre les deux qui fait la difficulté.
 
 - **Référence** : un personnage **du niveau du donjon, avec un stuff de son niveau**, trouve le donjon **difficile mais faisable**. (Calibrage actuel : Sacrieur niv 10 + stuff niv 10 dans la Crypte de Kardorim, niv 10.)
+- **Calibrage validé (Crypte)** : 6 à 12 monstres par salle, PV des monstres ×1,8, Puissance des monstres +30 %, sorts ×0,3, améliorations +5 % / -5 %, Sacrieur à 340 de vitesse et 1,9 coup d'épée/s. « Si je me concentre, je le fais » (Enzo).
 - **≈ 10 niveaux en dessous** ou stuff trop faible : **quasi impossible**.
 - **Au-dessus** : de plus en plus facile → donjon de **farm**.
 - **Boucle de jeu** : trop dur → on farme le donjon précédent (ressources, craft, FM, fusion, XP) → on revient plus fort → on farme celui-là, et ainsi de suite.
@@ -273,7 +274,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
    salles enchaînées et grille de sortie, défaite / pause / fin de démo, personnages articulés
    (marche, coup, préparation, frappe, recul, chute, effondrement en tas d'os). Sorts verrouillés jusqu'à l'étape 3.
 3. ✅ **Sorts et boss** (validé, avec passifs et écran épuré) : 6 sorts du Sacrieur niv 10 (données DofusDB traduites, 1 tour = 4 s, vol de vie), Souffrance, Mutilation et Coagulation, cartes entre les salles (sort, amélioration, bonus) avec ordre de priorité, boss Kardorim (Casse-crâne, Craquement d'Os, Appel de Kardorib).
-4. 🔎 **Structure d'un run** (à valider) : mini-boss en salle 5 (Sergent Chafer d'élite : grade 5, PV ×2,5, charge annoncée ; une carte de plus), camp (écran d'accueil, records), bilan de fin de partie, sauvegarde locale, règle de mort préparée (XP et ressources gardées, butin du boss perdu).
+4. ✅ **Structure d'un run** (validé) : mini-boss en salle 5 (Sergent Chafer d'élite : grade 5, PV ×2,5, charge annoncée ; une carte de plus), camp (écran d'accueil, records), bilan de fin de partie, sauvegarde locale, règle de mort préparée (XP et ressources gardées, butin du boss perdu).
 5. Stats, niveaux, répartition des points.
 6. Drop, inventaire, équipement, panoplies.
 7. Artisan (craft).
