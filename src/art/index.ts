@@ -6,7 +6,7 @@ import { sacrieurSvg, sacrieurSwordSvg } from './sacrieur';
 export const SHEET: Record<string, () => string> = {
   kardorim: () => kardorimSvg(),
   kardorib: () => kardoribSvg(),
-  sacrieur: sacrieurSvg,
+  sacrieur: () => sacrieurSvg(),
   epee: sacrieurSwordSvg,
   chaferDebutant: () => chaferSvg('debutant'),
   chaferFurtif: () => chaferSvg('furtif'),

@@ -3,8 +3,8 @@ import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } 
 import { kardoribSvg, kardorimSvg } from './art/kardorim';
 import type { MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
-import { SACRIEUR_FOOT, SACRIEUR_HAND, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
-import { SACRI_PARTS, SACRI_PIVOTS, variantD2 } from './art/sacrieur-variants/official-cartoon';
+import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
+import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
@@ -78,7 +78,7 @@ async function main() {
 
   // ---------- Textures ----------
   const [sacriTex, swordTex, gateTex, ...chaferFlat] = await Promise.all([
-    Promise.all(SACRI_PARTS.map((p) => svgTexture(variantD2(p), CR))),
+    Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p), CR))),
     svgTexture(sacrieurSwordSvg(), CR),
     svgTexture(gateBarsSvg(), RES),
     ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
@@ -279,13 +279,13 @@ async function main() {
   const shadowOf = (r: number) => new Graphics().ellipse(0, 0, r, r * PERSP * 0.6).fill({ color: 0x2a1404, alpha: 0.38 });
 
   const heroRig = new Rig(
-    SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRI_PIVOTS[p] })),
+    SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRIEUR_PIVOTS[p] })),
     SACRIEUR_FOOT, CHAR_SCALE, false,
   );
   const sword = new Sprite(swordTex);
   sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
   const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'épée suit sa rotation
-  sword.position.set(SACRIEUR_HAND[0] - SACRI_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRI_PIVOTS.armF[1]);
+  sword.position.set(SACRIEUR_HAND[0] - SACRIEUR_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRIEUR_PIVOTS.armF[1]);
   armF.addChild(sword);
   const heroC = new Container();
   heroC.addChild(shadowOf(28 * CHAR_SCALE), heroRig.root);

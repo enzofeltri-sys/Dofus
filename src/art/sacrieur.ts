@@ -1,8 +1,8 @@
 import { ellipse, line, shape, svg, vgrad } from './kit';
-import { variantD2 } from './sacrieur-variants/official-cartoon';
+import { H_OPTS, pivotsFor, variantH } from './sacrieur-variants/official-cartoon';
 
 /**
- * Le Sacrieur du jeu : proposition « D2 » choisie par Enzo.
+ * Le Sacrieur du jeu : D2 affiné (« H » : traits fins, membres minces, buste et tête réduits), choisi par Enzo.
  * Silhouette cartoon, tenue officielle (bandana olive à pièce jaune, yeux blancs, peintures de guerre,
  * marque en cœur, avant-bras bandés de rouge et moufles, pagne jaune, pantalon olive effiloché,
  * tibias bandés, pieds nus). Regarde vers la DROITE.
@@ -10,11 +10,13 @@ import { variantD2 } from './sacrieur-variants/official-cartoon';
 export const SACRIEUR_W = 140;
 export const SACRIEUR_H = 170;
 export const SACRIEUR_FOOT: [number, number] = [70, 160];
+/** Pivots des morceaux articulés (les épaules suivent le buste affiné). */
+export const SACRIEUR_PIVOTS = pivotsFor(H_OPTS);
 /** Poing qui tient l'arme (coordonnées du SVG, haut du corps remonté de 14 px). */
-export const SACRIEUR_HAND: [number, number] = [97, 106];
+export const SACRIEUR_HAND: [number, number] = [97 + SACRIEUR_PIVOTS.armF[0] - 93, 106];
 export const SACRIEUR_FACES_LEFT = false;
 
-export const sacrieurSvg = variantD2;
+export const sacrieurSvg = variantH;
 
 /** Épée grossière du Sacrieur (verticale, pointe en haut). Poignée en SWORD_GRIP. */
 export const SWORD_W = 40;
