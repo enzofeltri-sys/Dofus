@@ -60,5 +60,5 @@ export function startingHero(): HeroDef {
   const points = (level - 1) * POINTS_PER_LEVEL;
   const stats = baseStats({ force: points + gear.force, vitalite: gear.vitalite, critique: gear.critique, dommagesCritiques: 2 });
   const pm = 3;
-  return { level, stats, hp: maxHp(level, stats.vitalite), speed: 300 + pm * 40, radius: 22, weapon: EPEE_ROUILLEE, gear };
+  return { level, stats, hp: maxHp(level, stats.vitalite), speed: 250 + pm * 30, radius: 22, weapon: EPEE_ROUILLEE, gear };
 }

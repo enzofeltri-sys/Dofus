@@ -120,7 +120,7 @@ describe('Cartes entre les salles', () => {
     applyCard(w, { kind: 'stat', stat: 'vitalite' });
     expect(w.hero.maxHp).toBe(max + 20);
     applyCard(w, { kind: 'upgrade', spell: 'supplice', up: 'dmg' });
-    expect(w.run.slots[0]?.dmgBonus).toBeCloseTo(0.2);
+    expect(w.run.slots[0]?.dmgBonus).toBeCloseTo(0.05);
     expect(Object.keys(SPELLS)).toHaveLength(6);
   });
 

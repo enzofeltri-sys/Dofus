@@ -380,11 +380,20 @@ async function main() {
     if (!input.active) return;
     let dx = ev.clientX - joyOrigin.x, dy = ev.clientY - joyOrigin.y;
     const d = Math.hypot(dx, dy);
-    if (d > JOY_R) { dx = (dx / d) * JOY_R; dy = (dy / d) * JOY_R; }
+    // direction calculée AVANT de borner le bouton (sinon la vitesse chutait hors du cercle)
+    const ux = d > 0 ? dx / d : 0, uy = d > 0 ? dy / d : 0;
+    if (d > JOY_R) {
+      // le joystick suit le doigt : on peut changer de direction sans revenir au centre
+      joyOrigin = { x: ev.clientX - ux * JOY_R, y: ev.clientY - uy * JOY_R };
+      hud.joy.style.left = `${joyOrigin.x}px`;
+      hud.joy.style.top = `${joyOrigin.y}px`;
+      dx = ux * JOY_R;
+      dy = uy * JOY_R;
+    }
     hud.knob.style.transform = `translate(${dx}px, ${dy}px)`;
     const m = Math.min(1, d / (JOY_R * 0.6));
-    input.x = d > 6 ? (dx / d) * m : 0;
-    input.y = d > 6 ? (dy / d) * m : 0;
+    input.x = d > 6 ? ux * m : 0;
+    input.y = d > 6 ? uy * m : 0;
   });
   const release = () => {
     input.active = false;

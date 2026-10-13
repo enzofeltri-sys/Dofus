@@ -18,7 +18,7 @@ export const STAT_BONUS: Record<StatBonus, { value: number; title: string; text:
   critique: { value: 5, title: 'Critique +5 %', text: 'Plus de coups critiques, pour l’épée comme pour les sorts.' },
   speed: { value: 0.08, title: 'Vitesse +8 %', text: 'Tu te déplaces plus vite, pour mieux esquiver.' },
 };
-export const UPGRADE = { dmg: 0.2, cd: 0.2, cdMax: 0.4 };
+export const UPGRADE = { dmg: 0.05, cd: 0.05, cdMax: 0.15 };
 
 const key = (c: Card) => JSON.stringify(c);
 
@@ -103,8 +103,8 @@ export function cardInfo(w: World, c: Card): { tag: string; title: string; text:
     const sl = w.run.slots.find((s) => s?.id === c.spell);
     const name = SPELLS[c.spell].name;
     return c.up === 'dmg'
-      ? { tag: 'Amélioration', title: `${name} : dégâts +20 %`, text: `Total : +${Math.round(((sl?.dmgBonus ?? 0) + UPGRADE.dmg) * 100)} % de dégâts pour ce donjon.`, spell: c.spell }
-      : { tag: 'Amélioration', title: `${name} : recharge -20 %`, text: `Se relance plus souvent (jusqu’à -40 %).`, spell: c.spell };
+      ? { tag: 'Amélioration', title: `${name} : dégâts +5 %`, text: `Total : +${Math.round(((sl?.dmgBonus ?? 0) + UPGRADE.dmg) * 100)} % de dégâts pour ce donjon.`, spell: c.spell }
+      : { tag: 'Amélioration', title: `${name} : recharge -5 %`, text: `Se relance un peu plus souvent (jusqu’à -15 %).`, spell: c.spell };
   }
   if (c.kind === 'passive') {
     const p = PASSIVES[c.passive], n = w.run.passives[c.passive] ?? 0;
