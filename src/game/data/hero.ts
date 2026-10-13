@@ -19,7 +19,7 @@ export const EPEE_ROUILLEE: WeaponDef = {
   id: 'epeeRouillee',
   name: 'Épée rouillée',
   roll: { min: 7, max: 11, critBonus: 3, critBase: 5, element: 'neutre' },
-  speed: 1.8,
+  speed: 1.9,
   reach: 120,
   arc: 1.25,
   impactAt: 0.35,

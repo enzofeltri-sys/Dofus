@@ -247,8 +247,8 @@ export class World {
       this.events.push({ type: 'roomStart', index });
       return;
     }
-    // 7 monstres en salle 1, jusqu'à 14 ; à partir de la salle 3, une partie arrive en deuxième vague
-    const count = Math.min(14, 7 + index);
+    // 6 monstres en salle 1, jusqu'à 12 ; à partir de la salle 3, une partie arrive en deuxième vague
+    const count = Math.min(12, 6 + Math.floor(index * 0.85));
     const defs = [...Array(count)].map(() => ({
       def: MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]],
       grade: roomGrade(index, this.rnd()),

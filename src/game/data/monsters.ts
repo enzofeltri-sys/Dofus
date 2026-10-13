@@ -37,9 +37,9 @@ export interface MonsterGrade {
 }
 
 /** Adaptation au temps réel : les monstres ont plus de PV qu'en tour par tour. */
-export const REALTIME_HP = 2.2;
-/** Bonus de Puissance des monstres (en % de leur multiplicateur de dégâts) : +50 % de dégâts. */
-export const MONSTER_POWER = 0.5;
+export const REALTIME_HP = 2.0;
+/** Bonus de Puissance des monstres (en % de leur multiplicateur de dégâts) : +40 % de dégâts. */
+export const MONSTER_POWER = 0.4;
 
 export interface MonsterDef {
   id: string;
