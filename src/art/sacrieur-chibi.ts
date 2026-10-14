@@ -207,11 +207,11 @@ function build(col: SacriColors, part?: ChibiPart, face: SacriFace = 'rictus'): 
   // mèche de nuque
   h.push(blob('M45,66 Q40,76 44,84 Q48,77 53,73 Z', col.hair, { ink: hairInk, rim: false }));
   // oreille arrière, longue et pointue
-  h.push(blob('M43,58 Q27,53 7,43 Q15,63 43,71 Z', col.skin, { ink: skInk }));
-  h.push(`<path d="M40,61 Q27,56 15,49 Q23,60 40,66 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
+  h.push(blob('M43,57 Q33,54 23,48 Q26,63 43,70 Z', col.skin, { ink: skInk }));
+  h.push(`<path d="M40,60 Q33,57 27,53 Q31,61 40,65 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
   // oreille avant (dépasse derrière la joue droite)
-  h.push(blob('M103,56 Q117,48 131,38 Q127,57 105,67 Z', col.skin, { ink: skInk }));
-  h.push(`<path d="M106,58 Q117,51 126,44 Q122,56 107,63 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
+  h.push(blob('M103,55 Q112,50 120,44 Q118,58 105,66 Z', col.skin, { ink: skInk }));
+  h.push(`<path d="M106,57 Q112,53 117,49 Q115,57 107,62 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
   // crâne rond, mâchoire en V et menton pointu (air dur)
   h.push(blob('M40,55 C40,33 55,21 73,21 C92,21 107,34 107,55 C107,67 101,76 94,82 C89,87 84,91.5 79,92.5 C75,93 71,91 66,88 C51,82 40,72 40,55 Z', col.skin, { ink: skInk, hl: [0.66, 0.48] }));
   // pommettes et creux des joues (visage sec)
