@@ -1,13 +1,28 @@
-import { fmtLine, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId } from '../game/data/items';
+import { fmtLine, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, type StatPath } from '../game/data/items';
 import { canEquip, compare, instance, isWorn, itemLines, setBonus, setCounts, type Inventory } from '../game/inventory';
+import type { Facets } from '../game/search';
+import { sourcesOf, sourceText, usedIn } from '../game/sources';
 import { itemIconImg } from './item-icons';
 
 /** Inventaire tel qu'affiché au camp (construit depuis la sauvegarde). */
 export interface InvView {
   slots: { slot: SlotId; name: string; uid: number | null; icon: string; locked: boolean }[];
   sets: { name: string; count: number; total: number; bonus: string[] }[];
-  equipment: { uid: number; icon: string; name: string; level: number; worn: boolean; usable: boolean; fresh: boolean }[];
-  resources: { id: number; icon: string; name: string; count: number }[];
+  equipment: { uid: number; icon: string; name: string; level: number; worn: boolean; usable: boolean; fresh: boolean; fav: boolean; lock: boolean; facets: Facets }[];
+  resources: { id: number; icon: string; name: string; count: number; fav: boolean; lock: boolean; facets: Facets }[];
+  /** Encyclopédie : tout l'équipement du jeu. */
+  catalog: { id: number; icon: string; name: string; level: number; owned: number; facets: Facets }[];
+  /** Encyclopédie : toutes les panoplies (stats = toutes les pièces au maximum + bonus complet). */
+  allSets: { id: number; name: string; level: number; owned: number; total: number; pieces: { id: number; icon: string; owned: boolean }[]; bonus: string; facets: Facets }[];
+}
+
+/** Marques que l'on peut poser sur un objet ou une ressource. */
+export type Mark = 'fav' | 'lock';
+/** Lien vers un autre panneau (Atelier filtré, panoplie dans l'Encyclopédie…). */
+export interface Link {
+  label: string;
+  /** « set:<id> », « uses:<id de ressource> », « recipe:<id d'objet> ». */
+  go: string;
 }
 
 export interface ItemDetail {
@@ -21,13 +36,30 @@ export interface ItemDetail {
   diffTitle: string;
   action: { label: string; enabled: boolean; reason: string } | null;
   note: string;
+  /** Où l'obtenir. */
+  sources: string[];
+  /** Favori / verrou (null : pas de marque possible). */
+  marks: { fav: boolean; lock: boolean } | null;
+  links: Link[];
 }
 
 /** Cases sans objet possible pour l'instant (pas encore de familiers, boucliers ni Dofus dans le jeu). */
 const NOT_YET: SlotId[] = ['bouclier', 'familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'];
 
-export function invView(inv: Inventory, resources: Record<string, number>, level: number, fresh: Set<number>): InvView {
+/** Haut de la fourchette (ou bas pour un malus). */
+const top = (a: number, b: number) => (Math.abs(b) >= Math.abs(a) ? b : a);
+const rangeStats = (id: number) => new Map(item(id).effects.map(([p, a, b]) => [p, top(a, b)] as [StatPath, number]));
+
+export interface Marks {
+  fav: number[];
+  lock: number[];
+}
+
+export function invView(inv: Inventory, resources: Record<string, number>, level: number, fresh: Set<number>, resMarks: Marks = { fav: [], lock: [] }): InvView {
   const counts = setCounts(inv);
+  const ownedIds = new Map<number, number>();
+  for (const it of inv.items) ownedIds.set(it.id, (ownedIds.get(it.id) ?? 0) + 1);
+  const equipIds = Object.values(ITEMS).filter((d) => d.slot).map((d) => d.id);
   return {
     slots: SLOTS.map((slot) => {
       const uid = inv.equipped[slot] ?? null;
@@ -38,16 +70,73 @@ export function invView(inv: Inventory, resources: Record<string, number>, level
       name: SETS[id].name, count: n, total: SETS[id].items.length,
       bonus: setBonus(id, n).map(([p, v]) => fmtLine(p, v)),
     })),
-    equipment: [...inv.items]
-      .sort((a, b) => Number(isWorn(inv, b.uid)) - Number(isWorn(inv, a.uid)) || item(b.id).level - item(a.id).level || a.uid - b.uid)
-      .map((it) => ({
-        uid: it.uid, icon: itemIconImg(it.id), name: item(it.id).name, level: item(it.id).level,
-        worn: isWorn(inv, it.uid), usable: level >= item(it.id).level, fresh: fresh.has(it.uid),
-      })),
+    equipment: inv.items.map((it) => {
+      const d = item(it.id);
+      const worn = isWorn(inv, it.uid), usable = level >= d.level, isNew = fresh.has(it.uid);
+      const flags = new Set<string>();
+      if (it.fav) flags.add('fav');
+      if (it.lock) flags.add('lock');
+      if (usable) flags.add('usable');
+      if (isNew) flags.add('new');
+      if (worn) flags.add('worn');
+      return {
+        uid: it.uid, icon: itemIconImg(it.id), name: d.name, level: d.level, worn, usable, fresh: isNew, fav: !!it.fav, lock: !!it.lock,
+        facets: { name: d.name, level: d.level, slot: d.slot, set: d.set, stats: new Map(itemLines(it)), text: [d.type], flags, order: it.uid },
+      };
+    }),
     resources: Object.entries(resources)
       .filter(([, n]) => n > 0)
-      .map(([k, n]) => ({ id: Number(k), icon: itemIconImg(Number(k)), name: item(Number(k)).name, count: n }))
-      .sort((a, b) => item(a.id).level - item(b.id).level || a.name.localeCompare(b.name)),
+      .map(([k, n]) => {
+        const id = Number(k), d = item(id);
+        const fav = resMarks.fav.includes(id), lock = resMarks.lock.includes(id);
+        const flags = new Set<string>();
+        if (fav) flags.add('fav');
+        if (lock) flags.add('lock');
+        if (usedIn(id).length) flags.add('used');
+        return {
+          id, icon: itemIconImg(id), name: d.name, count: n, fav, lock,
+          facets: { name: d.name, level: d.level, slot: null, set: null, stats: new Map(), text: [d.type, sourceText(id)], flags, order: id },
+        };
+      }),
+    catalog: equipIds.map((id) => {
+      const d = item(id), owned = ownedIds.get(id) ?? 0, src = sourcesOf(id);
+      const flags = new Set<string>();
+      if (owned) flags.add('owned');
+      if (level >= d.level) flags.add('usable');
+      if (src.some((s) => s.kind === 'craft')) flags.add('craftable');
+      if (src.some((s) => s.kind !== 'craft')) flags.add('drop');
+      return {
+        id, icon: itemIconImg(id), name: d.name, level: d.level, owned,
+        facets: { name: d.name, level: d.level, slot: d.slot, set: d.set, stats: rangeStats(id), text: [d.type, sourceText(id)], flags, order: id },
+      };
+    }),
+    allSets: Object.values(SETS).map((s) => {
+      const stats = new Map<StatPath, number>();
+      const add = (p: StatPath, v: number) => stats.set(p, (stats.get(p) ?? 0) + v);
+      for (const id of s.items) if (ITEMS[id]) for (const [p, v] of rangeStats(id)) add(p, v);
+      const full = s.bonus[s.items.length - 1] ?? [];
+      for (const [p, v] of full) add(p, v);
+      const pieces = s.items.filter((id) => ITEMS[id]).map((id) => ({ id, icon: itemIconImg(id), owned: ownedIds.has(id) }));
+      const lv = Math.max(...pieces.map((p) => item(p.id).level));
+      const owned = pieces.filter((p) => p.owned).length;
+      const flags = new Set<string>();
+      if (owned) flags.add('owned');
+      if (owned === pieces.length) flags.add('complete');
+      if (level >= lv) flags.add('usable');
+      return {
+        id: s.id, name: s.name, level: lv, owned, total: pieces.length, pieces,
+        bonus: full.map(([p, v]) => fmtLine(p, v)).join(' · '),
+        facets: { name: s.name, level: lv, slot: null, set: s.id, stats, text: ['panoplie', ...pieces.map((p) => `${item(p.id).name} ${item(p.id).type}`)], flags, order: s.id },
+      };
+    }),
+  };
+}
+
+function setBlock(setId: number, count: number, label: string): ItemDetail['set'] {
+  const s = SETS[setId];
+  return {
+    name: `${s.name} · ${count}/${s.items.length} ${label}`, count, total: s.items.length,
+    rows: s.bonus.map((b, i) => ({ n: i + 1, text: b.map(([p, v]) => fmtLine(p, v)).join(', '), on: i + 1 === count })).filter((r) => r.text),
   };
 }
 
@@ -60,36 +149,57 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number): Ite
     const [, a, b] = d.effects[i];
     return { text: fmtLine(p, v), range: a === b ? '' : `${a} à ${b}` };
   });
-  let set: ItemDetail['set'] = null;
-  if (d.set) {
-    const s = SETS[d.set];
-    const n = setCounts(inv).get(d.set) ?? 0;
-    set = {
-      name: s.name, count: n, total: s.items.length,
-      rows: s.bonus.map((b, i) => ({ n: i + 1, text: b.map(([p, v]) => fmtLine(p, v)).join(', '), on: i + 1 === n })).filter((r) => r.text),
-    };
-  }
   const check = canEquip(inv, uid, level);
   return {
     icon: itemIconImg(it.id, 'big'),
     name: d.name,
     sub: `${d.type} · niveau ${d.level}`,
-    lines, set,
+    lines,
+    set: d.set ? setBlock(d.set, setCounts(inv).get(d.set) ?? 0, 'portés') : null,
     diff: compare(inv, uid, level).map(([p, v]) => ({ text: `${v > 0 ? '+' : ''}${v} ${statLabel(p)}`, up: v > 0 })),
     diffTitle: worn ? 'Si tu le retires' : 'Si tu l’équipes',
     action: worn
       ? { label: 'Retirer', enabled: true, reason: '' }
       : { label: 'Équiper', enabled: check.ok, reason: check.ok ? '' : check.reason },
-    note: '',
+    note: it.lock ? 'Verrouillé : il ne pourra être ni fusionné ni brisé (étape 8).' : '',
+    sources: [],
+    marks: { fav: !!it.fav, lock: !!it.lock },
+    links: d.set ? [{ label: 'Voir la panoplie', go: `set:${d.set}` }] : [],
   };
 }
 
-/** Fiche d'une ressource. */
-export function resourceDetail(id: number, count: number): ItemDetail {
+/** Fiche d'une ressource : provenance, recettes qui l'utilisent, favori / verrou. */
+export function resourceDetail(id: number, count: number, marks: { fav: boolean; lock: boolean } = { fav: false, lock: false }): ItemDetail {
   const d = item(id);
+  const uses = usedIn(id);
   return {
     icon: itemIconImg(id, 'big'), name: d.name, sub: `${d.type} · niveau ${d.level} · ×${count}`,
     lines: [], set: null, diff: [], diffTitle: '', action: null,
-    note: 'Ressource : elle servira à fabriquer de l’équipement avec le métier d’Artisan (étape 7).',
+    note: marks.lock
+      ? 'Verrouillée : l’Atelier ne l’utilisera pas.'
+      : uses.length ? `Sert à ${uses.length} recette${uses.length > 1 ? 's' : ''} de l’Artisan.` : 'Ne sert à aucune recette pour l’instant.',
+    sources: sourcesOf(id).map((s) => s.text),
+    marks,
+    links: uses.length ? [{ label: 'Recettes qui l’utilisent', go: `uses:${id}` }] : [],
+  };
+}
+
+/** Fiche Encyclopédie d'un équipement (possédé ou non) : fourchettes, panoplie complète, provenance. */
+export function catalogDetail(inv: Inventory, id: number): ItemDetail {
+  const d = item(id);
+  const owned = inv.items.filter((i) => i.id === id).length;
+  const src = sourcesOf(id);
+  const links: Link[] = [];
+  if (src.some((s) => s.kind === 'craft')) links.push({ label: 'Voir la recette', go: `recipe:${id}` });
+  if (d.set) links.push({ label: 'Voir la panoplie', go: `set:${d.set}` });
+  const own = d.set ? new Set(inv.items.map((i) => i.id)) : null;
+  return {
+    icon: itemIconImg(id, 'big'), name: d.name, sub: `${d.type} · niveau ${d.level}${owned ? ` · possédé ×${owned}` : ' · pas encore obtenu'}`,
+    lines: d.effects.map(([p, a, b]) => ({ text: a === b ? fmtLine(p, a) : `${a} à ${b} ${statLabel(p)}`, range: '' })),
+    set: d.set && own ? setBlock(d.set, SETS[d.set].items.filter((i) => own.has(i)).length, 'possédées') : null,
+    diff: [], diffTitle: '', action: null, note: '',
+    sources: src.length ? src.map((s) => s.text) : ['Pas encore obtenable dans le jeu.'],
+    marks: null,
+    links,
   };
 }

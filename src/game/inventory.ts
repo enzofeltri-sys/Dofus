@@ -11,6 +11,10 @@ export interface ItemInstance {
   id: number;
   /** Jet de chaque ligne de l'objet, dans l'ordre de ses effets. */
   rolls: number[];
+  /** Favori : en tête des listes. */
+  fav?: boolean;
+  /** Verrouillé : protégé de la fusion et du brisage (étape 8). */
+  lock?: boolean;
 }
 
 export interface Inventory {
@@ -33,6 +37,11 @@ export function addItem(inv: Inventory, id: number, rolls: number[]): Inventory 
 }
 
 export const instance = (inv: Inventory, uid: number) => inv.items.find((i) => i.uid === uid);
+
+/** Met ou enlève une marque (favori, verrou) sur un objet. */
+export function toggleMark(inv: Inventory, uid: number, mark: 'fav' | 'lock'): Inventory {
+  return { ...inv, items: inv.items.map((i) => (i.uid === uid ? { ...i, [mark]: !i[mark] || undefined } : i)) };
+}
 
 /** Lignes d'un objet avec ses jets. */
 export const itemLines = (it: ItemInstance): [StatPath, number][] => item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);

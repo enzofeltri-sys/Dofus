@@ -30,6 +30,8 @@ export interface SaveData {
   appearance: SacriColors;
   /** XP totale du métier d'Artisan. */
   jobXp: number;
+  /** Ressources marquées : favorites, verrouillées (l'atelier n'y touche pas). */
+  resMarks: { fav: number[]; lock: number[] };
 }
 
 /** Ce qu'une partie rapporte. */
@@ -58,6 +60,7 @@ const KEY = 'dofus-enzo-save';
 
 export const emptySave = (): SaveData => ({
   v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(), appearance: { ...SACRI_COLORS }, jobXp: 0,
+  resMarks: { fav: [], lock: [] },
 });
 
 export function loadSave(): SaveData {
@@ -72,7 +75,8 @@ export function loadSave(): SaveData {
     // les ressources inconnues (anciennes versions) sont ignorées
     const resources = Object.fromEntries(Object.entries(d.resources ?? {}).filter(([k]) => ITEMS[Number(k)]));
     const appearance = { ...SACRI_COLORS, ...(d.appearance ?? {}) };
-    return { ...base, ...d, profile, inventory, resources, appearance, v: 3 };
+    const resMarks = { fav: d.resMarks?.fav ?? [], lock: d.resMarks?.lock ?? [] };
+    return { ...base, ...d, profile, inventory, resources, appearance, resMarks, v: 3 };
   } catch {
     return emptySave();
   }

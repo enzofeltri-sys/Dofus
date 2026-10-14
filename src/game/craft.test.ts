@@ -51,4 +51,11 @@ describe('Artisan', () => {
     expect(crafts).toBeLessThan(45);
     expect(jobXpToNext(199)).toBeGreaterThan(20000);
   });
+
+  it('une ressource verrouillée n’est jamais utilisée', () => {
+    const planche = recipeFor(16489)!;
+    const w = { ...ws({ 303: 25 }), locked: [303] };
+    expect(canCraft(w, planche)).toMatchObject({ ok: false, reason: 'Ingrédient verrouillé' });
+    expect(craft(w, planche, 1, rng(1)).count).toBe(0);
+  });
 });

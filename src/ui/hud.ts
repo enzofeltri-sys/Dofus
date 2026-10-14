@@ -3,7 +3,9 @@ import { SACRIEUR_FACE_BOX, sacrieurSvg } from '../art/sacrieur';
 import { COLOR_SLOTS, SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import { ICONS } from './grimoire-icons';
 import type { SheetView } from './sheet-view';
-import type { InvView, ItemDetail } from './inv-view';
+import type { InvView, ItemDetail, Mark } from './inv-view';
+import { activeCount, applyFilters, emptyFilters, focusStat, focusValue, STAT_OPTIONS, type Filters, type SortKey } from '../game/search';
+import { item, SETS, type ItemSlot } from '../game/data/items';
 import type { CraftView } from './craft-view';
 
 /** Une case de sort telle qu'affichée (null = case vide). */
@@ -117,13 +119,15 @@ export class Hud {
           <div class="row bottom"></div>
         </div>
         <div class="inv-sets"></div>
-        <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button></div>
+        <div class="flt inv-flt"></div>
+        <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button><button type="button" class="gr-tab" data-t="2">Encyclopédie</button></div>
         <div class="inv-grid"></div>
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="atelier gr-paper" hidden>
         <div class="sh-head"><div><h2 class="gr-h2">Artisan</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="at-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
+        <div class="flt at-flt"></div>
         <div class="gr-tabs at-tabs"><button type="button" class="gr-tab on" data-t="0">Disponibles</button><button type="button" class="gr-tab" data-t="1">Toutes les recettes</button></div>
         <div class="at-list"></div>
       </div>
@@ -332,6 +336,7 @@ export class Hud {
     work?: CraftHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
+    this.work = work ?? null;
     const lookBtn = el.querySelector<HTMLButtonElement>('.look-btn')!;
     lookBtn.hidden = !look;
     lookBtn.onclick = async () => {
@@ -490,54 +495,166 @@ export class Hud {
     });
   }
 
+  /* ---------- Recherche et filtres (inventaire, Encyclopédie, Atelier) ---------- */
+
+  /** Filtres gardés pendant la session, par liste. */
+  private flt: Record<string, Filters> = {};
+  private fltOpen: Record<string, boolean> = {};
+  private filters(key: string, init: () => Filters = emptyFilters): Filters {
+    return (this.flt[key] ??= init());
+  }
+
+  /**
+   * Barre de recherche + filtres repliables. N'est redessinée qu'à l'ouverture ou au changement d'onglet
+   * (pour garder le clavier ouvert pendant la frappe) ; `apply` redessine la liste et renvoie le nombre de résultats.
+   */
+  private filterBar(box: HTMLElement, key: string, cfg: BarCfg, apply: () => number, init: () => Filters = emptyFilters) {
+    const f = this.filters(key, init);
+    const opt = (v: string | number, label: string, cur: string | number) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${label}</option>`;
+    const special = f.only.filter((o) => o.includes(':'));
+    box.innerHTML = `
+      <div class="flt-row">
+        <label class="flt-q">${SEARCH_SVG}<input type="search" enterkeyhint="search" autocomplete="off" placeholder="${cfg.placeholder}" value="${f.q.replace(/"/g, '&quot;')}"></label>
+        <button type="button" class="gr-btn ghost sm flt-toggle ${this.fltOpen[key] ? 'on' : ''}">Filtres<b class="n gr-num"></b></button>
+      </div>
+      ${special.length ? `<div class="flt-special">${special.map((o) => `<button type="button" class="gr-chip flt-x" data-o="${o}">${cfg.label?.(o) ?? o} ✕</button>`).join('')}</div>` : ''}
+      <div class="flt-more" ${this.fltOpen[key] ? '' : 'hidden'}>
+        ${cfg.slot ? `<label><span class="gr-label">Emplacement</span><select data-f="slot">${opt('', 'Tous', f.slot)}${SLOT_OPTIONS.map(([v, l]) => opt(v, l, f.slot)).join('')}</select></label>` : ''}
+        ${cfg.stat ? `<label><span class="gr-label">Stat</span><select data-f="stat">${opt('', 'Toutes', f.stat)}${STAT_OPTIONS.map((s) => opt(s.path, s.label, f.stat)).join('')}</select></label>` : ''}
+        ${cfg.set ? `<label><span class="gr-label">Panoplie</span><select data-f="set">${opt(0, 'Toutes', f.set)}${SET_OPTIONS().map(([v, l]) => opt(v, l, f.set)).join('')}</select></label>` : ''}
+        <label><span class="gr-label">Trier par</span><select data-f="sort">${cfg.sorts.map(([v, l]) => opt(v, l, f.sort)).join('')}</select></label>
+        <label><span class="gr-label">Niveau min</span><input type="number" inputmode="numeric" min="1" max="200" data-f="min" value="${f.min ?? ''}" placeholder="1"></label>
+        <label><span class="gr-label">Niveau max</span><input type="number" inputmode="numeric" min="1" max="200" data-f="max" value="${f.max ?? ''}" placeholder="200"></label>
+        ${cfg.toggles.length ? `<div class="flt-chips">${cfg.toggles.map(([k, l]) => `<button type="button" class="flt-chip ${f.only.includes(k) ? 'on' : ''}" data-o="${k}">${l}</button>`).join('')}</div>` : ''}
+        <p class="flt-help">Astuce : « fo », « do feu », « ré terre », « agi>10 », « <20 », « 10-30 ».</p>
+      </div>
+      <div class="flt-foot"><span class="flt-count"></span><button type="button" class="flt-clear">Effacer les filtres</button></div>`;
+    const update = () => {
+      const n = apply();
+      const active = activeCount(f) + Number(!!f.q.trim());
+      const badge = box.querySelector<HTMLElement>('.flt-toggle .n')!;
+      badge.textContent = activeCount(f) ? String(activeCount(f)) : '';
+      box.querySelector('.flt-count')!.textContent = `${n} résultat${n > 1 ? 's' : ''}`;
+      box.querySelector<HTMLElement>('.flt-clear')!.hidden = !active;
+    };
+    box.querySelector<HTMLInputElement>('.flt-q input')!.oninput = (e) => {
+      f.q = (e.target as HTMLInputElement).value;
+      update();
+    };
+    box.onchange = (e) => {
+      const t = e.target as HTMLInputElement | HTMLSelectElement;
+      const k = t.dataset.f;
+      if (!k) return;
+      if (k === 'slot') f.slot = t.value as Filters['slot'];
+      else if (k === 'stat') {
+        f.stat = t.value;
+        // choisir une stat trie par sa valeur
+        if (f.stat && cfg.sorts.some(([s]) => s === 'stat')) {
+          f.sort = 'stat';
+          box.querySelector<HTMLSelectElement>('[data-f="sort"]')!.value = 'stat';
+        }
+      } else if (k === 'set') f.set = Number(t.value);
+      else if (k === 'sort') f.sort = t.value as SortKey;
+      else if (k === 'min' || k === 'max') f[k] = t.value === '' ? null : Math.max(1, Math.min(200, Number(t.value)));
+      update();
+    };
+    box.querySelectorAll<HTMLInputElement>('input[type=number]').forEach((i) => (i.oninput = () => box.onchange?.({ target: i } as unknown as Event)));
+    box.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('.flt-toggle')) {
+        this.fltOpen[key] = !this.fltOpen[key];
+        box.querySelector<HTMLElement>('.flt-more')!.hidden = !this.fltOpen[key];
+        t.closest('.flt-toggle')!.classList.toggle('on', this.fltOpen[key]);
+        return;
+      }
+      if (t.closest('.flt-clear')) {
+        this.flt[key] = init();
+        this.filterBar(box, key, cfg, apply, init);
+        return;
+      }
+      const chip = t.closest<HTMLElement>('[data-o]');
+      if (chip) {
+        const o = chip.dataset.o!;
+        f.only = f.only.includes(o) ? f.only.filter((x) => x !== o) : [...f.only, o];
+        if (chip.classList.contains('flt-x')) this.filterBar(box, key, cfg, apply, init);
+        else {
+          chip.classList.toggle('on', f.only.includes(o));
+          update();
+        }
+      }
+    };
+    update();
+  }
+
   private atTab = 0;
   private atOpen: number | null = null;
-  /** Atelier de l'Artisan : recettes, ingrédients possédés, fabrication. */
-  atelier(h: CraftHooks): Promise<void> {
+  private work: CraftHooks | null = null;
+  /** Atelier de l'Artisan : recettes, ingrédients possédés, fabrication. `only` : filtre posé depuis un autre panneau. */
+  atelier(h: CraftHooks, only?: string): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.atelier')!;
-    const render = () => {
+    const fbox = el.querySelector<HTMLElement>('.at-flt')!;
+    const init = (): Filters => ({ ...emptyFilters(), sort: 'levelAsc' });
+    if (only) {
+      this.flt.craft = { ...init(), only: [only] };
+      this.atTab = 1;
+    }
+    const list = el.querySelector<HTMLElement>('.at-list')!;
+    const renderList = (): number => {
       const v = h.get();
       el.querySelector('.sh-head .lvl')!.textContent = `Niveau ${v.level}`;
       setXpBar(el.querySelector('.at-xp')!, { level: v.level, xpInto: v.into, xpNeed: v.need });
       el.querySelectorAll<HTMLElement>('.at-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.atTab));
-      const rows = this.atTab === 0 ? v.rows.filter((r) => r.ok) : v.rows;
-      el.querySelector('.at-list')!.innerHTML = rows.length ? rows.map((r) => `
+      const f = this.filters('craft', init);
+      const rows = applyFilters(this.atTab === 0 ? v.rows.filter((r) => r.ok) : v.rows, f).sort((a, b) => Number(b.ok) - Number(a.ok));
+      const focus = focusStat(f);
+      list.innerHTML = rows.length ? rows.map((r) => {
+        const fv = focusValue(r.facets, focus);
+        return `
         <div class="at-row ${r.ok ? '' : 'off'} ${this.atOpen === r.id ? 'open' : ''}" data-id="${r.id}">
           <div class="at-ico">${r.icon}</div>
           <div class="at-main">
-            <b>${r.name}</b><small>${r.sub}</small>
-            <div class="at-ings">${r.ingredients.map((g) => `<span class="${g.have >= g.need ? 'ok' : 'no'}" title="${g.name}">${g.icon}<i class="gr-num">${g.have}/${g.need}</i></span>`).join('')}</div>
+            <b>${r.name}${fv !== null ? ` <span class="fv gr-num">${fv > 0 ? '+' : ''}${fv}</span>` : ''}</b><small>${r.sub}</small>
+            <div class="at-ings">${r.ingredients.map((g) => `<span class="${g.locked ? 'lk' : g.have >= g.need ? 'ok' : 'no'}" title="${g.name}">${g.icon}<i class="gr-num">${g.locked ? LOCK_SVG : ''}${g.have}/${g.need}</i></span>`).join('')}</div>
             ${this.atOpen === r.id ? `<div class="at-detail">${r.lines.map((l) => `<div>${l}</div>`).join('')}${r.set ? `<em>${r.set}</em>` : ''}${r.lines.length ? '' : '<em>Ressource intermédiaire, sert à d’autres recettes.</em>'}</div>` : ''}
           </div>
           <div class="at-btns">${r.ok
             ? `<button type="button" class="gr-btn leaf sm mk" data-n="1">Fabriquer</button>${r.max > 1 ? `<button type="button" class="gr-btn ghost sm mk" data-n="${r.max}">×${r.max}</button>` : ''}`
             : `<span class="at-why">${r.reason}</span>`}</div>
-        </div>`).join('')
-        : `<p class="inv-empty">${this.atTab === 0 ? 'Rien à fabriquer pour l’instant : il te faut plus de ressources (onglet « Toutes les recettes » pour voir ce qu’il manque).' : 'Aucune recette.'}</p>`;
+        </div>`;
+      }).join('')
+        : `<p class="inv-empty">${this.atTab === 0 && !v.rows.some((r) => r.ok) ? 'Rien à fabriquer pour l’instant : il te faut plus de ressources (onglet « Toutes les recettes » pour voir ce qu’il manque).' : 'Aucune recette ne correspond.'}</p>`;
+      return rows.length;
     };
+    const bar = () => this.filterBar(fbox, 'craft', {
+      placeholder: 'Nom, ingrédient, stat, niveau…', slot: true, stat: true, set: true,
+      toggles: this.atTab === 0 ? [] : [['craftable', 'Fabricable'], ['missing1', 'Il manque 1 ingrédient']],
+      sorts: [['levelAsc', 'Niveau ↑'], ['level', 'Niveau ↓'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
+      label: specialLabel,
+    }, renderList, init);
     el.onclick = (e) => {
       const t = e.target as HTMLElement;
       const tab = t.closest<HTMLElement>('.at-tabs .gr-tab');
       if (tab) {
         this.atTab = Number(tab.dataset.t);
-        render();
+        bar();
         return;
       }
+      if (t.closest('.at-flt')) return;
       const mk = t.closest<HTMLElement>('.mk');
       const row = t.closest<HTMLElement>('.at-row');
       if (mk && row) {
         const msg = h.craft(Number(row.dataset.id), Number(mk.dataset.n));
         this.toast(msg, 1800);
-        render();
+        bar();
         return;
       }
       if (row) {
         const id = Number(row.dataset.id);
         this.atOpen = this.atOpen === id ? null : id;
-        render();
+        renderList();
       }
     };
-    render();
+    bar();
     el.hidden = false;
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
@@ -548,15 +665,23 @@ export class Hud {
   }
 
   private invTab = 0;
-  /** Inventaire : équipement porté autour du Sacrieur, sac (équipements / ressources), fiche d'objet. */
+  /** Encyclopédie : 0 = objets, 1 = panoplies. */
+  private catMode = 0;
+  /** Inventaire : équipement porté autour du Sacrieur, sac (équipements / ressources), Encyclopédie, fiche d'objet. */
   inventory(h: InvHooks): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.inv')!;
     const detail = el.querySelector<HTMLElement>('.inv-detail')!;
-    let open: { kind: 'uid'; uid: number } | { kind: 'res'; id: number } | null = null;
+    const fbox = el.querySelector<HTMLElement>('.inv-flt')!;
+    type Open = { kind: 'uid'; uid: number } | { kind: 'res'; id: number } | { kind: 'cat'; id: number };
+    let open: Open | null = null;
     const slotHtml = (s: InvView['slots'][number]) =>
-      `<button type="button" class="inv-slot ${s.uid !== null ? 'full' : ''} ${s.locked ? 'locked' : ''}" data-uid="${s.uid ?? ''}" data-slot="${s.slot}" aria-label="${s.name}">${s.icon || `<span>${s.name}</span>`}</button>`;
-    const render = () => {
-      const v = h.get();
+      `<button type="button" class="inv-slot ${s.uid !== null ? 'full' : ''} ${s.locked ? 'locked' : ''} ${s.uid !== null && hit.has(s.uid) ? 'hit' : ''}" data-uid="${s.uid ?? ''}" data-slot="${s.slot}" aria-label="${s.name}">${s.icon || `<span>${s.name}</span>`}</button>`;
+    const marks = (fav: boolean, lock: boolean) => (fav || lock ? `<span class="mks">${lock ? LOCK_SVG : ''}${fav ? STAR_SVG : ''}</span>` : '');
+    const fvTag = (v: number | null) => (v !== null ? `<span class="fv gr-num">${v > 0 ? '+' : ''}${v}</span>` : '');
+    /** Objets portés qui correspondent à la recherche (allumés sur le Sacrieur). */
+    let hit = new Set<number>();
+    const listKey = () => (this.invTab === 0 ? 'eq' : this.invTab === 1 ? 'res' : this.catMode === 0 ? 'cat' : 'sets');
+    const renderDoll = (v: InvView) => {
       const by = new Map(v.slots.map((s) => [s.slot, s]));
       el.querySelector('.inv-doll .left')!.innerHTML = (['chapeau', 'amulette', 'anneau1', 'anneau2'] as const).map((k) => slotHtml(by.get(k)!)).join('');
       el.querySelector('.inv-doll .right')!.innerHTML = (['cape', 'ceinture', 'bottes', 'arme'] as const).map((k) => slotHtml(by.get(k)!)).join('');
@@ -564,19 +689,82 @@ export class Hud {
       el.querySelector('.inv-sets')!.innerHTML = v.sets
         .map((st) => `<div class="inv-set"><b>${st.name}</b><span class="gr-num">${st.count}/${st.total}</span>${st.bonus.length ? `<small>${st.bonus.join(' · ')}</small>` : ''}</div>`)
         .join('');
+    };
+    const renderList = (): number => {
+      const v = h.get();
+      const f = this.filters(listKey(), listKey() === 'res' ? () => ({ ...emptyFilters(), sort: 'levelAsc' }) : emptyFilters);
+      const focus = focusStat(f);
+      const searching = !!f.q.trim() || activeCount(f) > 0;
       el.querySelectorAll<HTMLElement>('.inv-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.invTab));
-      const grid = el.querySelector('.inv-grid')!;
+      const grid = el.querySelector<HTMLElement>('.inv-grid')!;
+      grid.classList.toggle('sets', this.invTab === 2 && this.catMode === 1);
+      const mode = this.invTab === 2
+        ? `<div class="cat-mode gr-tabs"><button type="button" class="flt-chip ${this.catMode === 0 ? 'on' : ''}" data-mode="0">Objets</button><button type="button" class="flt-chip ${this.catMode === 1 ? 'on' : ''}" data-mode="1">Panoplies</button></div>`
+        : '';
+      let n = 0;
       if (this.invTab === 0) {
-        grid.innerHTML = v.equipment.length
-          ? v.equipment.map((e) => `<button type="button" class="inv-cell ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''}" data-uid="${e.uid}">
-              ${e.icon}<span class="lv gr-num">${e.level}</span>${e.worn ? '<span class="tag">porté</span>' : e.fresh ? '<span class="tag new">nouveau</span>' : ''}</button>`).join('')
-          : '<p class="inv-empty">Aucun équipement.</p>';
+        const rows = applyFilters(v.equipment, f);
+        hit = new Set(searching ? rows.filter((r) => r.worn).map((r) => r.uid) : []);
+        n = rows.length;
+        grid.innerHTML = rows.length
+          ? rows.map((e) => `<button type="button" class="inv-cell ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''}" data-uid="${e.uid}">
+              ${e.icon}<span class="lv gr-num">${e.level}</span>${marks(e.fav, e.lock)}${fvTag(focusValue(e.facets, focus))}${e.worn ? '<span class="tag">porté</span>' : e.fresh ? '<span class="tag new">nouveau</span>' : ''}</button>`).join('')
+          : `<p class="inv-empty">${v.equipment.length ? 'Aucun équipement ne correspond.' : 'Aucun équipement.'}</p>`;
+      } else if (this.invTab === 1) {
+        hit = new Set();
+        const rows = applyFilters(v.resources, f);
+        n = rows.length;
+        grid.innerHTML = rows.length
+          ? rows.map((r) => `<button type="button" class="inv-cell" data-res="${r.id}">${r.icon}${marks(r.fav, r.lock)}<span class="qty gr-num">${r.count}</span></button>`).join('')
+          : `<p class="inv-empty">${v.resources.length ? 'Aucune ressource ne correspond.' : 'Aucune ressource : elles tombent sur les monstres.'}</p>`;
+      } else if (this.catMode === 0) {
+        hit = new Set();
+        const rows = applyFilters(v.catalog, f);
+        n = rows.length;
+        grid.innerHTML = mode + (rows.length
+          ? rows.map((c) => `<button type="button" class="inv-cell ${c.owned ? '' : 'unowned'}" data-cat="${c.id}">
+              ${c.icon}<span class="lv gr-num">${c.level}</span>${fvTag(focusValue(c.facets, focus))}${c.owned ? `<span class="tag">×${c.owned}</span>` : ''}</button>`).join('')
+          : '<p class="inv-empty">Aucun objet ne correspond.</p>');
       } else {
-        grid.innerHTML = v.resources.length
-          ? v.resources.map((r) => `<button type="button" class="inv-cell" data-res="${r.id}">${r.icon}<span class="qty gr-num">${r.count}</span></button>`).join('')
-          : '<p class="inv-empty">Aucune ressource : elles tombent sur les monstres.</p>';
+        hit = new Set();
+        const rows = applyFilters(v.allSets, f);
+        n = rows.length;
+        grid.innerHTML = mode + (rows.length
+          ? rows.map((s) => {
+            const fv = focusValue(s.facets, focus);
+            return `<div class="set-row ${s.owned === s.total ? 'complete' : ''}">
+              <div class="set-head"><b>${s.name}</b><span class="gr-chip">niv ${s.level}</span><span class="gr-num own">${s.owned}/${s.total}</span>${fv !== null ? `<span class="fv gr-num">${fv > 0 ? '+' : ''}${fv} au total</span>` : ''}</div>
+              <div class="set-pieces">${s.pieces.map((p) => `<button type="button" class="inv-cell ${p.owned ? '' : 'unowned'}" data-cat="${p.id}">${p.icon}</button>`).join('')}</div>
+              ${s.bonus ? `<small>Panoplie complète : ${s.bonus}</small>` : ''}
+            </div>`;
+          }).join('')
+          : '<p class="inv-empty">Aucune panoplie ne correspond.</p>');
       }
-      if (open) showDetail(open.kind === 'uid' ? h.detail(open.uid) : h.resource(open.id));
+      renderDoll(v);
+      if (open) showDetail(open.kind === 'uid' ? h.detail(open.uid) : open.kind === 'res' ? h.resource(open.id) : h.catalog(open.id));
+      return n;
+    };
+    const bar = () => {
+      const k = listKey();
+      const cfg: BarCfg =
+        k === 'eq' ? {
+          placeholder: 'Nom, stat (fo, agi…), niveau…', slot: true, stat: true, set: true,
+          toggles: [['fav', 'Favoris'], ['lock', 'Verrouillés'], ['usable', 'Équipable maintenant'], ['new', 'Nouveaux'], ['worn', 'Portés']],
+          sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['name', 'Nom'], ['new', 'Récents'], ['stat', 'Valeur de la stat']],
+        } : k === 'res' ? {
+          placeholder: 'Nom, type, monstre, recette…',
+          toggles: [['fav', 'Favoris'], ['lock', 'Verrouillées'], ['used', 'Sert à une recette']],
+          sorts: [['levelAsc', 'Niveau ↑'], ['level', 'Niveau ↓'], ['name', 'Nom']],
+        } : k === 'cat' ? {
+          placeholder: 'Nom, stat, panoplie, monstre…', slot: true, stat: true, set: true,
+          toggles: [['owned', 'Possédés'], ['usable', 'Équipable maintenant'], ['craftable', 'Fabricable'], ['drop', 'Sur les monstres']],
+          sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
+        } : {
+          placeholder: 'Panoplie, pièce, stat…', stat: true, set: true,
+          toggles: [['owned', 'Commencées'], ['complete', 'Complètes'], ['usable', 'Équipable maintenant']],
+          sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
+        };
+      this.filterBar(fbox, k, cfg, renderList, k === 'res' ? () => ({ ...emptyFilters(), sort: 'levelAsc' }) : emptyFilters);
     };
     const showDetail = (d: ItemDetail | null) => {
       if (!d) {
@@ -584,46 +772,83 @@ export class Hud {
         open = null;
         return;
       }
+      const links = d.links.filter((l) => !(l.go.startsWith('uses:') || l.go.startsWith('recipe:')) || this.work);
       detail.querySelector('.det-card')!.innerHTML = `
-        <div class="det-head">${d.icon}<div><h3 class="gr-h3">${d.name}</h3><span class="det-sub">${d.sub}</span></div></div>
+        <div class="det-head">${d.icon}<div><h3 class="gr-h3">${d.name}</h3><span class="det-sub">${d.sub}</span></div>
+          ${d.marks ? `<div class="det-marks"><button type="button" class="mark fav ${d.marks.fav ? 'on' : ''}" data-mark="fav" aria-label="Favori">${STAR_SVG}</button><button type="button" class="mark lock ${d.marks.lock ? 'on' : ''}" data-mark="lock" aria-label="Verrouiller">${LOCK_SVG}</button></div>` : ''}</div>
         ${d.lines.length ? `<div class="det-lines">${d.lines.map((l) => `<div><span>${l.text}</span>${l.range ? `<small>${l.range}</small>` : ''}</div>`).join('')}</div>` : ''}
-        ${d.set ? `<div class="det-set"><span class="gr-label">${d.set.name} · ${d.set.count}/${d.set.total} portés</span>${d.set.rows.map((r) => `<div class="${r.on ? 'on' : ''}"><b class="gr-num">${r.n}</b> ${r.text}</div>`).join('')}</div>` : ''}
+        ${d.set ? `<div class="det-set"><span class="gr-label">${d.set.name}</span>${d.set.rows.map((r) => `<div class="${r.on ? 'on' : ''}"><b class="gr-num">${r.n}</b> ${r.text}</div>`).join('')}</div>` : ''}
         ${d.diffTitle ? `<div class="det-diff"><span class="gr-label">${d.diffTitle}</span>${d.diff.length ? d.diff.map((x) => `<span class="${x.up ? 'up' : 'down'}">${x.text}</span>`).join('') : '<span>Aucun changement</span>'}</div>` : ''}
+        ${d.sources.length ? `<div class="det-src"><span class="gr-label">Où l’obtenir</span>${d.sources.map((s) => `<div>${s}</div>`).join('')}</div>` : ''}
         ${d.note ? `<p class="det-note">${d.note}</p>` : ''}
+        ${links.length ? `<div class="det-links">${links.map((l) => `<button type="button" class="gr-btn sm turquoise link" data-go="${l.go}">${l.label}</button>`).join('')}</div>` : ''}
         <div class="det-btns">
           ${d.action ? `<button type="button" class="gr-btn sm ${d.action.label === 'Retirer' ? 'ghost' : 'leaf'} act" ${d.action.enabled ? '' : 'disabled'}>${d.action.enabled ? d.action.label : d.action.reason}</button>` : ''}
           <button type="button" class="gr-btn ghost sm det-close">Fermer</button>
         </div>`;
       detail.hidden = false;
     };
+    const go = async (target: string) => {
+      const [kind, id] = target.split(':');
+      showDetail(null);
+      if (kind === 'set') {
+        this.invTab = 2;
+        this.catMode = 1;
+        this.flt.sets = { ...emptyFilters(), set: Number(id) };
+        bar();
+        el.querySelector('.inv-tabs')!.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      } else if (this.work) {
+        await this.atelier(this.work, kind === 'uses' ? `ing:${id}` : `id:${id}`);
+        bar();
+      }
+    };
     el.onclick = (e) => {
       const t = e.target as HTMLElement;
       const tab = t.closest<HTMLElement>('.inv-tabs .gr-tab');
       if (tab) {
         this.invTab = Number(tab.dataset.t);
-        render();
+        bar();
         return;
       }
+      const mode = t.closest<HTMLElement>('[data-mode]');
+      if (mode) {
+        this.catMode = Number(mode.dataset.mode);
+        bar();
+        return;
+      }
+      if (t.closest('.inv-flt')) return;
       if (t.closest('.det-close') || t === detail) {
         showDetail(null);
         return;
       }
-      if (t.closest('.act') && open?.kind === 'uid') {
-        h.toggle(open.uid);
-        render();
+      const mark = t.closest<HTMLElement>('[data-mark]');
+      if (mark && open && open.kind !== 'cat') {
+        h.mark(open.kind, open.kind === 'uid' ? open.uid : open.id, mark.dataset.mark as Mark);
+        renderList();
         return;
       }
-      const cell = t.closest<HTMLElement>('[data-uid],[data-res]');
+      const link = t.closest<HTMLElement>('[data-go]');
+      if (link) {
+        void go(link.dataset.go!);
+        return;
+      }
+      if (t.closest('.act') && open?.kind === 'uid') {
+        h.toggle(open.uid);
+        renderList();
+        return;
+      }
+      const cell = t.closest<HTMLElement>('[data-uid],[data-res],[data-cat]');
       if (!cell || cell.closest('.inv-detail')) return;
       if (cell.dataset.res) open = { kind: 'res', id: Number(cell.dataset.res) };
+      else if (cell.dataset.cat) open = { kind: 'cat', id: Number(cell.dataset.cat) };
       else if (cell.dataset.uid) open = { kind: 'uid', uid: Number(cell.dataset.uid) };
       else return;
-      h.seen(open.kind === 'uid' ? open.uid : -1);
-      render();
+      if (open.kind === 'uid') h.seen(open.uid);
+      renderList();
     };
     open = null;
     detail.hidden = true;
-    render();
+    bar();
     el.hidden = false;
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
@@ -691,7 +916,36 @@ export interface InvHooks {
   toggle(uid: number): void;
   /** L'objet a été regardé (plus « nouveau »). */
   seen(uid: number): void;
+  /** Fiche Encyclopédie (objet possédé ou non). */
+  catalog(id: number): ItemDetail;
+  /** Met / enlève favori ou verrou sur un équipement (uid) ou une ressource (id). */
+  mark(kind: 'uid' | 'res', id: number, mark: Mark): void;
 }
+
+/** Réglages d'une barre de filtres. */
+interface BarCfg {
+  placeholder: string;
+  slot?: boolean;
+  stat?: boolean;
+  set?: boolean;
+  toggles: [string, string][];
+  sorts: [SortKey, string][];
+  /** Libellé d'un filtre posé depuis un autre panneau (« ing:303 »). */
+  label?: (o: string) => string;
+}
+const SLOT_OPTIONS: [ItemSlot, string][] = [
+  ['chapeau', 'Chapeau'], ['cape', 'Cape'], ['amulette', 'Amulette'], ['anneau', 'Anneau'], ['ceinture', 'Ceinture'],
+  ['bottes', 'Bottes'], ['bouclier', 'Bouclier'], ['arme', 'Arme'],
+];
+const SET_OPTIONS = () => Object.values(SETS).map((s): [number, string] => [s.id, s.name]).sort((a, b) => a[1].localeCompare(b[1], 'fr'));
+const specialLabel = (o: string) => {
+  const [k, id] = o.split(':');
+  const name = item(Number(id)).name;
+  return k === 'ing' ? `Utilise : ${name}` : k === 'id' ? `Recette : ${name}` : o;
+};
+const SEARCH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2.6"/><path d="M15 15l5.5 5.5" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>';
+const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.8 6 6.5.7-4.9 4.4 1.4 6.4L12 16.8l-5.8 3.3 1.4-6.4-4.9-4.4 6.5-.7z" fill="#f2c14e" stroke="#3b2414" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+const LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5" fill="none" stroke="#3b2414" stroke-width="2.6"/><rect x="4.5" y="10" width="15" height="11" rx="3" fill="#8ddccf" stroke="#3b2414" stroke-width="2"/><circle cx="12" cy="15.5" r="1.8" fill="#3b2414"/></svg>';
 
 /** Couleurs aléatoires harmonieuses : peau naturelle, vêtements dans 2 teintes accordées. */
 function randomColors(): SacriColors {

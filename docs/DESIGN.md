@@ -275,6 +275,17 @@ Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrai
 
 ---
 
+### 8.5 Inventaire : recherche, Encyclopédie, favoris, verrou (validé)
+- **Barre de recherche** dans l'Inventaire (Équipements, Ressources, Encyclopédie) et à l'Atelier :
+  - sans accents ni majuscules, tous les mots doivent correspondre ;
+  - nom, type, panoplie, ingrédients, monstres qui le lâchent ;
+  - abréviations de joueur de Dofus (fo, ine, cha, agi, vi, sa, pa, pm, po, cc, do feu, ré terre…) ;
+  - niveau (« 20 », « <15 », « 10-30 ») et valeur d'une stat (« agi>10 »).
+- **Filtres** en menus : emplacement, stat (tri automatique par sa valeur, affichée sur chaque case), panoplie, niveau min / max, interrupteurs (favoris, verrouillés, équipable maintenant, nouveaux, portés, fabricable, il manque 1 ingrédient…). Gardés pendant la session.
+- **Encyclopédie** : tout l'équipement du jeu (possédé ou non) et toutes les panoplies (stats totales au maximum + bonus complet), avec la provenance (fabrication, boss, monstre et chance réelle en jeu, butin de région).
+- **Liens** : « Voir la panoplie », « Voir la recette », « Recettes qui l'utilisent » (Atelier filtré).
+- **Favori** : toujours en tête des listes. **Verrou** : une ressource verrouillée n'est jamais utilisée par l'Atelier ; un équipement verrouillé sera protégé de la fusion et du brisage (étape 8).
+
 ## 9. Artisanat
 
 ### 9.1 Métier unique : Artisan

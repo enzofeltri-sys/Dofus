@@ -18,8 +18,8 @@ import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
 import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
 import { elementName, resLine, sheetView } from './ui/sheet-view';
-import { equip, gearStats, isWorn, unequip } from './game/inventory';
-import { equipmentDetail, invView, resourceDetail } from './ui/inv-view';
+import { equip, gearStats, isWorn, toggleMark, unequip } from './game/inventory';
+import { catalogDetail, equipmentDetail, invView, resourceDetail } from './ui/inv-view';
 import { item, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
@@ -646,9 +646,18 @@ async function main() {
   const freshItems = new Set<number>();
   const heroLevel = () => heroFromSave().level;
   const invHooks = {
-    get: () => invView(save.inventory, save.resources, heroLevel(), freshItems),
+    get: () => invView(save.inventory, save.resources, heroLevel(), freshItems, save.resMarks),
     detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel()),
-    resource: (id: number) => resourceDetail(id, save.resources[id] ?? 0),
+    resource: (id: number) => resourceDetail(id, save.resources[id] ?? 0, { fav: save.resMarks.fav.includes(id), lock: save.resMarks.lock.includes(id) }),
+    catalog: (id: number) => catalogDetail(save.inventory, id),
+    mark(kind: 'uid' | 'res', id: number, mark: 'fav' | 'lock') {
+      if (kind === 'uid') save = { ...save, inventory: toggleMark(save.inventory, id, mark) };
+      else {
+        const list = save.resMarks[mark];
+        save = { ...save, resMarks: { ...save.resMarks, [mark]: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] } };
+      }
+      storeSave(save);
+    },
     toggle(uid: number) {
       const inv = save.inventory;
       if (isWorn(inv, uid)) {
@@ -676,11 +685,11 @@ async function main() {
       storeSave(save);
     },
   }, {
-    get: () => craftView({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp }),
+    get: () => craftView({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock }),
     craft(id, n) {
       const r = recipeFor(id);
       if (!r) return '';
-      const res = craft({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp }, r, n, Math.random);
+      const res = craft({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock }, r, n, Math.random);
       save = { ...save, resources: res.workshop.resources, inventory: res.workshop.inventory, jobXp: res.workshop.jobXp };
       for (const uid of res.made) freshItems.add(uid);
       storeSave(save);

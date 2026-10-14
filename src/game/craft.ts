@@ -53,15 +53,23 @@ export interface Workshop {
   inventory: Inventory;
   /** XP totale d'Artisan. */
   jobXp: number;
+  /** Ressources verrouillées : l'atelier n'y touche pas. */
+  locked?: number[];
 }
+
+/** Quantité d'une ressource utilisable par l'atelier (0 si verrouillée). */
+export const usable = (w: Workshop, id: number) => (w.locked?.includes(id) ? 0 : w.resources[id] ?? 0);
 
 export type CraftCheck = { ok: true; max: number } | { ok: false; reason: string; max: 0 };
 
 /** Peut-on fabriquer cette recette ? (niveau d'Artisan, ingrédients) et combien de fois au maximum. */
 export function canCraft(w: Workshop, r: Recipe): CraftCheck {
   if (jobLevel(w.jobXp) < r.level) return { ok: false, reason: `Artisan niveau ${r.level} requis`, max: 0 };
-  const max = Math.min(...r.ingredients.map(([id, q]) => Math.floor((w.resources[id] ?? 0) / q)));
-  if (max <= 0) return { ok: false, reason: 'Ingrédients manquants', max: 0 };
+  const max = Math.min(...r.ingredients.map(([id, q]) => Math.floor(usable(w, id) / q)));
+  if (max <= 0) {
+    const lockedOnly = r.ingredients.every(([id, q]) => (w.resources[id] ?? 0) >= q);
+    return { ok: false, reason: lockedOnly ? 'Ingrédient verrouillé' : 'Ingrédients manquants', max: 0 };
+  }
   return { ok: true, max };
 }
 
@@ -80,7 +88,7 @@ export function craft(w: Workshop, r: Recipe, times: number, rnd: () => number):
   const check = canCraft(w, r);
   const levelBefore = jobLevel(w.jobXp);
   const n = check.ok ? Math.min(times, check.max) : 0;
-  const out: Workshop = { resources: { ...w.resources }, inventory: w.inventory, jobXp: w.jobXp };
+  const out: Workshop = { ...w, resources: { ...w.resources } };
   const made: number[] = [];
   let xp = 0;
   for (let i = 0; i < n; i++) {
