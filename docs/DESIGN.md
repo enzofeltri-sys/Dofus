@@ -273,6 +273,11 @@ Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrai
 - Chaque rang relève les fourchettes de stats (**≈ +15 % par rang**, modéré : le niveau de l'objet doit toujours compter plus que sa rareté).
 - Légendaire et Mythique ajoutent **une ligne bonus** (effet spécial, ou PA/PM rare).
 
+**Fait (étape 8a, validé par Enzo) :**
+- Fourchettes ×1,15 par rang (arrondi, jamais en baisse ; les malus ne bougent pas). Couleur de cadre par rang.
+- Ligne bonus Légendaire tirée au hasard selon le niveau de l'objet (Vitalité, Puissance, Sagesse, % Critique, Soins, Dommages, Initiative, Prospection, Tacle, Fuite, % Résistances, rarement Portée ou Invocation). Mythique : la ligne ×1,5, ou 10 % de chances de devenir +1 PA ou +1 PM (gardés rares, sans limite de niveau).
+- Provenance : monstres 95 % Commun / 5 % Rare ; boss 85 % / 12 % Rare / 3 % Épique ; craft critique (Rare) 3 % + 0,2 % par niveau d'Artisan au-dessus de la recette, 20 % au plus.
+
 ---
 
 ### 8.5 Inventaire : recherche, Encyclopédie, favoris, verrou (validé)
@@ -306,8 +311,11 @@ Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrai
 - Au-delà : **1 objet + 2 objets de la même panoplie et du même rang**.
 - Légendaire et Mythique : + **une ressource du boss**.
 
+- **Fait (8a)** : hors panoplie, 3 identiques à chaque rang (validé). Légendaire : 3 Crânes de Kardorim, Mythique : 10 (ressource du boss de la région). Le jet garde sa qualité (même position dans la nouvelle fourchette, dépassement conservé) ; l'objet principal garde son uid et reste équipé. Objets portés ou verrouillés jamais sacrifiés. XP d'Artisan.
+
 ### 9.3 Brisage
 Casser un objet → **runes** (Fo, Ine, Vi, PA…).
+- **Fait (8a)** : les 95 vraies runes de Dofus 3 (DofusDB, trois tailles : simple, Pa, Ra) avec leurs icônes. Poids par point de stat de Dofus (Fo 1, Vi 0,2, Sa 3, PA 100, PM 90, PO 51, Do 20, Cri 10…). Poids rendu par ligne = (3 × valeur × poids × niveau / 200 + 1) × (1 + 10 % par rang), converti en grosses runes d'abord, le reste en chance d'une petite rune. Aperçu exact avant de confirmer ; objets portés ou verrouillés protégés.
 
 ### 9.4 Forgemagie (personnalise **sous** le plafond)
 - Vraies règles Dofus : runes, **puits**, réussite / échec neutre / échec critique, **exos**.
@@ -332,7 +340,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
 5. ✅ **Stats, niveaux, répartition des points** (validé : Crypte finie en 3 min 33, niveau 11 en une partie) : fiche complète de Dofus (§6.1), vraies données DofusDB des monstres (résistances, tacle, esquive, XP), XP par monstre gardée même en cas de défaite, table d'XP (§7.7), 5 points par niveau avec les paliers du Sacrieur, écran Caractéristiques au camp (remise à zéro gratuite), XP et montée de niveau dans le bilan.
 6. 🔶 **Drop (avec butin de région), inventaire, équipement, panoplies** (à valider en jeu) : vraies tables de la Crypte et butin d'Incarnam (34 objets, icônes officielles), jets aléatoires, niveau requis, bonus de panoplie, inventaire au camp (Sacrieur et ses cases, fiche d'objet avec comparaison), butin qui vole vers le Sacrieur, butin au bilan (celui du boss perdu en cas de défaite). Départ : Panoplie du Jeune Aventurier sans le Chapeau (simulation : difficulté équivalente au calibrage).
 7. 🔶 **Artisan** (à valider en jeu) : atelier au camp, 105 vraies recettes, ressources intermédiaires, XP et niveaux de métier sauvegardés (§9.1).
-8. Raretés, fusion, brisage, forgemagie.
+8. 🔶 **Raretés, fusion, brisage** (livraison 8a, à valider en jeu) ; **forgemagie** (livraison 8b).
 9. Zones de farm (Plaines d'Incarnam d'abord : ≈ 6 familles de monstres à dessiner).
 10. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
 

@@ -1,6 +1,7 @@
 import { isEquipment, ITEMS } from './data/items';
 import { RECIPE_DATA } from './data/items.gen';
-import { addItem, rollItem, type Inventory } from './inventory';
+import type { Inventory } from './inventory';
+import { addNew, critChance } from './forge';
 
 /**
  * Métier unique : Artisan (document de design §9.1). Il fabrique tout l'équipement, avec les vraies recettes de Dofus 3.
@@ -78,6 +79,8 @@ export interface CraftResult {
   /** Équipements créés (uid) ou ressources ajoutées (quantité). */
   made: number[];
   count: number;
+  /** Fabrications critiques (objet Rare). */
+  crits: number;
   xp: number;
   levelBefore: number;
   levelAfter: number;
@@ -90,14 +93,16 @@ export function craft(w: Workshop, r: Recipe, times: number, rnd: () => number):
   const n = check.ok ? Math.min(times, check.max) : 0;
   const out: Workshop = { ...w, resources: { ...w.resources } };
   const made: number[] = [];
-  let xp = 0;
+  let xp = 0, crits = 0;
   for (let i = 0; i < n; i++) {
     for (const [id, q] of r.ingredients) {
       out.resources[id] = (out.resources[id] ?? 0) - q;
       if (out.resources[id] <= 0) delete out.resources[id];
     }
     if (isEquipment(r.id)) {
-      out.inventory = addItem(out.inventory, r.id, rollItem(r.id, rnd));
+      const crit = rnd() < critChance(jobLevel(out.jobXp), r.level);
+      if (crit) crits++;
+      out.inventory = addNew(out.inventory, r.id, crit ? 1 : 0, rnd);
       made.push(out.inventory.nextUid - 1);
     } else {
       out.resources[r.id] = (out.resources[r.id] ?? 0) + 1;
@@ -106,7 +111,7 @@ export function craft(w: Workshop, r: Recipe, times: number, rnd: () => number):
     out.jobXp = Math.min(JOB_XP_TABLE[JOB_MAX], out.jobXp + gained);
     xp += gained;
   }
-  return { workshop: out, made, count: n, xp, levelBefore, levelAfter: jobLevel(out.jobXp) };
+  return { workshop: out, made, count: n, crits, xp, levelBefore, levelAfter: jobLevel(out.jobXp) };
 }
 
 /** Recettes triées pour l'atelier : faisables d'abord, puis par niveau. */

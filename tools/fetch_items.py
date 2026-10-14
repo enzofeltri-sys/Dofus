@@ -195,6 +195,21 @@ for s in list(sets.values()):
     for iid in s['items']:
         add_item(iid)
 
+# 2 ter) Runes de forgemagie (brisage) : toutes celles dont la stat existe dans le jeu, en trois tailles (simple, Pa, Ra)
+runes = []
+for skip in range(0, 200, 50):
+    page = get(f'/items?typeId=78&$limit=50&$skip={skip}')
+    for d in page.get('data', []):
+        effs = d.get('effects', [])
+        stat = CHAR.get(effs[0].get('characteristic')) if len(effs) == 1 else None
+        if not stat:
+            continue
+        items[d['id']] = {'id': d['id'], 'name': d['name']['fr'], 'level': d['level'], 'type': d['type']['name']['fr'],
+                          'slot': None, 'icon': d['iconId'], 'set': None, 'effects': []}
+        runes.append((d['id'], stat, effs[0].get('from', 1)))
+    if len(page.get('data', [])) < 50:
+        break
+
 # 3) Icônes
 os.makedirs(OUT_ICONS, exist_ok=True)
 for it in items.values():
@@ -248,8 +263,14 @@ out = ['/** Recettes réelles (Dofus 3) fabricables avec ce que le jeu permet d\
 for r in sorted(recipes.values(), key=lambda x: (x['level'], x['id'])):
     out.append(f"  {{ id: {r['id']}, level: {r['level']}, ingredients: {json.dumps([list(x) for x in r['ingredients']])} }},")
 out.append('];')
+out.append('')
+out.append('/** Runes de forgemagie réelles : rune, stat, valeur apportée. */')
+out.append('export const RUNE_DATA: [number, string, number][] = [')
+for rid, stat, v in sorted(runes, key=lambda x: (x[1], x[2])):
+    out.append(f"  [{rid}, '{stat}', {v}],")
+out.append('];')
 open(OUT_TS, 'a').write('\n'.join(out) + '\n')
-print(f'{len(recipes)} recettes', file=sys.stderr)
+print(f'{len(recipes)} recettes, {len(runes)} runes', file=sys.stderr)
 
 unknown = sorted({e for e, v in _effects.items() if CHAR.get(v.get('characteristic')) is None})
 print(f'{len(kept)} objets, {len(sets)} panoplies, {len(region)} lignes de butin de région', file=sys.stderr)

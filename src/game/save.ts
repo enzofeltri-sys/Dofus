@@ -7,7 +7,8 @@
  */
 import { addXp, defaultProfile, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
-import { addItem, rollItem, starterInventory, type Inventory } from './inventory';
+import { starterInventory, type Inventory } from './inventory';
+import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
 export interface SaveData {
@@ -91,7 +92,7 @@ export function storeSave(d: SaveData) {
 }
 
 /** Ajoute le butin : XP au profil, ressources au stock, équipements à l'inventaire (jets tirés ici). Renvoie les nouveaux objets. */
-const addLoot = (d: SaveData, l: Loot, rnd: () => number): number[] => {
+const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySource): number[] => {
   d.xp += l.xp;
   d.profile = addXp(d.profile, l.xp);
   const fresh: number[] = [];
@@ -103,7 +104,7 @@ const addLoot = (d: SaveData, l: Loot, rnd: () => number): number[] => {
       continue;
     }
     for (let i = 0; i < n; i++) {
-      d.inventory = addItem(d.inventory, id, rollItem(id, rnd));
+      d.inventory = addNew(d.inventory, id, rollRarity(src, rnd), rnd);
       fresh.push(d.inventory.nextUid - 1);
     }
   }
@@ -115,11 +116,11 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
   const out: SaveData = { ...d, resources: { ...d.resources }, profile: { ...d.profile, carac: { ...d.profile.carac } } };
   out.runs++;
   out.bestRoom = Math.max(out.bestRoom, r.room);
-  const fresh = addLoot(out, r.loot, rnd);
+  const fresh = addLoot(out, r.loot, rnd, 'monster');
   if (r.won) {
     out.wins++;
     out.bestWinTime = out.bestWinTime === null ? r.time : Math.min(out.bestWinTime, r.time);
-    fresh.push(...addLoot(out, r.bossLoot, rnd));
+    fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss'));
   }
   return { save: out, fresh };
 }

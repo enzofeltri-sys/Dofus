@@ -1,12 +1,13 @@
-import { isEquipment, item } from './data/items';
+import { isEquipment, item, statLabel } from './data/items';
 import { DUNGEON_DROPS, REGION_DROPS } from './data/items.gen';
 import { MONSTERS } from './data/monsters';
 import { RECIPES, recipeFor } from './craft';
 import { DROP_MULT } from './loot';
+import { RUNE_STAT } from './forge';
 
 /** Où obtenir un objet : fabrication, butin du donjon (chance réelle en jeu), butin de région. */
 export interface Source {
-  kind: 'craft' | 'dungeon' | 'region';
+  kind: 'craft' | 'dungeon' | 'region' | 'break';
   text: string;
 }
 
@@ -17,6 +18,8 @@ const pct = (v: number) => `${v >= 1 ? Math.round(v * 10) / 10 : Math.round(v * 
 
 export function sourcesOf(id: number): Source[] {
   const out: Source[] = [];
+  const rune = RUNE_STAT.get(id);
+  if (rune) out.push({ kind: 'break', text: `Brisage d’un objet avec la stat ${statLabel(rune[0])} (Atelier)` });
   const r = recipeFor(id);
   if (r) out.push({ kind: 'craft', text: `Fabrication · Artisan niveau ${r.level}` });
   for (const [mid, drops] of Object.entries(DUNGEON_DROPS)) {

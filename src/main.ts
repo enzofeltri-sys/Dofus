@@ -13,17 +13,18 @@ import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, L
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
-import { applyRun, loadSave, storeSave, type RunResult } from './game/save';
+import { applyRun, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
 import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
 import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
 import { elementName, resLine, sheetView } from './ui/sheet-view';
 import { equip, gearStats, isWorn, toggleMark, unequip } from './game/inventory';
 import { catalogDetail, equipmentDetail, invView, resourceDetail } from './ui/inv-view';
-import { item, type SlotId } from './game/data/items';
+import { fmtLine, item, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
-import { craftView } from './ui/craft-view';
+import { breakView, craftView, forgeRows, fusionView } from './ui/craft-view';
+import { breakItem, fuse, RARITIES } from './game/forge';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
@@ -668,6 +669,11 @@ async function main() {
     },
     seen: (uid: number) => void freshItems.delete(uid),
   };
+  const workshop = () => ({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock });
+  const setWorkshop = (w: { resources: Record<string, number>; inventory: SaveData['inventory']; jobXp: number }) => {
+    save = { ...save, resources: w.resources, inventory: w.inventory, jobXp: w.jobXp };
+    storeSave(save);
+  };
   /** Camp : records, niveau, fiche de caractéristiques (les points se répartissent ici). */
   const openCamp = () => hud.camp(save, currentSheet, {
     invest(id, n) {
@@ -695,7 +701,26 @@ async function main() {
       storeSave(save);
       const name = item(id).name;
       const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
-      return `${res.count > 1 ? `${res.count} × ` : ''}${name} · +${res.xp} XP${up}`;
+      const crit = res.crits ? ` · craft critique ! ${res.crits > 1 ? `${res.crits} Rares` : 'Rare'}` : '';
+      return `${res.count > 1 ? `${res.count} × ` : ''}${name}${crit} · +${res.xp} XP${up}`;
+    },
+    forge: () => forgeRows(workshop()),
+    fusion: (uid: number) => fusionView(workshop(), uid),
+    fuse(uid: number, partners: number[]) {
+      const res = fuse(workshop(), uid, partners, Math.random);
+      if (!res.item) return 'Fusion impossible';
+      setWorkshop(res.workshop);
+      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
+      const bonus = res.item.bonus ? ` · ${fmtLine(...res.item.bonus)}` : '';
+      return `${item(res.item.id).name} devient ${RARITIES[res.item.rarity ?? 0]} !${bonus} · +${res.xp} XP${up}`;
+    },
+    breakInfo: (uid: number) => breakView(workshop(), uid),
+    breakIt(uid: number) {
+      const res = breakItem(workshop(), uid, Math.random);
+      const n = Object.values(res.runes).reduce((a, b) => a + b, 0);
+      setWorkshop(res.workshop);
+      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
+      return `${n} rune${n > 1 ? 's' : ''} : ${Object.entries(res.runes).map(([id, k]) => `${k} ${item(Number(id)).name}`).join(', ') || 'aucune'} · +${res.xp} XP${up}`;
     },
   }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
@@ -712,13 +737,17 @@ async function main() {
     const applied = applyRun(save, result);
     save = applied.save;
     for (const uid of applied.fresh) freshItems.add(uid);
+    // meilleure rareté obtenue par objet (tirée à l'arrivée dans l'inventaire)
+    const best = new Map<number, number>();
+    for (const it of save.inventory.items) if (applied.fresh.includes(it.uid)) best.set(it.id, Math.max(best.get(it.id) ?? 0, it.rarity ?? 0));
+    const rares = save.inventory.items.filter((it) => applied.fresh.includes(it.uid) && (it.rarity ?? 0) > 0);
     const lootList = [
       ...Object.entries(st.loot).map(([k, n]) => ({ id: Number(k), count: n, boss: false })),
       ...Object.entries(st.bossLoot).map(([k, n]) => ({ id: Number(k), count: n, boss: true })),
     ]
       // équipement d'abord, puis par niveau
       .sort((a, b) => Number(b.boss) - Number(a.boss) || Number(item(b.id).slot !== null) - Number(item(a.id).slot !== null) || item(b.id).level - item(a.id).level)
-      .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, boss: l.boss, lost: l.boss && !won }));
+      .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, boss: l.boss, lost: l.boss && !won, rarity: l.boss && !won ? 0 : best.get(l.id) ?? 0 }));
     storeSave(save);
     hud.setBoss(null);
     const t = Math.round(st.time);
@@ -729,7 +758,7 @@ async function main() {
       ['Dégâts infligés', String(st.dealt)],
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
-    ], result.cards, won ? 'Les drops arrivent à l’étape 6.' : 'L’XP gagnée est gardée, même en cas de défaite.',
+    ], result.cards, [rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.'].filter(Boolean).join(' '),
     { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList);
     if (SHOW_CAMP) await openCamp();
     await transition(() => {

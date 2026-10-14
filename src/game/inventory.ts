@@ -11,6 +11,10 @@ export interface ItemInstance {
   id: number;
   /** Jet de chaque ligne de l'objet, dans l'ordre de ses effets. */
   rolls: number[];
+  /** Rang : 0 Commun, 1 Rare, 2 Épique, 3 Légendaire, 4 Mythique (absent = Commun). */
+  rarity?: number;
+  /** Ligne bonus (Légendaire et Mythique). */
+  bonus?: [StatPath, number];
   /** Favori : en tête des listes. */
   fav?: boolean;
   /** Verrouillé : protégé de la fusion et du brisage (étape 8). */
@@ -32,8 +36,8 @@ export const rollItem = (id: number, rnd: () => number): number[] =>
 /** Jets moyens (arrondis) : objets de départ. */
 export const averageRolls = (id: number): number[] => item(id).effects.map(([, a, b]) => Math.round((a + b) / 2));
 
-export function addItem(inv: Inventory, id: number, rolls: number[]): Inventory {
-  return { ...inv, items: [...inv.items, { uid: inv.nextUid, id, rolls }], nextUid: inv.nextUid + 1 };
+export function addItem(inv: Inventory, id: number, rolls: number[], extra: Partial<ItemInstance> = {}): Inventory {
+  return { ...inv, items: [...inv.items, { ...extra, uid: inv.nextUid, id, rolls }], nextUid: inv.nextUid + 1 };
 }
 
 export const instance = (inv: Inventory, uid: number) => inv.items.find((i) => i.uid === uid);
@@ -43,8 +47,12 @@ export function toggleMark(inv: Inventory, uid: number, mark: 'fav' | 'lock'): I
   return { ...inv, items: inv.items.map((i) => (i.uid === uid ? { ...i, [mark]: !i[mark] || undefined } : i)) };
 }
 
-/** Lignes d'un objet avec ses jets. */
-export const itemLines = (it: ItemInstance): [StatPath, number][] => item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);
+/** Lignes d'un objet avec ses jets (et sa ligne bonus de rareté). */
+export const itemLines = (it: ItemInstance): [StatPath, number][] => {
+  const lines: [StatPath, number][] = item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);
+  if (it.bonus) lines.push(it.bonus);
+  return lines;
+};
 
 /** Objets portés (case → objet). */
 export function worn(inv: Inventory): [SlotId, ItemInstance][] {

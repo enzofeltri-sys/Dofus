@@ -2,13 +2,14 @@ import { fmtLine, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, t
 import { canEquip, compare, instance, isWorn, itemLines, setBonus, setCounts, type Inventory } from '../game/inventory';
 import type { Facets } from '../game/search';
 import { sourcesOf, sourceText, usedIn } from '../game/sources';
+import { RARITIES, rangesFor } from '../game/forge';
 import { itemIconImg } from './item-icons';
 
 /** Inventaire tel qu'affiché au camp (construit depuis la sauvegarde). */
 export interface InvView {
-  slots: { slot: SlotId; name: string; uid: number | null; icon: string; locked: boolean }[];
+  slots: { slot: SlotId; name: string; uid: number | null; icon: string; locked: boolean; rarity: number }[];
   sets: { name: string; count: number; total: number; bonus: string[] }[];
-  equipment: { uid: number; icon: string; name: string; level: number; worn: boolean; usable: boolean; fresh: boolean; fav: boolean; lock: boolean; facets: Facets }[];
+  equipment: { uid: number; icon: string; name: string; level: number; rarity: number; worn: boolean; usable: boolean; fresh: boolean; fav: boolean; lock: boolean; facets: Facets }[];
   resources: { id: number; icon: string; name: string; count: number; fav: boolean; lock: boolean; facets: Facets }[];
   /** Encyclopédie : tout l'équipement du jeu. */
   catalog: { id: number; icon: string; name: string; level: number; owned: number; facets: Facets }[];
@@ -28,6 +29,8 @@ export interface Link {
 export interface ItemDetail {
   icon: string;
   name: string;
+  /** Rang de rareté (couleur du nom et du cadre). */
+  rarity: number;
   sub: string;
   lines: { text: string; range: string }[];
   set: { name: string; count: number; total: number; rows: { n: number; text: string; on: boolean }[] } | null;
@@ -64,7 +67,7 @@ export function invView(inv: Inventory, resources: Record<string, number>, level
     slots: SLOTS.map((slot) => {
       const uid = inv.equipped[slot] ?? null;
       const it = uid !== null ? instance(inv, uid) : undefined;
-      return { slot, name: SLOT_NAME[slot], uid: it ? uid : null, icon: it ? itemIconImg(it.id) : '', locked: NOT_YET.includes(slot) };
+      return { slot, name: SLOT_NAME[slot], uid: it ? uid : null, icon: it ? itemIconImg(it.id) : '', locked: NOT_YET.includes(slot), rarity: it?.rarity ?? 0 };
     }),
     sets: [...counts].map(([id, n]) => ({
       name: SETS[id].name, count: n, total: SETS[id].items.length,
@@ -80,8 +83,8 @@ export function invView(inv: Inventory, resources: Record<string, number>, level
       if (isNew) flags.add('new');
       if (worn) flags.add('worn');
       return {
-        uid: it.uid, icon: itemIconImg(it.id), name: d.name, level: d.level, worn, usable, fresh: isNew, fav: !!it.fav, lock: !!it.lock,
-        facets: { name: d.name, level: d.level, slot: d.slot, set: d.set, stats: new Map(itemLines(it)), text: [d.type], flags, order: it.uid },
+        uid: it.uid, icon: itemIconImg(it.id), name: d.name, level: d.level, rarity: it.rarity ?? 0, worn, usable, fresh: isNew, fav: !!it.fav, lock: !!it.lock,
+        facets: { name: d.name, level: d.level, slot: d.slot, set: d.set, stats: new Map(itemLines(it)), text: [d.type, RARITIES[it.rarity ?? 0]], flags, order: it.uid, rarity: it.rarity ?? 0 },
       };
     }),
     resources: Object.entries(resources)
@@ -145,15 +148,19 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number): Ite
   const it = instance(inv, uid)!;
   const d = item(it.id);
   const worn = isWorn(inv, uid);
+  const r = it.rarity ?? 0;
+  const ranges = rangesFor(it.id, r);
   const lines = itemLines(it).map(([p, v], i) => {
-    const [, a, b] = d.effects[i];
+    if (!ranges[i]) return { text: fmtLine(p, v), range: r >= 4 ? 'ligne mythique' : 'ligne légendaire' };
+    const [, a, b] = ranges[i];
     return { text: fmtLine(p, v), range: a === b ? '' : `${a} à ${b}` };
   });
   const check = canEquip(inv, uid, level);
   return {
     icon: itemIconImg(it.id, 'big'),
     name: d.name,
-    sub: `${d.type} · niveau ${d.level}`,
+    rarity: r,
+    sub: `${RARITIES[r]} · ${d.type} · niveau ${d.level}`,
     lines,
     set: d.set ? setBlock(d.set, setCounts(inv).get(d.set) ?? 0, 'portés') : null,
     diff: compare(inv, uid, level).map(([p, v]) => ({ text: `${v > 0 ? '+' : ''}${v} ${statLabel(p)}`, up: v > 0 })),
@@ -161,7 +168,7 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number): Ite
     action: worn
       ? { label: 'Retirer', enabled: true, reason: '' }
       : { label: 'Équiper', enabled: check.ok, reason: check.ok ? '' : check.reason },
-    note: it.lock ? 'Verrouillé : il ne pourra être ni fusionné ni brisé (étape 8).' : '',
+    note: it.lock ? 'Verrouillé : il ne peut être ni brisé ni sacrifié dans une fusion.' : '',
     sources: [],
     marks: { fav: !!it.fav, lock: !!it.lock },
     links: d.set ? [{ label: 'Voir la panoplie', go: `set:${d.set}` }] : [],
@@ -173,7 +180,7 @@ export function resourceDetail(id: number, count: number, marks: { fav: boolean;
   const d = item(id);
   const uses = usedIn(id);
   return {
-    icon: itemIconImg(id, 'big'), name: d.name, sub: `${d.type} · niveau ${d.level} · ×${count}`,
+    icon: itemIconImg(id, 'big'), name: d.name, rarity: 0, sub: `${d.type} · niveau ${d.level} · ×${count}`,
     lines: [], set: null, diff: [], diffTitle: '', action: null,
     note: marks.lock
       ? 'Verrouillée : l’Atelier ne l’utilisera pas.'
@@ -194,7 +201,7 @@ export function catalogDetail(inv: Inventory, id: number): ItemDetail {
   if (d.set) links.push({ label: 'Voir la panoplie', go: `set:${d.set}` });
   const own = d.set ? new Set(inv.items.map((i) => i.id)) : null;
   return {
-    icon: itemIconImg(id, 'big'), name: d.name, sub: `${d.type} · niveau ${d.level}${owned ? ` · possédé ×${owned}` : ' · pas encore obtenu'}`,
+    icon: itemIconImg(id, 'big'), name: d.name, rarity: 0, sub: `${d.type} · niveau ${d.level}${owned ? ` · possédé ×${owned}` : ' · pas encore obtenu'}`,
     lines: d.effects.map(([p, a, b]) => ({ text: a === b ? fmtLine(p, a) : `${a} à ${b} ${statLabel(p)}`, range: '' })),
     set: d.set && own ? setBlock(d.set, SETS[d.set].items.filter((i) => own.has(i)).length, 'possédées') : null,
     diff: [], diffTitle: '', action: null, note: '',

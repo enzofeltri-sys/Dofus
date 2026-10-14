@@ -137,9 +137,11 @@ export interface Facets {
   flags: Set<string>;
   /** Ordre d'arrivée (tri « récents »). */
   order: number;
+  /** Rang de rareté (objets possédés). */
+  rarity?: number;
 }
 
-export type SortKey = 'level' | 'levelAsc' | 'name' | 'stat' | 'new';
+export type SortKey = 'level' | 'levelAsc' | 'name' | 'stat' | 'new' | 'rarity';
 export interface Filters {
   q: string;
   slot: ItemSlot | '';
@@ -147,13 +149,15 @@ export interface Filters {
   set: number;
   min: number | null;
   max: number | null;
+  /** Rareté (null = toutes). */
+  rarity: number | null;
   only: string[];
   sort: SortKey;
 }
-export const emptyFilters = (): Filters => ({ q: '', slot: '', stat: '', set: 0, min: null, max: null, only: [], sort: 'level' });
+export const emptyFilters = (): Filters => ({ q: '', slot: '', stat: '', set: 0, min: null, max: null, rarity: null, only: [], sort: 'level' });
 /** Nombre de filtres actifs (hors texte et tri). */
 export const activeCount = (f: Filters) =>
-  Number(!!f.slot) + Number(!!f.stat) + Number(!!f.set) + Number(f.min !== null) + Number(f.max !== null) + f.only.length;
+  Number(!!f.slot) + Number(!!f.stat) + Number(!!f.set) + Number(f.min !== null) + Number(f.max !== null) + Number(f.rarity !== null) + f.only.length;
 
 const haystack = new WeakMap<Facets, string>();
 function hay(f: Facets): string {
@@ -172,6 +176,7 @@ export function matches(f: Facets, q: Query, flt: Filters): boolean {
   if (flt.slot && f.slot !== flt.slot) return false;
   if (flt.set && f.set !== flt.set) return false;
   if (flt.stat && !has(f, [flt.stat])) return false;
+  if (flt.rarity !== null && (f.rarity ?? 0) !== flt.rarity) return false;
   const min = Math.max(flt.min ?? -Infinity, q.min ?? -Infinity);
   const max = Math.min(flt.max ?? Infinity, q.max ?? Infinity);
   if (f.level < min || f.level > max) return false;
@@ -201,11 +206,12 @@ export function applyFilters<T extends { facets: Facets }>(rows: T[], flt: Filte
   const focus = focusStat(flt, q);
   const key = (r: T) => r.facets;
   const by: Record<SortKey, (a: Facets, b: Facets) => number> = {
-    level: (a, b) => b.level - a.level,
+    level: (a, b) => b.level - a.level || (b.rarity ?? 0) - (a.rarity ?? 0),
     levelAsc: (a, b) => a.level - b.level,
     name: () => 0,
     stat: (a, b) => (focus.length ? best(b, focus) - best(a, focus) : b.level - a.level),
     new: (a, b) => b.order - a.order,
+    rarity: (a, b) => (b.rarity ?? 0) - (a.rarity ?? 0) || b.level - a.level,
   };
   return rows
     .filter((r) => matches(key(r), q, flt))
