@@ -1,6 +1,6 @@
 import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
-import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } from './art/chafer';
-import { kardoribSvg, kardorimSvg } from './art/kardorim';
+import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, type ChaferKind } from './art/chafer';
+import { chaferChibiSvg as chaferSvg, kardoribChibiSvg as kardoribSvg, kardorimChibiSvg as kardorimSvg } from './art/monsters-chibi';
 import type { MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
 import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
