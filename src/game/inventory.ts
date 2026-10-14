@@ -85,9 +85,9 @@ export function canEquip(inv: Inventory, uid: number, level: number, slot?: Slot
   if (level < d.level) return { ok: false, reason: `Niveau ${d.level} requis` };
   const options = slotsFor(d.slot);
   const target = slot && options.includes(slot) ? slot : options.find((s) => inv.equipped[s] === undefined) ?? options[0];
-  // Dofus : pas deux fois le même anneau
+  // Dofus : deux anneaux identiques sont permis, sauf s'ils font partie d'une panoplie
   const other = options.find((s) => s !== target && inv.equipped[s] !== undefined);
-  if (other && instance(inv, inv.equipped[other]!)?.id === it.id) return { ok: false, reason: 'Déjà porté dans l’autre case' };
+  if (other && d.set && instance(inv, inv.equipped[other]!)?.id === it.id) return { ok: false, reason: 'Anneau de panoplie déjà porté' };
   return { ok: true, slot: target };
 }
 

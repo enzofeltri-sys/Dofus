@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addStats, baseStats } from './formulas';
-import { SETS } from './data/items';
-import { addItem, canEquip, compare, equip, gearStats, rollItem, setCounts, starterInventory, STARTER_ITEMS, unequip } from './inventory';
+import { ITEMS, SETS } from './data/items';
+import { addItem, canEquip, compare, emptyInventory, equip, gearStats, rollItem, setCounts, starterInventory, STARTER_ITEMS, unequip } from './inventory';
 import { DROP_MULT, REGION_CHANCE, rollDrops } from './loot';
 import { applyRun, emptySave, loadSave, type RunResult } from './save';
 import { rng } from '../iso';
@@ -31,7 +31,7 @@ describe('équipement et panoplies', () => {
     }
   });
 
-  it('niveau requis, anneaux dans deux cases, pas deux fois le même anneau', () => {
+  it('niveau requis, anneaux dans deux cases, pas deux fois le même anneau de panoplie', () => {
     let inv = starterInventory();
     inv = addItem(inv, CASQUE, [13, 2]);
     const casque = inv.nextUid - 1;
@@ -44,6 +44,17 @@ describe('équipement et panoplies', () => {
     inv = addItem(inv, ANNEAU_AV, [2, 2, 2, 2]);
     const anneau2 = inv.nextUid - 1;
     expect(canEquip(inv, anneau2, 12, 'anneau2').ok).toBe(false);
+  });
+
+  it('deux anneaux identiques hors panoplie : permis', () => {
+    // anneau fictif sans panoplie, le temps d'en avoir un vrai dans le jeu
+    ITEMS[999001] = { id: 999001, name: 'Anneau test', level: 1, type: 'Anneau', slot: 'anneau', icon: 9048, set: null, effects: [['force', 1, 1]] };
+    let inv = emptyInventory();
+    inv = addItem(inv, 999001, [1]);
+    inv = equip(inv, 1, 10);
+    inv = addItem(inv, 999001, [1]);
+    expect(canEquip(inv, 2, 10)).toEqual({ ok: true, slot: 'anneau2' });
+    delete ITEMS[999001];
   });
 
   it('panoplie Kardorim complète : bonus à 3 objets ; la comparaison compte les bonus perdus et gagnés', () => {
