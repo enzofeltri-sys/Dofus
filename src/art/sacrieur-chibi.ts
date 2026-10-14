@@ -251,12 +251,10 @@ function build(col: SacriColors, part?: ChibiPart, face: SacriFace = 'rictus'): 
   h.push(`<path d="M86.5,65 Q91,70.5 87.4,73.2 Q86,73.6 84.8,73" fill="none" stroke="${skInk}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`);
   // bouche
   if (face === 'rictus') {
-    // rictus de berserker : sourire en coin, dents serrées, crocs
-    h.push(`<path d="M71.5,79.5 Q81,85.5 95.5,76 Q94.5,82.5 85,86.6 Q76.5,86.8 71.5,79.5 Z" fill="#4a0e0e" stroke="#1e0a04" stroke-width="1.2" stroke-linejoin="round"/>`);
-    h.push(`<path d="M73,80.2 Q82,84.6 94.4,77.2 L93.6,79.6 Q83,85.4 74.5,82 Z" fill="#fffaf0"/>`);
-    h.push(`<path d="M76.5,81.6 l1.2,2.8 l1.2,-2.4 Z M89,80.4 l1.3,2.7 l1,-3 Z" fill="#fffaf0" stroke="#1e0a04" stroke-width="0.5"/>`);
-    h.push(`<path d="M79.5,83 l0.3,1.6 M83,83.4 l0.2,1.6 M86.4,82.8 l0,1.6" stroke="#5a3a30" stroke-width="0.5"/>`);
-    h.push(`<path d="M95.5,76 q1.8,-0.6 2.6,-2.4" fill="none" stroke="#1e0a04" stroke-width="1.2" stroke-linecap="round"/>`);
+    // rictus bouche fermée : sourire en coin qui remonte d'un côté, lèvre inférieure, fossette
+    h.push(`<path d="M72.5,80.2 Q80,83.6 88.5,81.2 Q92.5,79.6 95.6,75.8" fill="none" stroke="#1e0a04" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`);
+    h.push(`<path d="M95.6,75.8 q1.9,-0.3 2.7,-2.3 M72.5,80.2 q-1.4,-0.2 -2,-1.4" fill="none" stroke="#1e0a04" stroke-width="1.2" stroke-linecap="round"/>`);
+    h.push(`<path d="M76.5,84.2 Q82,86.2 88,83.8" fill="none" stroke="${skInk}" stroke-width="0.9" opacity="0.5" stroke-linecap="round"/>`);
   } else if (face === 'fou') {
     // regard fou : bouche ouverte, dents en haut et en bas
     h.push(`<path d="M74,79 Q83,76.5 93,78 Q92,87 83.5,88 Q75,87 74,79 Z" fill="#4a0e0e" stroke="#1e0a04" stroke-width="1.2" stroke-linejoin="round"/>`);
