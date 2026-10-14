@@ -112,7 +112,10 @@ function fist(cx: number, cy: number, r: number, col: SacriColors, facing: 1 | -
     `<ellipse cx="${cx + r * 0.3}" cy="${cy - r * 0.48}" rx="${r * 0.32}" ry="${r * 0.15}" fill="#fff" opacity="0.4"/>`;
 }
 
-function build(col: SacriColors, part?: ChibiPart): string {
+/** Expression du visage. */
+export type SacriFace = 'rictus' | 'fou' | 'rage';
+
+function build(col: SacriColors, part?: ChibiPart, face: SacriFace = 'rictus'): string {
   n = 0;
   pre = `sc${(builds++).toString(36)}`;
   const skInk = shade(col.skin, -0.66), c1Ink = shade(col.c1, -0.68), hairInk = shade(col.hair, -0.62);
@@ -209,32 +212,61 @@ function build(col: SacriColors, part?: ChibiPart): string {
   // oreille avant (dépasse derrière la joue droite)
   h.push(blob('M103,56 Q117,48 131,38 Q127,57 105,67 Z', col.skin, { ink: skInk }));
   h.push(`<path d="M106,58 Q117,51 126,44 Q122,56 107,63 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
-  // crâne et visage : rond, joues pleines, menton doux
-  h.push(blob('M40,55 C40,33 55,21 73,21 C92,21 107,34 107,55 C107,74 94,89 74,90 C55,90 40,76 40,55 Z', col.skin, { ink: skInk, hl: [0.66, 0.5] }));
+  // crâne rond, mâchoire en V et menton pointu (air dur)
+  h.push(blob('M40,55 C40,33 55,21 73,21 C92,21 107,34 107,55 C107,67 101,76 94,82 C89,87 84,91.5 79,92.5 C75,93 71,91 66,88 C51,82 40,72 40,55 Z', col.skin, { ink: skInk, hl: [0.66, 0.48] }));
+  // pommettes et creux des joues (visage sec)
+  h.push(`<path d="M58,74 Q66,82 77,86 Q66,85 57,78 Z" fill="${shade(col.skin, -0.4)}" opacity="0.3"/>`);
+  h.push(`<path d="M99,70 Q97,79 89,85 Q95,77 96,70 Z" fill="${shade(col.skin, -0.4)}" opacity="0.3"/>`);
   // ombre portée sous le rebord du bandana
   h.push(`<path d="M41,50 C50,44 62,41 74,41 C88,41 99,44 107,50 L107,55 C98,49 87,46.5 74,46.5 C62,46.5 50,49 41,55 Z" fill="${shade(col.skin, -0.45)}" opacity="0.32"/>`);
-  // joues
-  h.push(`<ellipse cx="66" cy="73" rx="6.5" ry="3.4" fill="#e0606a" opacity="0.16"/><ellipse cx="97" cy="71" rx="4.5" ry="3" fill="#e0606a" opacity="0.14"/>`);
-  // mèches : tempes et front, sous le rebord
-  h.push(blob('M42,47 Q36,58 41,68 Q44,60 50,54 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M55,45 Q56,54 62,57 Q61,51 65,47 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M86,43 Q88,50 93,52 Q92,47 95,44 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M101,46 Q109,51 110,61 Q105,56 100,55 Z', col.hair, { ink: hairInk }));
-  // yeux (trois-quarts : l'œil gauche, plus proche, est plus grand), blancs lumineux, contour sombre
-  h.push(`<path d="M61.5,62 Q69,55.5 78,59.5 Q75.5,67.5 67,67 Q61.5,66 61.5,62 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3" stroke-linejoin="round"/>`);
-  h.push(`<path d="M88,59.5 Q94.5,55 100,57.5 Q98.5,64.5 93,64.5 Q88.5,63.8 88,59.5 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3" stroke-linejoin="round"/>`);
-  h.push(`<path d="M63.5,64.5 Q69.5,66.5 76,62.5 M89.5,61.8 Q94.5,63.6 98.6,60" fill="none" stroke="#d6e4ee" stroke-width="1.2" opacity="0.85"/>`);
-  h.push(`<ellipse cx="68" cy="60.2" rx="2.4" ry="1.2" fill="#fff"/><ellipse cx="93.6" cy="58.4" rx="1.7" ry="0.9" fill="#fff"/>`);
-  // sourcils froncés (épais, en biseau vers le nez)
-  h.push(`<path d="M59.5,55.5 Q68,53 79,57 L78.5,58.6 Q68,55.6 60,57.4 Z M87.5,56.5 Q94,52.5 101.5,53 L101.5,54.6 Q94,54.6 88,58 Z" fill="#3a1608" stroke="#3a1608" stroke-width="0.8" stroke-linejoin="round"/>`);
-  // peintures de guerre (couleur des bandages), deux traits sous chaque œil
-  h.push(`<path d="M62,71 L71,69.5 M63.5,74.8 L69.5,73.8 M91,67.5 L98,66.4" stroke="${col.c2}" stroke-width="2.3" stroke-linecap="round" opacity="0.92"/>`);
-  // petit nez de trois-quarts
-  h.push(`<path d="M85.5,66 Q88.5,69.5 85.8,71.6" fill="none" stroke="${skInk}" stroke-width="1.2" stroke-linecap="round"/>`);
-  h.push(`<ellipse cx="85.5" cy="71.4" rx="2.2" ry="1" fill="${shade(col.skin, -0.35)}" opacity="0.35"/>`);
-  // bouche décidée, légèrement tombante
-  h.push(`<path d="M76.5,79.5 Q82,77.6 88.5,79" fill="none" stroke="#2a1006" stroke-width="1.6" stroke-linecap="round"/>`);
-  h.push(`<path d="M78.5,82.3 Q82.5,83.4 86.5,82.3" fill="none" stroke="${skInk}" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/>`);
+  // mèches : tempes et front, en pointes
+  h.push(blob('M42,46 Q35,58 40,70 Q43,62 46,60 Q45,66 49,70 Q49,60 52,54 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M55,45 Q55,55 61,59 Q60,52 64,48 Q65,53 69,55 Q67,49 70,46 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M85,43 Q87,51 92,54 Q91,48 95,44 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M100,45 Q110,50 111,62 Q107,57 103,56 Q105,60 104,64 Q100,57 99,53 Z', col.hair, { ink: hairInk }));
+  // orbites sombres : le regard « possédé » du Sacrieur
+  const eyeR = face === 'fou' ? 1.12 : 1;
+  const sock = shade(col.skin, -0.62);
+  h.push(`<path d="M57,60 Q66,53 80,57.5 Q80,66 74,69.5 Q64,71 58.5,67 Q56,64 57,60 Z" fill="${sock}" opacity="0.5"/>`);
+  h.push(`<path d="M86.5,58 Q95,52.5 103,54.5 Q103,62 99,66 Q92,67.5 88,64.5 Q86,61.5 86.5,58 Z" fill="${sock}" opacity="0.5"/>`);
+  // yeux blancs anguleux, sans pupille, avec un halo
+  const eyeL = 'M60.5,63.5 L67.5,58 L78.5,60 L74.5,66.5 L65.5,67 Z';
+  const eyeRgt = 'M88.5,60.2 L95,56 L101,57.3 L98.6,63.4 L91.6,64 Z';
+  const sc = (d: string, cx: number, cy: number) => `<g transform="translate(${cx},${cy}) scale(${eyeR}) translate(${-cx},${-cy})">${d}</g>`;
+  const glow = uid('glow');
+  h.push(`<filter id="${glow}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>`);
+  h.push(sc(`<path d="${eyeL}" fill="#fff" filter="url(#${glow})" opacity="0.8"/>`, 69, 62));
+  h.push(sc(`<path d="${eyeRgt}" fill="#fff" filter="url(#${glow})" opacity="0.8"/>`, 95, 60));
+  h.push(sc(`<path d="${eyeL}" fill="#fffef6" stroke="#1e0a04" stroke-width="1.4" stroke-linejoin="round"/>`, 69, 62));
+  h.push(sc(`<path d="${eyeRgt}" fill="#fffef6" stroke="#1e0a04" stroke-width="1.4" stroke-linejoin="round"/>`, 95, 60));
+  h.push(sc(`<path d="M62.5,65.6 L74,65 M90.2,62.6 L97.6,62" stroke="#c9dbe6" stroke-width="1.1" opacity="0.9"/>`, 82, 62));
+  // sourcils en V, épais et pointus vers le nez
+  const browY = face === 'rage' ? 1.5 : 0;
+  h.push(`<path d="M56.5,${54 - browY} L81,${59.5 + browY} L79.5,${62.3 + browY} L57.5,${57.3 - browY} Z M86.5,${60 + browY} L103.5,${52 - browY} L104,${54.8 - browY} L88,${62.8 + browY} Z" fill="#2e1206" stroke="#2e1206" stroke-width="0.9" stroke-linejoin="round"/>`);
+  // cicatrice en travers du nez et de la joue
+  h.push(`<path d="M77,64.5 L91,75.5" stroke="${shade(col.c2, 0.2)}" stroke-width="1.8" stroke-linecap="round"/><path d="M80,66 l-1.6,2 M84,69.2 l-1.6,2 M88,72.4 l-1.6,2" stroke="${shade(col.c2, -0.3)}" stroke-width="0.8"/>`);
+  // peintures de guerre : griffures sous les yeux
+  h.push(`<path d="M59.5,71.5 L69,70 M61,75.5 L67.5,74.5 M93,69 L100,67.6" stroke="${col.c2}" stroke-width="2.4" stroke-linecap="round" opacity="0.95"/>`);
+  // nez pointu de trois-quarts
+  h.push(`<path d="M86.5,65 Q91,70.5 87.4,73.2 Q86,73.6 84.8,73" fill="none" stroke="${skInk}" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>`);
+  // bouche
+  if (face === 'rictus') {
+    // rictus de berserker : sourire en coin, dents serrées, crocs
+    h.push(`<path d="M71.5,79.5 Q81,85.5 95.5,76 Q94.5,82.5 85,86.6 Q76.5,86.8 71.5,79.5 Z" fill="#4a0e0e" stroke="#1e0a04" stroke-width="1.2" stroke-linejoin="round"/>`);
+    h.push(`<path d="M73,80.2 Q82,84.6 94.4,77.2 L93.6,79.6 Q83,85.4 74.5,82 Z" fill="#fffaf0"/>`);
+    h.push(`<path d="M76.5,81.6 l1.2,2.8 l1.2,-2.4 Z M89,80.4 l1.3,2.7 l1,-3 Z" fill="#fffaf0" stroke="#1e0a04" stroke-width="0.5"/>`);
+    h.push(`<path d="M79.5,83 l0.3,1.6 M83,83.4 l0.2,1.6 M86.4,82.8 l0,1.6" stroke="#5a3a30" stroke-width="0.5"/>`);
+    h.push(`<path d="M95.5,76 q1.8,-0.6 2.6,-2.4" fill="none" stroke="#1e0a04" stroke-width="1.2" stroke-linecap="round"/>`);
+  } else if (face === 'fou') {
+    // regard fou : bouche ouverte, dents en haut et en bas
+    h.push(`<path d="M74,79 Q83,76.5 93,78 Q92,87 83.5,88 Q75,87 74,79 Z" fill="#4a0e0e" stroke="#1e0a04" stroke-width="1.2" stroke-linejoin="round"/>`);
+    h.push(`<path d="M75,79.4 Q83,77.4 92,78.6 L91.6,80.6 Q83,79.4 75.4,81.2 Z" fill="#fffaf0"/><path d="M77.5,86.2 Q83.5,87.6 89.5,85.4 L89,84 Q83.5,85.6 78,84.8 Z" fill="#fffaf0"/>`);
+    h.push(`<path d="M79,80.6 l1,2.2 l1,-2.2 Z M86.5,80.2 l1,2.2 l1,-2.4 Z" fill="#fffaf0"/>`);
+  } else {
+    // rage : dents serrées découvertes
+    h.push(`<path d="M73.5,78.5 Q83,76 94,77.5 Q94,83.5 84,85 Q74.5,84.5 73.5,78.5 Z" fill="#fffaf0" stroke="#1e0a04" stroke-width="1.3" stroke-linejoin="round"/>`);
+    h.push(`<path d="M74.5,81.4 Q84,80.2 93.6,80.8 M78.5,78 l0.2,6.2 M83,77.4 l0,7.2 M87.5,77.5 l0,7 M91.4,77.8 l-0.2,6" fill="none" stroke="#5a3a30" stroke-width="0.6"/>`);
+  }
   // bandana-casque : il épouse le haut du crâne, rebord replié incliné (trois-quarts)
   h.push(blob('M37,52 C33,29 51,13 74,13 C97,13 111,29 108.5,50 C100,44 87,41 74,41 C59,41 45,45 37,52 Z', col.c1, { ink: c1Ink, hl: [0.66, 0.24] }));
   h.push(`<path d="M76,14 Q71,27 73,41 M52,20 Q47,32 47,45" fill="none" stroke="${shade(col.c1, -0.4)}" stroke-width="0.9" opacity="0.45"/>`);
@@ -254,4 +286,4 @@ function build(col: SacriColors, part?: ChibiPart): string {
 }
 
 /** Le Sacrieur version Archero, avec ses couleurs (par défaut : celles du jeu). */
-export const sacriChibi = (part?: ChibiPart, colors: SacriColors = SACRI_COLORS) => build(colors, part);
+export const sacriChibi = (part?: ChibiPart, colors: SacriColors = SACRI_COLORS, face?: SacriFace) => build(colors, part, face);
