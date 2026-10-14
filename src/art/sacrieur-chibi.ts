@@ -117,7 +117,6 @@ function build(col: SacriColors, part?: ChibiPart): string {
   pre = `sc${(builds++).toString(36)}`;
   const skInk = shade(col.skin, -0.66), c1Ink = shade(col.c1, -0.68), hairInk = shade(col.hair, -0.62);
   const c3Ink = shade(col.c3, -0.62), c4Ink = shade(col.c4, -0.62), c2Ink = shade(col.c2, -0.62);
-  const paint = shade(col.c2, 0.3);
 
   /* ================= Jambes : pantalon bouffant effiloché, tibia bandé, pied nu à lanière ================= */
   const leg = (hipX: number, footX: number, front: boolean) => {
@@ -196,56 +195,57 @@ function build(col: SacriColors, part?: ChibiPart): string {
   t.push(blob('M67.5,116 Q71.5,113 75.5,116 Q75,120.5 71.5,121 Q68,120.5 67.5,116 Z', shade(col.c4, 0.12), { ink: c4Ink, w: 1.1, rim: false }));
   const torso = t.join('');
 
-  /* ================= Tête : grosse et ronde ================= */
+  /* ================= Tête : grosse et ronde, de trois-quarts (le visage regarde vers la droite) ================= */
   const h: string[] = [];
-  // pans du bandana qui flottent (bout découpé en dents)
-  h.push(blob('M41,44 Q30,35 17,35 Q11,35 6,38 L11,41 L5,44 L12,46 Q20,46 26,52 Q33,51 41,53 Z', col.c1, { ink: c1Ink }));
-  h.push(`<path d="M37,45 Q26,40 14,41" fill="none" stroke="${shade(col.c1, -0.45)}" stroke-width="0.9" opacity="0.6"/>`);
-  h.push(blob('M40,53 Q30,58 26,66 L23,72 L28,70 L30,75 Q36,67 44,60 Z', shade(col.c1, -0.08), { ink: c1Ink }));
+  // pans du bandana qui flottent depuis le nœud (bout découpé en dents)
+  h.push(blob('M40,38 Q29,29 16,30 Q10,30 5,33 L10,36 L4,39 L11,41 Q19,41 25,47 Q32,45 39,47 Z', col.c1, { ink: c1Ink }));
+  h.push(`<path d="M36,39 Q25,34 13,36" fill="none" stroke="${shade(col.c1, -0.45)}" stroke-width="0.9" opacity="0.6"/>`);
+  h.push(blob('M38,46 Q29,52 25,60 L22,66 L27,64 L29,69 Q35,61 42,54 Z', shade(col.c1, -0.08), { ink: c1Ink }));
   // mèche de nuque
-  h.push(blob('M44,66 Q38,76 42,84 Q46,78 51,74 Z', col.hair, { ink: hairInk, rim: false }));
+  h.push(blob('M45,66 Q40,76 44,84 Q48,77 53,73 Z', col.hair, { ink: hairInk, rim: false }));
   // oreille arrière, longue et pointue
-  h.push(blob('M41,66 Q26,62 5,51 Q14,71 41,79 Z', col.skin, { ink: skInk }));
-  h.push(`<path d="M38,69 Q25,64 13,57 Q22,68 38,74 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
-  // visage rond, joues pleines, menton vers l'avant
-  h.push(blob('M40,58 C39,36 56,24 75,24 C96,24 109,38 108,58 C107,77 95,90 76,91 C57,91 41,79 40,58 Z', col.skin, { ink: skInk, hl: [0.7, 0.45] }));
-  // ombre portée du bandana sur le front
-  h.push(`<path d="M41,53 Q75,44 107,52 L107,58 Q75,50 41,59 Z" fill="${shade(col.skin, -0.45)}" opacity="0.38"/>`);
+  h.push(blob('M43,58 Q27,53 7,43 Q15,63 43,71 Z', col.skin, { ink: skInk }));
+  h.push(`<path d="M40,61 Q27,56 15,49 Q23,60 40,66 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
+  // oreille avant (dépasse derrière la joue droite)
+  h.push(blob('M103,56 Q117,48 131,38 Q127,57 105,67 Z', col.skin, { ink: skInk }));
+  h.push(`<path d="M106,58 Q117,51 126,44 Q122,56 107,63 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
+  // crâne et visage : rond, joues pleines, menton doux
+  h.push(blob('M40,55 C40,33 55,21 73,21 C92,21 107,34 107,55 C107,74 94,89 74,90 C55,90 40,76 40,55 Z', col.skin, { ink: skInk, hl: [0.66, 0.5] }));
+  // ombre portée sous le rebord du bandana
+  h.push(`<path d="M41,50 C50,44 62,41 74,41 C88,41 99,44 107,50 L107,55 C98,49 87,46.5 74,46.5 C62,46.5 50,49 41,55 Z" fill="${shade(col.skin, -0.45)}" opacity="0.32"/>`);
   // joues
-  h.push(`<ellipse cx="95" cy="76" rx="6" ry="3.2" fill="${shade(col.c2, 0.45)}" opacity="0.18"/>`);
-  // oreille avant
-  h.push(blob('M104,63 Q118,56 133,45 Q128,66 106,73 Z', col.skin, { ink: skInk }));
-  h.push(`<path d="M107,65 Q118,59 128,51 Q123,63 108,69 Z" fill="${shade(col.skin, -0.3)}" opacity="0.45"/>`);
-  // mèches : tempes et front
-  h.push(blob('M44,52 Q37,63 43,75 Q46,66 53,60 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M53,54 Q54,64 61,68 Q60,61 64,56 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M86,51 Q88,59 93,62 Q92,56 95,52 Z', col.hair, { ink: hairInk }));
-  h.push(blob('M100,51 Q111,56 112,67 Q107,62 101,61 Z', col.hair, { ink: hairInk }));
-  // yeux : grands, blancs lumineux (signature du Sacrieur), halo léger
-  h.push(`<path d="M64.5,65 Q73,56.5 83,61.5 Q80,72.5 70,71 Q64.5,69.5 64.5,65 Z" fill="${shade(col.skin, -0.5)}" opacity="0.26"/>`);
-  h.push(`<path d="M88,61 Q97,55 105,58.5 Q103.5,69 95,69 Q88.5,67.5 88,61 Z" fill="${shade(col.skin, -0.5)}" opacity="0.26"/>`);
-  h.push(`<path d="M66,65 Q73.5,58.5 82,62.5 Q79,71 71,70 Q66.5,69 66,65 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3"/>`);
-  h.push(`<path d="M89.5,61.5 Q97,56.5 103.5,59.5 Q102,67.5 95.5,67.5 Q90,66.5 89.5,61.5 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3"/>`);
-  h.push(`<path d="M68,67.5 Q74,69.5 80,64" fill="none" stroke="#d8e6ee" stroke-width="1.3" opacity="0.8"/><path d="M91.5,63.5 Q97,66 102,61" fill="none" stroke="#d8e6ee" stroke-width="1.2" opacity="0.8"/>`);
-  h.push(`<ellipse cx="72.5" cy="63.6" rx="2.6" ry="1.3" fill="#fff"/><ellipse cx="95.5" cy="60.6" rx="2.1" ry="1.1" fill="#fff"/>`);
-  // sourcils froncés
-  h.push(`<path d="M63.5,58 Q73,57 83,60 M88,58 Q97,55 105,55.5" fill="none" stroke="#3a1608" stroke-width="2.2" stroke-linecap="round"/>`);
-  // peintures de guerre (couleur des bandages)
-  h.push(`<path d="M67.5,74.5 L77,73 M69.5,78.5 L75.5,77.5 M93,71.5 L101.5,70" stroke="${paint}" stroke-width="2.2" stroke-linecap="round"/>`);
-  // nez, bouche décidée
-  h.push(`<path d="M100,67.5 Q103.5,71 100.5,74.5 Q99,75 97.5,74.2" fill="none" stroke="${skInk}" stroke-width="1.1" stroke-linecap="round"/>`);
-  h.push(`<path d="M83.5,81.5 Q91,79 99.5,80.5" fill="none" stroke="#2a1006" stroke-width="1.6" stroke-linecap="round"/><path d="M99.5,80.5 q1.5,-0.5 2.2,-2" fill="none" stroke="#2a1006" stroke-width="1.2" stroke-linecap="round"/>`);
-  h.push(`<path d="M86,84.5 Q91,86 96,84.5" fill="none" stroke="${skInk}" stroke-width="0.8" opacity="0.5"/>`);
-  // bandana-casque : dôme, coutures, rebord replié, nœud à l'arrière
-  h.push(blob('M36,58 C32,30 52,12 75,12 C99,12 114,30 111,57 C99,50 50,49 36,58 Z', col.c1, { ink: c1Ink, hl: [0.65, 0.22] }));
-  h.push(`<path d="M75,13 Q70,30 72,51 M52,22 Q48,38 49,54" fill="none" stroke="${shade(col.c1, -0.4)}" stroke-width="0.9" opacity="0.5"/>`);
-  h.push(blob('M36.5,57.5 C50,48.5 99,49.5 110.8,56.5 L110,61 C98,54.5 51,53.5 37.5,62 Z', shade(col.c1, -0.12), { ink: c1Ink, flat: true, rim: false }));
-  h.push(`<path d="M57,19 Q72,13 89,16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="0.32"/>`);
-  h.push(blob('M34,44 Q38,37 45,40 Q47,48 41,52 Q35,51 34,44 Z', shade(col.c1, -0.05), { ink: c1Ink, w: 1.3 }));
-  // pièce irrégulière cousue (points en croix)
-  h.push(blob('M80,22 Q84,18 88,21 Q93,19 95,24 Q99,27 96,31 Q98,36 93,36.5 Q90,41 86,37.5 Q80,39.5 79.5,34.5 Q75,32 78,28 Q76,23.5 80,22 Z', col.c3, { ink: c3Ink, w: 1.2 }));
-  const stitch = (x: number, y: number) => `M${x - 1.3},${y - 1.3} l2.6,2.6 m0,-2.6 l-2.6,2.6`;
-  h.push(`<path d="${[stitch(80.5, 24.5), stitch(95, 25.5), stitch(79, 33.5), stitch(94, 35)].join(' ')}" stroke="#2a1406" stroke-width="1" stroke-linecap="round"/>`);
+  h.push(`<ellipse cx="66" cy="73" rx="6.5" ry="3.4" fill="#e0606a" opacity="0.16"/><ellipse cx="97" cy="71" rx="4.5" ry="3" fill="#e0606a" opacity="0.14"/>`);
+  // mèches : tempes et front, sous le rebord
+  h.push(blob('M42,47 Q36,58 41,68 Q44,60 50,54 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M55,45 Q56,54 62,57 Q61,51 65,47 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M86,43 Q88,50 93,52 Q92,47 95,44 Z', col.hair, { ink: hairInk }));
+  h.push(blob('M101,46 Q109,51 110,61 Q105,56 100,55 Z', col.hair, { ink: hairInk }));
+  // yeux (trois-quarts : l'œil gauche, plus proche, est plus grand), blancs lumineux, contour sombre
+  h.push(`<path d="M61.5,62 Q69,55.5 78,59.5 Q75.5,67.5 67,67 Q61.5,66 61.5,62 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3" stroke-linejoin="round"/>`);
+  h.push(`<path d="M88,59.5 Q94.5,55 100,57.5 Q98.5,64.5 93,64.5 Q88.5,63.8 88,59.5 Z" fill="#fffef8" stroke="#2a1006" stroke-width="1.3" stroke-linejoin="round"/>`);
+  h.push(`<path d="M63.5,64.5 Q69.5,66.5 76,62.5 M89.5,61.8 Q94.5,63.6 98.6,60" fill="none" stroke="#d6e4ee" stroke-width="1.2" opacity="0.85"/>`);
+  h.push(`<ellipse cx="68" cy="60.2" rx="2.4" ry="1.2" fill="#fff"/><ellipse cx="93.6" cy="58.4" rx="1.7" ry="0.9" fill="#fff"/>`);
+  // sourcils froncés (épais, en biseau vers le nez)
+  h.push(`<path d="M59.5,55.5 Q68,53 79,57 L78.5,58.6 Q68,55.6 60,57.4 Z M87.5,56.5 Q94,52.5 101.5,53 L101.5,54.6 Q94,54.6 88,58 Z" fill="#3a1608" stroke="#3a1608" stroke-width="0.8" stroke-linejoin="round"/>`);
+  // peintures de guerre (couleur des bandages), deux traits sous chaque œil
+  h.push(`<path d="M62,71 L71,69.5 M63.5,74.8 L69.5,73.8 M91,67.5 L98,66.4" stroke="${col.c2}" stroke-width="2.3" stroke-linecap="round" opacity="0.92"/>`);
+  // petit nez de trois-quarts
+  h.push(`<path d="M85.5,66 Q88.5,69.5 85.8,71.6" fill="none" stroke="${skInk}" stroke-width="1.2" stroke-linecap="round"/>`);
+  h.push(`<ellipse cx="85.5" cy="71.4" rx="2.2" ry="1" fill="${shade(col.skin, -0.35)}" opacity="0.35"/>`);
+  // bouche décidée, légèrement tombante
+  h.push(`<path d="M76.5,79.5 Q82,77.6 88.5,79" fill="none" stroke="#2a1006" stroke-width="1.6" stroke-linecap="round"/>`);
+  h.push(`<path d="M78.5,82.3 Q82.5,83.4 86.5,82.3" fill="none" stroke="${skInk}" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/>`);
+  // bandana-casque : il épouse le haut du crâne, rebord replié incliné (trois-quarts)
+  h.push(blob('M37,52 C33,29 51,13 74,13 C97,13 111,29 108.5,50 C100,44 87,41 74,41 C59,41 45,45 37,52 Z', col.c1, { ink: c1Ink, hl: [0.66, 0.24] }));
+  h.push(`<path d="M76,14 Q71,27 73,41 M52,20 Q47,32 47,45" fill="none" stroke="${shade(col.c1, -0.4)}" stroke-width="0.9" opacity="0.45"/>`);
+  h.push(blob('M37,52 C45,45 59,41 74,41 C87,41 100,44 108.5,50 L108,55 C99,49 87,46.2 74,46.2 C59.5,46.2 46.5,49.6 38.4,56.6 Z', shade(col.c1, -0.12), { ink: c1Ink, flat: true, rim: false }));
+  h.push(`<path d="M56,19 Q71,13.5 88,16" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="0.32"/>`);
+  // nœud à l'arrière
+  h.push(blob('M34,38 Q37,31 44,33 Q47,41 41,46 Q35,45 34,38 Z', shade(col.c1, -0.05), { ink: c1Ink, w: 1.3 }));
+  // pièce irrégulière cousue (points en croix), sur l'avant du bandana
+  h.push(blob('M80,20 Q83.5,16.5 87,19 Q91.5,17.5 93,21.5 Q96.5,24 94,27.5 Q95.5,31.5 91.5,32 Q89,36 85.5,33 Q80.5,34.5 80,30.5 Q76,28.5 78.5,25 Q77,21.5 80,20 Z', col.c3, { ink: c3Ink, w: 1.2 }));
+  const stitch = (x: number, y: number) => `M${x - 1.2},${y - 1.2} l2.4,2.4 m0,-2.4 l-2.4,2.4`;
+  h.push(`<path d="${[stitch(80.5, 22.3), stitch(93, 23), stitch(79.5, 30), stitch(92, 31)].join(' ')}" stroke="#2a1406" stroke-width="1" stroke-linecap="round"/>`);
   const head = h.join('');
 
   const parts: Record<ChibiPart, string> = { legB, legF, armB, torso, armF, head };
