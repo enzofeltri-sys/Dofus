@@ -108,7 +108,7 @@ Kit basé sur le **vrai Sacrieur actuel** (DofusDB), réinterprété en temps r�
 
 ### 5.1 Mécanique de classe : la Souffrance
 Dans Dofus, le Sacrieur gagne des **charges de Souffrance** quand il subit des dégâts, ce qui renforce certains sorts (ex. portée +4 d'Attirance/Transposition à Souffrance 6+).
-En temps réel : **jauge de Souffrance** qui monte quand on prend des coups et redescend lentement ; elle augmente les dégâts et active les bonus des sorts. Beaucoup de sorts **volent de la vie** ou **sacrifient des PV** → style risque/récompense, corps à corps.
+En temps réel : **Souffrance = vie perdue** : 1 charge par tranche de 10 % de PV perdus (vie érodée comprise, 10 max), elle redescend seulement quand on se soigne (validé par Enzo) ; elle augmente les dégâts et active les bonus des sorts. Beaucoup de sorts **volent de la vie** ou **sacrifient des PV** → style risque/récompense, corps à corps.
 
 ### 5.2 Sorts et variantes (niveaux de déblocage réels)
 Chaque ligne = un sort **ou** sa variante (on choisit l'un des deux, modifiable hors donjon).
@@ -244,13 +244,26 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - Les taux de Dofus sont calibrés pour le farm : on garde **les proportions entre objets**, avec un **multiplicateur global** réglé pour le rythme d'un run.
 - **Prospection** multiplie les chances.
 
+- **Butin de région (validé)** : dans Dofus, la plupart des ressources et des panoplies viennent des monstres du monde ouvert. Chaque donjon est rattaché à sa région réelle (Crypte de Kardorim → Incarnam) : en plus de leur table, ses monstres ont ≈ 10 % de chances de lâcher un objet du butin des monstres de la région de niveau ±10 (tiré selon leurs vrais taux, équipement plus rare). Tout ce qui existe dans le jeu tombe dans au moins un donjon.
+- **Multiplicateurs (validés)** : ressources des monstres ×0,15, équipement des monstres ×0,05, boss aux taux réels (panoplie Kardorim 20 % par pièce), mini-boss ×3. La Prospection multiplie toutes les chances (100 = ×1).
+
 ### 8.2 Équipement
 - L'équipement est **principalement fabriqué** (métier Artisan).
 - Le boss a une **petite chance** de lâcher directement un objet de sa panoplie (éventuellement d'une rareté supérieure).
 - **Jets aléatoires** dans des fourchettes, comme Dofus (ex. Force 10–15).
 - **Bonus de panoplie** comme Dofus.
 
-### 8.3 Raretés
+- **Niveau requis réel** (panoplie Kardorim : niveau 12). Icônes officielles des objets (DofusDB), dans un cadre au style du jeu.
+- **Départ** : Panoplie du Jeune Aventurier sans le Chapeau (lâché par les Chafers : premier objectif) ; nombre de pièces ajusté par simulation pour garder le calibrage.
+
+### 8.3 Zones de farm (validé, étape 9)
+Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrais monstres du monde ouvert. Garde-fous pour ne pas rendre le jeu facile :
+1. Seulement le butin de la région (taux pleins) : jamais les ressources propres aux donjons ni les panoplies de boss.
+2. XP ×0,5 par minute par rapport au donjon du même niveau.
+3. 1 carte toutes les 2 salles, ni mini-boss ni boss.
+4. Même règle de difficulté que les donjons (vraies stats, aucun ajustement au personnage).
+
+### 8.4 Raretés
 **Commun → Rare → Épique → Légendaire → Mythique.**
 - Chaque rang relève les fourchettes de stats (**≈ +15 % par rang**, modéré : le niveau de l'objet doit toujours compter plus que sa rareté).
 - Légendaire et Mythique ajoutent **une ligne bonus** (effet spécial, ou PA/PM rare).
@@ -293,10 +306,11 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
 3. ✅ **Sorts et boss** (validé, avec passifs et écran épuré) : 6 sorts du Sacrieur niv 10 (données DofusDB traduites, 1 tour = 4 s, vol de vie), Souffrance, Mutilation et Coagulation, cartes entre les salles (sort, amélioration, bonus) avec ordre de priorité, boss Kardorim (Casse-crâne, Craquement d'Os, Appel de Kardorib).
 4. ✅ **Structure d'un run** (validé) : mini-boss en salle 5 (Sergent Chafer d'élite : grade 5, PV ×2,5, charge annoncée ; une carte de plus), camp (écran d'accueil, records), bilan de fin de partie, sauvegarde locale, règle de mort préparée (XP et ressources gardées, butin du boss perdu).
 5. ✅ **Stats, niveaux, répartition des points** (validé : Crypte finie en 3 min 33, niveau 11 en une partie) : fiche complète de Dofus (§6.1), vraies données DofusDB des monstres (résistances, tacle, esquive, XP), XP par monstre gardée même en cas de défaite, table d'XP (§7.7), 5 points par niveau avec les paliers du Sacrieur, écran Caractéristiques au camp (remise à zéro gratuite), XP et montée de niveau dans le bilan.
-6. Drop, inventaire, équipement, panoplies.
+6. Drop (avec butin de région), inventaire, équipement, panoplies.
 7. Artisan (craft).
 8. Raretés, fusion, brisage, forgemagie.
-9. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
+9. Zones de farm (Plaines d'Incarnam d'abord : ≈ 6 familles de monstres à dessiner).
+10. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
 
 ---
 

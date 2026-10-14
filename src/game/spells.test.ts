@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyCard, drawCards, needsReplace, swapSlots } from './cards';
 import { MONSTERS } from './data/monsters';
-import { MUTILATION, PA_MAX, SPELLS, TURN, type SpellId } from './data/spells';
+import { MUTILATION, PA_MAX, SOUFFRANCE, SPELLS, TURN, type SpellId } from './data/spells';
 import { PERSP, STEP, World, type WorldEvent } from './world';
 import { rng } from '../iso';
 
@@ -73,7 +73,9 @@ describe('Sorts du Sacrieur', () => {
     run(w, 0.1);
     expect(w.hero.mutStage).toBe(1);
     expect(w.hero.hp).toBe(hp0 - Math.round(hp0 * 0.1));
-    expect(w.heroStats().puissance).toBe(MUTILATION.power);
+    // le sacrifice de 10 % des PV donne aussi 1 charge de Souffrance
+    expect(w.hero.souffrance).toBe(1);
+    expect(w.heroStats().puissance).toBe(MUTILATION.power + SOUFFRANCE.powerPerCharge);
     run(w, TURN + 0.1);
     expect(w.hero.mutStage).toBe(2);
     w.hero.hp = Math.floor(w.hero.maxHp * 0.3);
@@ -83,16 +85,18 @@ describe('Sorts du Sacrieur', () => {
     expect(w.hero.shield).toBe(Math.round((w.hero.maxHp * 15) / 100));
   });
 
-  it('la Souffrance monte quand on est touché et redescend ensuite', () => {
-    const { w, m } = duel(60, []);
-    Object.assign(m, { cd: 0 });
-    run(w, 2);
-    expect(w.hero.souffrance).toBeGreaterThan(0);
-    m.hp = 0;
-    m.state = 'dead';
-    const s = w.hero.souffrance;
-    run(w, TURN + 0.2);
-    expect(w.hero.souffrance).toBe(s - 1);
+  it('la Souffrance suit la vie : 1 charge par tranche de 10 % de PV perdus, elle ne retombe pas toute seule', () => {
+    const { w } = duel(400, []);
+    const max = w.hero.maxHp;
+    w.hero.hp = Math.round(max * 0.95);
+    run(w, 0.1);
+    expect(w.hero.souffrance).toBe(0);
+    w.hero.hp = Math.round(max * 0.62);
+    run(w, TURN * 2);
+    expect(w.hero.souffrance).toBe(3);
+    w.healHero(max);
+    run(w, 0.1);
+    expect(w.hero.souffrance).toBe(0);
   });
 });
 

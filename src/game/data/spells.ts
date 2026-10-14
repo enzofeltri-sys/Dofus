@@ -82,7 +82,7 @@ export const SPELLS: Record<SpellId, SpellDef> = {
   attirance: {
     id: 'attirance', name: 'Attirance', element: null, level: 5, pa: 2, range: [2 * CELL, 8 * CELL], cooldown: TURN / 2,
     kind: { type: 'pull', cells: 7 },
-    text: 'Attire un ennemi éloigné (2 à 8 cases) jusqu’à toi. Souffrance 6+ : portée +4.',
+    text: 'Attire un ennemi éloigné (2 à 8 cases) jusqu’à toi. Souffrance 6+ (60 % de PV perdus) : portée +4.',
   },
   // Mutilation (12737) : 2 PA, sur soi, 1/tour ; -10 % PV contre +50 Puissance (ramené à +30 en temps réel), paliers à chaque tour ;
   // relancé → Coagulation : bouclier de 5 / 15 / 25 % des PV max selon le palier (1 tour).
@@ -98,8 +98,8 @@ export const MUTILATION = { power: 30, sacrifice: 0.1, maxStage: 3, shield: [5, 
 /** Supplice : soin des attaquants de la cible marquée (% des dommages). */
 export const SUPPLICE_MARK = 0.2;
 
-/** Souffrance : charges gagnées en prenant des coups. */
-export const SOUFFRANCE = { max: 10, powerPerCharge: 2, decayEvery: TURN, pullBonusAt: 6, pullBonusCells: 4 };
+/** Souffrance : 1 charge par tranche de 10 % de PV perdus (elle suit la vie, ne retombe pas toute seule). */
+export const SOUFFRANCE = { max: 10, powerPerCharge: 2, pullBonusAt: 6, pullBonusCells: 4 };
 
 /** Sorts accessibles à un niveau donné (le grimoire). */
 export const spellsForLevel = (level: number): SpellDef[] => Object.values(SPELLS).filter((s) => s.level <= level);

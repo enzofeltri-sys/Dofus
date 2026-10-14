@@ -133,8 +133,8 @@ export interface Hero {
   pa: number;
   /** Délai avant le prochain sort. */
   castCd: number;
+  /** Souffrance : 1 charge par tranche de 10 % de PV perdus (vie érodée comprise). */
   souffrance: number;
-  souffranceT: number;
   /** Mutilation : palier (0 = inactive) et délai avant le palier suivant. */
   mutStage: number;
   mutT: number;
@@ -466,12 +466,7 @@ export class World {
     h.pa = Math.min(PA_MAX, h.pa + PA_REGEN * STEP);
     h.castCd = Math.max(0, h.castCd - STEP);
     for (const sl of this.run.slots) if (sl) sl.cd = Math.max(0, sl.cd - STEP);
-    // la Souffrance retombe d'une charge par tour sans coup reçu
-    h.souffranceT += STEP;
-    if (h.souffrance > 0 && h.souffranceT >= SOUFFRANCE.decayEvery) {
-      h.souffrance--;
-      h.souffranceT = 0;
-    }
+    h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
     // bouclier de Coagulation
     if (h.shieldT > 0) {
       h.shieldT -= STEP;
@@ -809,8 +804,7 @@ export class World {
     // Épines : une partie des dégâts revient à l'attaquant
     const thorns = Math.floor(dmg * this.passive('epines'));
     if (thorns > 0 && m.state !== 'dead') this.damageMonster(m, thorns, false);
-    h.souffrance = Math.min(SOUFFRANCE.max, h.souffrance + 1);
-    h.souffranceT = 0;
+    h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
     h.hurtT = 0.25;
     h.invulnT = 0.35;
     this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: hit.crit });
@@ -888,7 +882,13 @@ export class World {
 }
 
 function freshCombat() {
-  return { pa: PA_MAX, castCd: 0, souffrance: 0, souffranceT: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1 };
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1 };
+}
+
+/** Charges de Souffrance : 1 par tranche de 10 % de PV perdus, sur les PV max avant érosion. */
+export function souffranceFor(hp: number, fullHp: number): number {
+  const lost = 1 - Math.max(0, hp) / Math.max(1, fullHp);
+  return Math.max(0, Math.min(SOUFFRANCE.max, Math.floor(lost * 10 + 1e-9)));
 }
 
 /** Le coup touche-t-il une faiblesse (résistance négative) ou une résistance de la cible ? */
