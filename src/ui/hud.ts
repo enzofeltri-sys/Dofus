@@ -4,6 +4,7 @@ import { COLOR_SLOTS, SACRI_COLORS, type SacriColors } from '../art/sacrieur-chi
 import { ICONS } from './grimoire-icons';
 import type { SheetView } from './sheet-view';
 import type { InvView, ItemDetail } from './inv-view';
+import type { CraftView } from './craft-view';
 
 /** Une case de sort telle qu'affichée (null = case vide). */
 export type SlotView = { icon: string; name: string; pa: number } | null;
@@ -76,6 +77,7 @@ export class Hud {
           <button type="button" class="gr-btn magic sm sheet-btn">Caractéristiques<span class="badge gr-num" hidden></span></button>
           <button type="button" class="gr-btn turquoise sm inv-btn">Inventaire<span class="badge gr-num" hidden></span></button>
           <button type="button" class="gr-btn sm look-btn">Apparence</button>
+          <button type="button" class="gr-btn leaf sm craft-btn">Artisan<span class="badge gr-num" hidden></span></button>
         </div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
@@ -83,7 +85,7 @@ export class Hud {
           <button type="button" class="gr-btn enter">Entrer</button>
         </div>
         <div class="camp-soon"><span class="gr-label">Bientôt au camp</span>
-          <div><span class="gr-chip">${ICONS.pa.svg}Grimoire</span><span class="gr-chip">${ICONS.artisan.svg}Artisan</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
+          <div><span class="gr-chip">${ICONS.pa.svg}Grimoire</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
         </div>
       </div>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
@@ -118,6 +120,12 @@ export class Hud {
         <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button></div>
         <div class="inv-grid"></div>
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
+      </div>
+      <div class="atelier gr-paper" hidden>
+        <div class="sh-head"><div><h2 class="gr-h2">Artisan</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="at-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
+        <div class="gr-tabs at-tabs"><button type="button" class="gr-tab on" data-t="0">Disponibles</button><button type="button" class="gr-tab" data-t="1">Toutes les recettes</button></div>
+        <div class="at-list"></div>
       </div>
       <div class="look gr-paper" hidden>
         <div class="sh-head"><h2 class="gr-h2">Apparence</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
@@ -311,7 +319,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -321,6 +329,7 @@ export class Hud {
     act: { invest(id: string, n: number): void; reset(): void },
     inv?: InvHooks,
     look?: { get(): SacriColors; set(c: SacriColors): void },
+    work?: CraftHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const lookBtn = el.querySelector<HTMLButtonElement>('.look-btn')!;
@@ -330,6 +339,21 @@ export class Hud {
       await this.appearance(look);
     };
     if (look) this.setHeroLook(look.get());
+    const craftBtn = el.querySelector<HTMLButtonElement>('.craft-btn')!;
+    craftBtn.hidden = !work;
+    const craftBadge = () => {
+      const b = craftBtn.querySelector<HTMLElement>('.badge')!;
+      const n = work ? work.get().rows.filter((r) => r.ok).length : 0;
+      b.hidden = n <= 0;
+      b.textContent = String(n);
+    };
+    craftBadge();
+    craftBtn.onclick = async () => {
+      if (!work) return;
+      await this.atelier(work);
+      craftBadge();
+      refresh();
+    };
     const refresh = () => {
       const v = sheet();
       el.querySelector('.lvl')!.textContent = `Niveau ${v.level}`;
@@ -461,6 +485,63 @@ export class Hud {
       el.querySelector<HTMLButtonElement>('.close')!.onclick = () => {
         el.hidden = true;
         this.setHeroLook(h.get());
+        resolve();
+      };
+    });
+  }
+
+  private atTab = 0;
+  private atOpen: number | null = null;
+  /** Atelier de l'Artisan : recettes, ingrédients possédés, fabrication. */
+  atelier(h: CraftHooks): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.atelier')!;
+    const render = () => {
+      const v = h.get();
+      el.querySelector('.sh-head .lvl')!.textContent = `Niveau ${v.level}`;
+      setXpBar(el.querySelector('.at-xp')!, { level: v.level, xpInto: v.into, xpNeed: v.need });
+      el.querySelectorAll<HTMLElement>('.at-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.atTab));
+      const rows = this.atTab === 0 ? v.rows.filter((r) => r.ok) : v.rows;
+      el.querySelector('.at-list')!.innerHTML = rows.length ? rows.map((r) => `
+        <div class="at-row ${r.ok ? '' : 'off'} ${this.atOpen === r.id ? 'open' : ''}" data-id="${r.id}">
+          <div class="at-ico">${r.icon}</div>
+          <div class="at-main">
+            <b>${r.name}</b><small>${r.sub}</small>
+            <div class="at-ings">${r.ingredients.map((g) => `<span class="${g.have >= g.need ? 'ok' : 'no'}" title="${g.name}">${g.icon}<i class="gr-num">${g.have}/${g.need}</i></span>`).join('')}</div>
+            ${this.atOpen === r.id ? `<div class="at-detail">${r.lines.map((l) => `<div>${l}</div>`).join('')}${r.set ? `<em>${r.set}</em>` : ''}${r.lines.length ? '' : '<em>Ressource intermédiaire, sert à d’autres recettes.</em>'}</div>` : ''}
+          </div>
+          <div class="at-btns">${r.ok
+            ? `<button type="button" class="gr-btn leaf sm mk" data-n="1">Fabriquer</button>${r.max > 1 ? `<button type="button" class="gr-btn ghost sm mk" data-n="${r.max}">×${r.max}</button>` : ''}`
+            : `<span class="at-why">${r.reason}</span>`}</div>
+        </div>`).join('')
+        : `<p class="inv-empty">${this.atTab === 0 ? 'Rien à fabriquer pour l’instant : il te faut plus de ressources (onglet « Toutes les recettes » pour voir ce qu’il manque).' : 'Aucune recette.'}</p>`;
+    };
+    el.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      const tab = t.closest<HTMLElement>('.at-tabs .gr-tab');
+      if (tab) {
+        this.atTab = Number(tab.dataset.t);
+        render();
+        return;
+      }
+      const mk = t.closest<HTMLElement>('.mk');
+      const row = t.closest<HTMLElement>('.at-row');
+      if (mk && row) {
+        const msg = h.craft(Number(row.dataset.id), Number(mk.dataset.n));
+        this.toast(msg, 1800);
+        render();
+        return;
+      }
+      if (row) {
+        const id = Number(row.dataset.id);
+        this.atOpen = this.atOpen === id ? null : id;
+        render();
+      }
+    };
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        el.hidden = true;
         resolve();
       };
     });
@@ -630,4 +711,11 @@ function randomColors(): SacriColors {
     c3: hsl((accent + r(20, 60)) % 360, r(70, 95), r(50, 62)),
     c4: hsl(r(15, 35), r(30, 55), r(20, 35)),
   };
+}
+
+/** Ce dont l'atelier a besoin (fourni par le jeu). */
+export interface CraftHooks {
+  get(): CraftView;
+  /** Fabrique `n` fois ; renvoie le message à afficher. */
+  craft(id: number, n: number): string;
 }

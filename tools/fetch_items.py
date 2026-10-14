@@ -146,6 +146,50 @@ for sa in REGION_SUBAREAS:
 for iid in EXTRA_ITEMS:
     add_item(iid)
 
+# 2 bis) Recettes : équipements (hors armes pour l'instant) et ressources intermédiaires dont TOUS les ingrédients
+# s'obtiennent dans le jeu (butin, ou eux-mêmes fabricables). On itère jusqu'à stabilité.
+obtainable = {iid for iid, it in items.items() if it} | {iid for iid, _ in sum(dungeon.values(), [])} | {iid for iid, _, _ in region}
+obtainable = {i for i in obtainable if items.get(i)}
+recipes = {}
+candidates = {}
+frontier = set(obtainable)
+seen_ing = set()
+while frontier:
+    nxt = set()
+    for ing in frontier:
+        if ing in seen_ing:
+            continue
+        seen_ing.add(ing)
+        for r in get(f'/recipes?ingredientIds={ing}&$limit=50').get('data', []):
+            candidates[r['resultId']] = r
+    changed = True
+    while changed:
+        changed = False
+        for rid, r in candidates.items():
+            if rid in recipes:
+                continue
+            ings = r.get('ingredientIds', [])
+            if not ings or not all(i in obtainable for i in ings):
+                continue
+            d = get(f'/items/{rid}')
+            sup = d['type'].get('superTypeId')
+            if sup != RESOURCE_SUPER and (sup not in SLOT or SLOT[sup] == 'arme'):
+                continue
+            if not add_item(rid):
+                continue
+            recipes[rid] = {'id': rid, 'level': d['level'], 'ingredients': list(zip(ings, r.get('quantities', [])))}
+            obtainable.add(rid)
+            nxt.add(rid)
+            changed = True
+    frontier = nxt
+# on ne garde une ressource intermédiaire que si elle sert à une recette d'équipement gardée
+def useful(rid, depth=0):
+    it = items[rid]
+    if it['slot']:
+        return True
+    return depth < 4 and any(rid in [i for i, _ in r['ingredients']] and useful(r['id'], depth + 1) for r in recipes.values())
+recipes = {k: v for k, v in recipes.items() if useful(k)}
+
 # les objets des panoplies rencontrées (pour afficher la panoplie complète)
 for s in list(sets.values()):
     for iid in s['items']:
@@ -198,6 +242,14 @@ for iid, p, name in region:
     out.append(f"  [{iid}, {p}, {json.dumps(name, ensure_ascii=False)}],")
 out.append('];')
 open(OUT_TS, 'w').write('\n'.join(out) + '\n')
+
+out = ['/** Recettes réelles (Dofus 3) fabricables avec ce que le jeu permet d\'obtenir : objet, niveau, ingrédients [objet, quantité]. */',
+       'export const RECIPE_DATA: { id: number; level: number; ingredients: [number, number][] }[] = [']
+for r in sorted(recipes.values(), key=lambda x: (x['level'], x['id'])):
+    out.append(f"  {{ id: {r['id']}, level: {r['level']}, ingredients: {json.dumps([list(x) for x in r['ingredients']])} }},")
+out.append('];')
+open(OUT_TS, 'a').write('\n'.join(out) + '\n')
+print(f'{len(recipes)} recettes', file=sys.stderr)
 
 unknown = sorted({e for e, v in _effects.items() if CHAR.get(v.get('characteristic')) is None})
 print(f'{len(kept)} objets, {len(sets)} panoplies, {len(region)} lignes de butin de région', file=sys.stderr)

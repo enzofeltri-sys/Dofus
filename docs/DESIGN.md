@@ -282,6 +282,14 @@ Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrai
 - Les recettes se débloquent avec le niveau du métier ; chaque fabrication donne de l'XP de métier.
 - Fabrication : surtout du **Commun**, avec une chance de **craft critique** (Rare) qui augmente avec le niveau d'Artisan.
 
+**Fait à l'étape 7 :**
+- **Vraies recettes de Dofus 3** (DofusDB) : 105 recettes, toutes faisables avec ce qui tombe dans le jeu (donjon + butin de région), y compris les **ressources intermédiaires** (Planche Agglomérée, Ferrite…). Panoplie de Kardorim fabricable ; 7 autres panoplies d'Incarnam ; Aventurier sauf l'Anneau (il demande des Graines de Sésame, introuvables pour l'instant).
+- Pas encore d'armes, de potions, de nourriture ni de cosmétiques.
+- **Niveau d'Artisan ≥ niveau de l'objet**.
+- XP par fabrication : 20 + 10 × niveau de la recette, en baisse de 15 % par niveau au-delà de 10 niveaux d'écart. XP du niveau n → n+1 : ≈ 8 × n^1,5.
+- **Atelier au camp** : onglets « Disponibles » et « Toutes les recettes », ingrédients possédés / requis, fourchettes de stats, bouton ×max.
+- L'objet fabriqué est **Commun**, avec des jets aléatoires dans ses vraies fourchettes. Le craft critique arrive à l'étape 8.
+
 ### 9.2 Fusion (fait monter le **plafond** : la rareté)
 - Commun → Rare : **3 objets identiques**.
 - Au-delà : **1 objet + 2 objets de la même panoplie et du même rang**.
@@ -312,7 +320,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
 4. ✅ **Structure d'un run** (validé) : mini-boss en salle 5 (Sergent Chafer d'élite : grade 5, PV ×2,5, charge annoncée ; une carte de plus), camp (écran d'accueil, records), bilan de fin de partie, sauvegarde locale, règle de mort préparée (XP et ressources gardées, butin du boss perdu).
 5. ✅ **Stats, niveaux, répartition des points** (validé : Crypte finie en 3 min 33, niveau 11 en une partie) : fiche complète de Dofus (§6.1), vraies données DofusDB des monstres (résistances, tacle, esquive, XP), XP par monstre gardée même en cas de défaite, table d'XP (§7.7), 5 points par niveau avec les paliers du Sacrieur, écran Caractéristiques au camp (remise à zéro gratuite), XP et montée de niveau dans le bilan.
 6. 🔶 **Drop (avec butin de région), inventaire, équipement, panoplies** (à valider en jeu) : vraies tables de la Crypte et butin d'Incarnam (34 objets, icônes officielles), jets aléatoires, niveau requis, bonus de panoplie, inventaire au camp (Sacrieur et ses cases, fiche d'objet avec comparaison), butin qui vole vers le Sacrieur, butin au bilan (celui du boss perdu en cas de défaite). Départ : Panoplie du Jeune Aventurier sans le Chapeau (simulation : difficulté équivalente au calibrage).
-7. Artisan (craft).
+7. 🔶 **Artisan** (à valider en jeu) : atelier au camp, 105 vraies recettes, ressources intermédiaires, XP et niveaux de métier sauvegardés (§9.1).
 8. Raretés, fusion, brisage, forgemagie.
 9. Zones de farm (Plaines d'Incarnam d'abord : ≈ 6 familles de monstres à dessiner).
 10. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.

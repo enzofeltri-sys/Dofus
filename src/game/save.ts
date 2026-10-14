@@ -28,6 +28,8 @@ export interface SaveData {
   inventory: Inventory;
   /** Couleurs du Sacrieur (peau, cheveux, 4 couleurs de vêtements). */
   appearance: SacriColors;
+  /** XP totale du métier d'Artisan. */
+  jobXp: number;
 }
 
 /** Ce qu'une partie rapporte. */
@@ -55,7 +57,7 @@ export interface RunResult {
 const KEY = 'dofus-enzo-save';
 
 export const emptySave = (): SaveData => ({
-  v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(), appearance: { ...SACRI_COLORS },
+  v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(), appearance: { ...SACRI_COLORS }, jobXp: 0,
 });
 
 export function loadSave(): SaveData {

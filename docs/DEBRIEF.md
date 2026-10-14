@@ -85,7 +85,7 @@
 
 - **Zones de farm (étape 9)** : une zone par région, 5 salles en vagues avec les vrais monstres du monde ouvert. Garde-fous pour ne pas rendre le jeu trop facile : seulement le butin de la région (jamais celui des donjons ni des boss), XP ×0,5 par minute, 1 carte toutes les 2 salles, ni mini-boss ni boss, aucune adaptation au personnage.
 - **Difficulté jamais ajustée au personnage** : un perso du niveau du donjon avec un équipement de son niveau doit le trouver difficile mais faisable ; 10 niveaux en dessous, quasi impossible ; au-dessus, il devient un donjon de farm.
-- **Artisan (étape 7)** : un seul métier, niveaux 1 à 200, fabrique tout l'équipement ; craft critique (Rare) selon le niveau du métier.
+- **Artisan (étape 7, fait)** : un seul métier, niveaux 1 à 200 ; atelier au camp avec 105 vraies recettes de Dofus 3, toutes faisables avec le butin du jeu (pas encore d’armes) ; objets Commun à jets aléatoires ; craft critique (Rare) à l’étape 8.
 - **Raretés (étape 8)** : Commun → Rare → Épique → Légendaire → Mythique (≈ +15 % par rang). Fusion (3 objets identiques, puis objets de la même panoplie), brisage en runes, forgemagie avec les vraies règles (puits, exos).
 
 ---

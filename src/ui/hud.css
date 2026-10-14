@@ -242,7 +242,7 @@ html, body {
 }
 
 /* ---------- Message central ---------- */
-.toast-wrap { position: absolute; left: 0; right: 0; top: 33%; text-align: center; }
+.toast-wrap { position: absolute; left: 0; right: 0; top: 33%; text-align: center; z-index: 60; pointer-events: none; }
 .toast[hidden] { display: none; }
 .toast.show { animation: toastIn 1.6s var(--ease-pop) both; }
 @keyframes toastIn {
@@ -512,3 +512,44 @@ html, body {
 .look-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
 .look-row input[type=color]::-webkit-color-swatch { border: 2px solid var(--ink); border-radius: 10px; }
 .look-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* ---------- Atelier de l'Artisan ---------- */
+.camp .craft-btn { position: relative; }
+.camp .craft-btn[hidden] { display: none; }
+.camp .craft-btn .badge {
+  position: absolute; top: -9px; right: -9px; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px;
+  font-size: 14px; line-height: 24px; color: var(--ink); background: var(--gold); box-shadow: inset 0 0 0 2px var(--ink);
+}
+.camp .craft-btn .badge[hidden] { display: none; }
+.atelier {
+  position: absolute; inset: 0; z-index: 45; pointer-events: auto; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 18px);
+}
+.atelier[hidden] { display: none; }
+.atelier > * { width: min(440px, 100%); margin: 0 auto; }
+.atelier .sh-head .lvl { --c: #bfe3a0; }
+.at-xp { width: min(440px, 100%); }
+.at-tabs .gr-tab { font-size: var(--t-sm); padding: 7px 2px 8px; }
+.at-list { margin-top: -10px; padding: 8px; border-radius: 0 0 12px 12px; background: var(--parchment); box-shadow: inset 0 0 0 2px var(--ink); display: flex; flex-direction: column; gap: 6px; }
+.at-row {
+  display: grid; grid-template-columns: 46px 1fr auto; gap: 8px; align-items: center; cursor: pointer;
+  padding: 6px 8px; border-radius: 12px; background: #fffaf0; box-shadow: inset 0 0 0 2px rgba(59,36,20,.25);
+}
+.at-row.off { opacity: .62; }
+.at-row.open { box-shadow: inset 0 0 0 2px var(--leaf); }
+.at-ico { width: 46px; height: 46px; padding: 5px; border-radius: 10px; background: var(--parchment); box-shadow: inset 0 0 0 2px var(--r-commun); }
+.at-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.at-main b { font-weight: 800; line-height: 1.15; }
+.at-main small { font-size: var(--t-xs); color: var(--ink-soft); font-weight: 700; }
+.at-ings { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.at-ings span { display: inline-flex; align-items: center; gap: 2px; }
+.at-ings img { width: 22px; height: 22px; }
+.at-ings i { font-style: normal; font-size: 12px; }
+.at-ings .ok i { color: var(--leaf-dark); }
+.at-ings .no i { color: var(--coral-dark); }
+.at-detail { margin-top: 4px; font-size: var(--t-sm); font-weight: 700; display: flex; flex-direction: column; gap: 1px; }
+.at-detail em { color: var(--ink-soft); font-weight: 600; }
+.at-btns { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.at-btns .gr-btn { padding: 5px 10px 7px; font-size: var(--t-sm); }
+.at-why { font-size: var(--t-xs); font-weight: 800; color: var(--coral-dark); max-width: 84px; text-align: right; }

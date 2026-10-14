@@ -22,6 +22,8 @@ import { equip, gearStats, isWorn, unequip } from './game/inventory';
 import { equipmentDetail, invView, resourceDetail } from './ui/inv-view';
 import { item, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl } from './ui/item-icons';
+import { craft, recipeFor } from './game/craft';
+import { craftView } from './ui/craft-view';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
@@ -672,6 +674,19 @@ async function main() {
     set(c) {
       save = { ...save, appearance: c };
       storeSave(save);
+    },
+  }, {
+    get: () => craftView({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp }),
+    craft(id, n) {
+      const r = recipeFor(id);
+      if (!r) return '';
+      const res = craft({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp }, r, n, Math.random);
+      save = { ...save, resources: res.workshop.resources, inventory: res.workshop.inventory, jobXp: res.workshop.jobXp };
+      for (const uid of res.made) freshItems.add(uid);
+      storeSave(save);
+      const name = item(id).name;
+      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
+      return `${res.count > 1 ? `${res.count} × ` : ''}${name} · +${res.xp} XP${up}`;
     },
   }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
