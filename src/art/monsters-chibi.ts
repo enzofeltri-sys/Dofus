@@ -72,125 +72,111 @@ export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
 
   // Cape rouge du sergent, derrière tout
   if (kind === 'sergent') {
-    P.cape.push(blob('M84,74 Q108,88 118,128 L108,124 L104,136 L95,126 L86,134 Q84,104 78,82 Z', '#b22a26', { ink: '#3e0c0a' }));
-    P.cape.push(`<path d="M88,84 Q100,104 102,124" fill="none" stroke="#5a0e0c" stroke-width="1" opacity="0.6"/>`);
+    P.cape.push(blob('M86,70 Q112,86 120,132 L110,127 L105,140 L96,129 L87,137 Q86,104 80,78 Z', '#9a2420', { ink: '#3e0c0a' }));
+    P.cape.push(`<path d="M90,82 Q102,104 104,128" fill="none" stroke="#5a0e0c" stroke-width="1" opacity="0.6"/>`);
   }
 
-  // Bras arrière (pend le long du flanc) et main osseuse
-  P.armB.push(bone([[98, 86], [104, 98], [103, 110]], 5.2));
-  P.armB.push(blob('M98,110 Q103,106 108,110 Q109,116 103,117 Q98,116 98,110 Z', BONE, { ink: BONE_INK, rim: false }));
+  // Bras arrière fin, pend le long du flanc
+  P.armB.push(bone([[97, 84], [104, 100], [101, 114]], 4.2));
+  P.armB.push(blob('M96,114 Q101,110 106,114 Q107,119 101,120 Q96,119 96,114 Z', BONE, { ink: BONE_INK, rim: false }));
 
-  // Bouclier du piquier (porté par le bras arrière)
-  if (kind === 'piquier') {
-    P.shield.push(blob('M94,80 Q112,76 124,82 Q126,106 112,124 Q98,116 94,98 Z', '#7a8a2a', { ink: '#262c0a' }));
-    P.shield.push(blob('M101,88 Q111,86 118,89 Q117,102 110,112 Q103,106 101,96 Z', shade('#7a8a2a', -0.12), { ink: '#262c0a', flat: true, rim: false }));
-    P.shield.push(blob('M106,92 L114,91 L110,104 Z', GOLD, { ink: GOLD_INK, w: 1.2, rim: false }));
-    P.shield.push(`<circle cx="99" cy="85" r="1.6" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="0.7"/><circle cx="119" cy="86" r="1.6" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="0.7"/>`);
-  }
-
-  // Jambes : os courts, genouillère ronde, grosse botte cerclée d'or
+  // Jambes fines, genouillère ronde, grosse botte sombre cerclée d'or
   const leg = (arr: string[], hipX: number, kneeX: number, bootX: number) => {
-    arr.push(bone([[hipX, 122], [kneeX, 138], [bootX + 4, 150]], 5.4));
-    arr.push(blob(`M${kneeX - 6.5},${138} a6.5,6 0 1,0 13,0 a6.5,6 0 1,0 -13,0 Z`, IRON, { ink: '#26242c' }));
-    const b = `M${bootX - 12},${152} Q${bootX - 13},${146} ${bootX - 4},${145} L${bootX + 10},${145} Q${bootX + 15},${147} ${bootX + 15},${156} L${bootX + 15},${172} Q${bootX + 14},${177} ${bootX + 8},${177} L${bootX - 15},${177} Q${bootX - 22},${176} ${bootX - 21},${170} Q${bootX - 19},${163} ${bootX - 12},${161} Z`;
+    arr.push(bone([[hipX, 118], [kneeX, 138], [bootX + 4, 150]], 4.4));
+    arr.push(blob(`M${kneeX - 6},138 a6,5.6 0 1,0 12,0 a6,5.6 0 1,0 -12,0 Z`, IRON, { ink: '#26242c' }));
+    const b = `M${bootX - 11},152 Q${bootX - 12},146 ${bootX - 4},145 L${bootX + 9},145 Q${bootX + 14},147 ${bootX + 14},156 L${bootX + 14},172 Q${bootX + 13},177 ${bootX + 7},177 L${bootX - 15},177 Q${bootX - 22},176 ${bootX - 21},170 Q${bootX - 19},163 ${bootX - 11},161 Z`;
     arr.push(blob(b, BOOT, { ink: '#1c1a20' }));
-    arr.push(`<path d="M${bootX - 13},${152} Q${bootX + 1},${149} ${bootX + 15},${152}" fill="none" stroke="${GOLD_INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M${bootX - 13},${152} Q${bootX + 1},${149} ${bootX + 15},${152}" fill="none" stroke="${GOLD}" stroke-width="2.8" stroke-linecap="round"/>`);
-    arr.push(`<path d="M${bootX - 18},${172} L${bootX + 13},${172}" stroke="#1c1a20" stroke-width="1" opacity="0.6"/>`);
+    arr.push(`<path d="M${bootX - 12},152 Q${bootX + 1},149 ${bootX + 14},152" fill="none" stroke="${GOLD_INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M${bootX - 12},152 Q${bootX + 1},149 ${bootX + 14},152" fill="none" stroke="${GOLD}" stroke-width="2.8" stroke-linecap="round"/>`);
   };
-  leg(P.legB, 94, 99, 98);
-  leg(P.legF, 80, 74, 70);
+  leg(P.legB, 94, 100, 99);
+  leg(P.legF, 80, 72, 68);
 
-  // Bassin et pagne effiloché
-  P.pelvis.push(blob('M74,106 Q86,100 98,106 L96,116 Q86,120 76,116 Z', BONE, { ink: BONE_INK }));
-  const ragCol = kind === 'furtif' ? '#3e3a52' : '#7a6442';
-  P.pelvis.push(blob('M71,108 Q86,104 101,108 L103,120 L97,117 L94,127 L88,118 L84,128 L79,118 L73,125 L72,117 L68,121 Z', ragCol, { ink: shade(ragCol, -0.65) }));
+  // Bassin osseux
+  P.pelvis.push(blob('M74,104 Q86,98 99,104 L96,116 Q86,121 77,116 Z', BONE, { ink: BONE_INK }));
+  P.pelvis.push(`<path d="M80,108 a3,2.6 0 1,0 6,0 a3,2.6 0 1,0 -6,0 M88,108 a3,2.6 0 1,0 6,0 a3,2.6 0 1,0 -6,0" fill="#5a4a36" opacity="0.55"/>`);
 
-  // Colonne et petite cage thoracique ronde
-  P.chest.push(bone([[78, 66], [84, 80], [87, 96], [86, 108]], 4.2));
+  // Colonne voûtée (le dos se courbe, la tête part en avant) et cage thoracique
+  P.chest.push(bone([[88, 106], [92, 94], [90, 80], [82, 70], [72, 64]], 4));
   for (let i = 0; i < 4; i++) {
-    const y = 75 + i * 7.5, w = 15 - i * 2.2, cx = 85 + i * 0.6;
-    const ribF = `M${cx},${y} Q${cx - w - 3},${y - 1} ${cx - w + 2},${y + 7}`;
-    const ribB = `M${cx},${y} Q${cx + w * 0.75 + 2},${y} ${cx + w * 0.65},${y + 6}`;
+    const y = 74 + i * 7, w = 14 - i * 2, cx = 89 - i * 0.2;
+    const ribF = `M${cx},${y} Q${cx - w - 3},${y + 1} ${cx - w + 2},${y + 8}`;
+    const ribB = `M${cx},${y} Q${cx + w * 0.6 + 2},${y + 1} ${cx + w * 0.5},${y + 6}`;
     for (const d of [ribB, ribF]) {
-      P.chest.push(`<path d="${d}" fill="none" stroke="${BONE_INK}" stroke-width="5.6" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${BONE}" stroke-width="3" stroke-linecap="round"/>`);
+      P.chest.push(`<path d="${d}" fill="none" stroke="${BONE_INK}" stroke-width="5.2" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${BONE}" stroke-width="2.7" stroke-linecap="round"/>`);
     }
   }
-  if (kind === 'sergent') {
-    // plastron rouge à rivets d'or
-    P.chest.push(blob('M70,74 Q86,68 100,74 Q102,92 94,104 Q84,108 76,104 Q68,92 70,74 Z', '#a8302a', { ink: '#3e0c0a' }));
-    P.chest.push(`<path d="M72,79 Q86,74 99,79" fill="none" stroke="${GOLD}" stroke-width="2.2"/><circle cx="78" cy="88" r="1.6" fill="${GOLD}"/><circle cx="92" cy="88" r="1.6" fill="${GOLD}"/>`);
-  }
-  if (kind === 'furtif') {
-    // écharpe sombre qui flotte
-    P.chest.push(blob('M70,66 Q86,62 96,68 L94,76 Q84,72 72,74 Z', '#3e3a52', { ink: '#141220' }));
-    P.chest.push(blob('M94,68 Q108,66 116,74 L110,76 L114,82 Q104,78 94,76 Z', '#3e3a52', { ink: '#141220' }));
-  }
-
-  // Bras avant tendu vers la gauche, tenant l'arme
-  P.armF.push(bone([[74, 86], [63, 96], [53, 98]], 5.2));
+  // Grand bouclier rectangulaire du piquier, tenu devant lui
   if (kind === 'piquier') {
-    // lance : hampe en bois, fer large
-    P.armF.push(`<path d="M68,124 L22,28" stroke="#2e1e10" stroke-width="7" stroke-linecap="round"/><path d="M68,124 L22,28" stroke="#9a6a3a" stroke-width="4" stroke-linecap="round"/>`);
-    P.armF.push(blob('M14,8 Q24,14 27,28 L21,33 L15,30 Q11,18 14,8 Z', '#e8eef2', { ink: '#3a4450' }));
-    P.armF.push(blob('M17,30 L26,26 L28,31 L19,35 Z', GOLD, { ink: GOLD_INK, w: 1.2, rim: false }));
-  } else if (kind === 'furtif') {
-    // dague courbe
-    P.armF.push(blob('M48,96 Q34,90 26,78 Q34,82 50,92 Z', '#7a8090', { ink: '#1c1e26' }));
-    P.armF.push(`<path d="M30,82 Q38,88 48,93" fill="none" stroke="#eef2f6" stroke-width="1.2" opacity="0.9"/>`);
-    P.armF.push(blob('M46,92 L52,90 L54,99 L48,101 Z', '#2e3036', { ink: '#121316', rim: false }));
-  } else {
-    // cimeterre (le sergent a une lame plus large et dorée)
-    const big = kind === 'sergent';
-    const blade = big
-      ? 'M50,98 L34,88 Q10,76 2,86 Q2,102 22,106 Q36,108 50,104 Z'
-      : 'M50,98 L36,90 Q16,80 8,86 Q6,98 22,102 Q34,104 50,102 Z';
-    P.armF.push(blob(blade, big ? '#6a6e7a' : '#5a5e68', { ink: '#16171a' }));
-    P.armF.push(`<path d="${big ? 'M5,88 Q4,100 22,104 Q34,106 48,103' : 'M10,88 Q8,98 22,100 Q34,102 48,101'}" fill="none" stroke="#eef2f4" stroke-width="2.2" stroke-linecap="round"/>`);
-    P.armF.push(blob('M47,92 L56,90 L58,106 L49,108 Z', big ? GOLD : '#2e3036', { ink: big ? GOLD_INK : '#121316', rim: false }));
+    P.shield.push(blob('M26,78 L60,72 L64,146 L30,152 Z', '#6a4424', { ink: '#2a1808' }));
+    P.shield.push(blob('M31,83 L56,78.5 L59.5,141 L34.5,146 Z', '#7a8c26', { ink: '#262c08', flat: true, rim: false }));
+    P.shield.push(blob('M46,92 L52,108 L60,112 L50,118 L50,132 L44,118 L34,116 L43,108 Z', GOLD, { ink: GOLD_INK, w: 1.2 }));
+    for (const [x, y] of [[29, 81], [58, 76], [61, 143], [33, 149]] as [number, number][]) P.shield.push(`<circle cx="${x}" cy="${y}" r="1.6" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="0.7"/>`);
   }
-  P.armF.push(blob('M48,94 Q54,90 59,95 Q59,102 53,103 Q48,101 48,94 Z', BONE, { ink: BONE_INK, rim: false }));
 
-  // Tête : gros crâne rond, mâchoire à dents, orbites à lueur rouge
+  // Bras avant fin et arme
+  if (kind === 'piquier') {
+    // lance droite, tenue à la verticale
+    P.armF.push(bone([[74, 84], [70, 96], [64, 102]], 4.2));
+    P.armF.push(`<path d="M64,170 L64,20" stroke="#2e1e10" stroke-width="6.4" stroke-linecap="round"/><path d="M64,170 L64,20" stroke="#9a6a3a" stroke-width="3.6" stroke-linecap="round"/>`);
+    P.armF.push(blob('M64,2 Q70,11 69,22 L64,26 L59,22 Q58,11 64,2 Z', '#e8eef2', { ink: '#3a4450' }));
+    P.armF.push(blob('M59,23 L69,23 L68,28 L60,28 Z', GOLD, { ink: GOLD_INK, w: 1.1, rim: false }));
+    P.armF.push(blob('M58,98 Q64,94 69,99 Q69,106 63,107 Q58,105 58,98 Z', BONE, { ink: BONE_INK, rim: false }));
+  } else {
+    // cimeterre sombre qui s'évase vers la pointe (comme dans Dofus)
+    P.armF.push(bone([[74, 84], [63, 95], [53, 98]], 4.2));
+    P.armF.push(blob('M52,95 L20,86 Q6,82 3,92 Q7,106 26,106 L52,104 Z', '#2e3038', { ink: '#0e0f12' }));
+    P.armF.push(`<path d="M5,94 Q9,104 26,104 L50,102" fill="none" stroke="#dfe6ea" stroke-width="2.6" stroke-linecap="round"/><path d="M20,88 L50,96" stroke="#5a5e68" stroke-width="1" opacity="0.8"/>`);
+    P.armF.push(blob('M48,92 L56,90 L58,106 L50,108 Z', kind === 'sergent' ? GOLD : '#3a3028', { ink: kind === 'sergent' ? GOLD_INK : '#121010', rim: false }));
+    P.armF.push(blob('M48,94 Q54,90 59,95 Q59,102 53,103 Q48,101 48,94 Z', BONE, { ink: BONE_INK, rim: false }));
+    if (kind === 'sergent') {
+      // épaulière rouge cerclée d'or sur l'épaule avant
+      P.armF.push(blob('M62,86 Q62,74 74,73 Q86,74 86,86 Q74,92 62,86 Z', '#8a2620', { ink: '#2a0a08' }));
+      P.armF.push(`<path d="M63,85 Q74,90.5 85,85" fill="none" stroke="${GOLD_INK}" stroke-width="3.6" stroke-linecap="round"/><path d="M63,85 Q74,90.5 85,85" fill="none" stroke="${GOLD}" stroke-width="2" stroke-linecap="round"/>`);
+      P.armF.push(`<circle cx="74" cy="80" r="2" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="0.7"/>`);
+    }
+  }
+
+  // Tête : crâne allongé vers l'avant, mâchoire ouverte, orbites à lueur rouge
   const h = P.head;
   h.push(glowFilter(glow, 1.8));
-  // mâchoire inférieure (devant à gauche)
-  h.push(blob('M40,58 Q38,72 52,76 Q66,78 74,68 L72,60 Z', BONE, { ink: BONE_INK }));
-  h.push(`<path d="M44,63 L72,65 L71,70 L47,69 Z" fill="#fffdf3" stroke="${BONE_INK}" stroke-width="1.1"/><path d="M50,63.4 L50,69.4 M56,63.8 L56,69.8 M62,64.2 L62,70 M67,64.6 L67,70" stroke="${BONE_INK}" stroke-width="0.9"/>`);
-  // crâne
-  h.push(blob('M36,40 C34,20 50,8 68,8 C88,8 102,20 100,40 C99,54 90,62 76,64 L50,64 C42,60 36,52 36,40 Z', '#f4ecd6', { ink: BONE_INK }));
-  // orbites de trois-quarts (l'avant plus grande) et lueur rouge
-  h.push(`<path d="M41,36 Q43,28 53,30 L60,37 Q60,48 50,48 Q41,47 41,36 Z" fill="#2a1e22"/>`);
-  h.push(`<path d="M67,35 Q72,29 79,32 Q81,43 72,45 Q66,43 67,35 Z" fill="#2a1e22"/>`);
-  h.push(`<circle cx="50" cy="39" r="5" fill="#ff4a2c" filter="url(#${glow})" opacity="0.9"/><circle cx="73" cy="38" r="3.8" fill="#ff4a2c" filter="url(#${glow})" opacity="0.8"/>`);
-  h.push(`<circle cx="50" cy="39" r="2.6" fill="#ffd0a0"/><circle cx="73" cy="38" r="2" fill="#ffd0a0"/>`);
-  h.push(`<path d="M38,30 Q47,23 61,33 M65,32 Q74,25 84,30" fill="none" stroke="${BONE_INK}" stroke-width="2" stroke-linecap="round"/>`);
-  h.push(`<path d="M57,50 L62,50 L59.5,56 Z" fill="#3a2a2a"/>`);
-  h.push(`<path d="M86,14 L82,24 L87,28" fill="none" stroke="${BONE_INK}" stroke-width="1.3" opacity="0.7"/>`);
-  h.push(`<ellipse cx="54" cy="16" rx="9" ry="4" fill="#fff" opacity="0.4" transform="rotate(-15 54 16)"/>`);
-  // couvre-chefs
-  if (kind === 'piquier' || kind === 'sergent') {
-    const c = kind === 'piquier' ? '#8a9a34' : '#a8302a';
-    const ci = kind === 'piquier' ? '#262c08' : '#2a0a08';
-    h.push(blob('M32,32 C31,10 49,0 68,0 C88,0 104,10 102,32 Q68,22 32,32 Z', c, { ink: ci }));
-    h.push(`<path d="M33,31 Q68,21 101,31" fill="none" stroke="${GOLD_INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M33,31 Q68,21 101,31" fill="none" stroke="${GOLD}" stroke-width="2.8" stroke-linecap="round"/>`);
-    if (kind === 'piquier') h.push(blob('M64,1 a4.5,4 0 1,0 9,0 a4.5,4 0 1,0 -9,0 Z', GOLD, { ink: GOLD_INK, w: 1.2 }));
-    else h.push(blob('M60,4 Q54,-10 70,-14 Q86,-12 80,2 Q72,6 60,4 Z', '#e0382e', { ink: '#5a0e0c' }));
+  // fond de la bouche ouverte, puis mâchoire inférieure qui pend
+  h.push(`<path d="M38,58 L68,60 L68,70 L40,70 Z" fill="#2a1416"/>`);
+  h.push(blob('M36,66 Q34,80 48,83 Q62,84 70,74 L68,66 Z', BONE, { ink: BONE_INK }));
+  h.push(`<path d="M40,66 L67,67 L66,71 L42,71 Z" fill="#fffdf3" stroke="${BONE_INK}" stroke-width="1"/><path d="M46,66.4 L46,71 M52,66.6 L52,71 M58,66.8 L58,71 M63,67 L63,71" stroke="${BONE_INK}" stroke-width="0.8"/>`);
+  // crâne allongé (la face vers la gauche)
+  h.push(blob('M30,42 C28,24 44,13 64,13 C86,13 100,25 99,42 C98,53 91,59 82,61 L70,62 L40,61 C33,57 30,50 30,42 Z', '#f4ecd6', { ink: BONE_INK }));
+  h.push(`<path d="M36,56 L68,58 L67,63 L38,62 Z" fill="#fffdf3" stroke="${BONE_INK}" stroke-width="1"/><path d="M42,56.4 L42,62 M48,56.8 L48,62.4 M54,57.2 L54,62.6 M60,57.6 L60,62.8" stroke="${BONE_INK}" stroke-width="0.8"/>`);
+  // orbites de trois-quarts et lueur rouge
+  h.push(`<path d="M35,35 Q37,27 47,29 L54,36 Q54,46 44,46 Q35,45 35,35 Z" fill="#2a1e22"/>`);
+  h.push(`<path d="M61,34 Q66,28 73,31 Q75,42 66,44 Q60,42 61,34 Z" fill="#2a1e22"/>`);
+  h.push(`<circle cx="44" cy="38" r="5" fill="#ff4a2c" filter="url(#${glow})" opacity="0.9"/><circle cx="67" cy="37" r="3.8" fill="#ff4a2c" filter="url(#${glow})" opacity="0.8"/>`);
+  h.push(`<circle cx="44" cy="38" r="2.6" fill="#ffd0a0"/><circle cx="67" cy="37" r="2" fill="#ffd0a0"/>`);
+  h.push(`<path d="M32,29 Q41,22 55,32 M59,31 Q68,24 78,29" fill="none" stroke="${BONE_INK}" stroke-width="2" stroke-linecap="round"/>`);
+  h.push(`<path d="M50,47 L55,47 L52.5,53 Z" fill="#3a2a2a"/>`);
+  h.push(`<path d="M84,17 L80,27 L85,31" fill="none" stroke="${BONE_INK}" stroke-width="1.3" opacity="0.7"/>`);
+  h.push(`<ellipse cx="54" cy="19" rx="10" ry="4" fill="#fff" opacity="0.4" transform="rotate(-12 54 19)"/>`);
+  // casques
+  if (kind === 'piquier') {
+    h.push(blob('M30,32 C29,11 46,2 66,2 C86,2 101,12 100,32 Q64,22 30,32 Z', '#a8b030', { ink: '#2e3208' }));
+    h.push(`<path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD_INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linecap="round"/>`);
+    h.push(blob('M54,4 Q55,-6 62,-6 Q66,-2 64,4 Z', '#a8b030', { ink: '#2e3208', w: 1.2 }));
+    h.push(blob('M68,4 Q70,-6 77,-5 Q80,0 77,6 Z', '#a8b030', { ink: '#2e3208', w: 1.2 }));
   }
-  if (kind === 'furtif') {
-    // capuche sombre
-    h.push(blob('M30,46 C26,18 44,2 68,2 C92,2 108,18 104,44 Q98,30 86,24 Q66,18 48,26 Q36,34 30,46 Z', '#3e3a52', { ink: '#141220' }));
-    h.push(`<path d="M86,24 Q100,34 104,44" fill="none" stroke="#141220" stroke-width="1" opacity="0.6"/>`);
-  }
-  if (kind === 'debutant') {
-    // bandeau de tissu noué (le débutant n'a pas de casque)
-    h.push(blob('M37,26 Q68,14 100,26 L100,33 Q68,22 37,33 Z', '#7a6442', { ink: '#2e2210' }));
-    h.push(blob('M98,27 Q108,24 114,30 L108,32 L112,37 Q104,35 98,32 Z', '#7a6442', { ink: '#2e2210' }));
+  if (kind === 'sergent') {
+    h.push(blob('M30,32 C29,11 46,2 66,2 C86,2 101,12 100,32 Q64,22 30,32 Z', '#7a2620', { ink: '#2a0a08' }));
+    h.push(`<path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD_INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linecap="round"/>`);
+    // tête de mort sur le casque
+    h.push(blob('M54,16 Q54,10 60,10 Q66,10 66,16 Q66,20 63,21 L63,23 L57,23 L57,21 Q54,20 54,16 Z', '#f4ecd6', { ink: '#3a2a1a', w: 1, rim: false }));
+    h.push(`<circle cx="58" cy="16" r="1.4" fill="#2a1416"/><circle cx="62.4" cy="16" r="1.4" fill="#2a1416"/>`);
+    // plumet rouge en crête
+    h.push(blob('M56,8 Q58,0.6 70,0.6 Q86,0.6 96,10 Q88,7 80,8.4 Q70,9.4 62,10.4 Z', '#e0302a', { ink: '#5a0e0c' }));
+    h.push(`<path d="M62,6 Q74,3 90,8" fill="none" stroke="#ff8a7a" stroke-width="1.2" opacity="0.7"/>`);
   }
 
-  const ghostWrap = (s: string) => kind === 'furtif'
-    ? `<g opacity="0.7"><g filter="url(#${pre}ghost)">${s}</g></g>` : s;
+  // Furtif : le même Chafer, en fantôme turquoise translucide
+  const ghostWrap = (s: string) => kind === 'furtif' ? `<g opacity="0.72"><g filter="url(#${pre}ghost)">${s}</g></g>` : s;
   const defs = kind === 'furtif'
-    ? `<filter id="${pre}ghost"><feColorMatrix type="matrix" values="0.6 0.15 0.15 0 0.04  0.2 0.8 0.25 0 0.08  0.3 0.3 0.95 0 0.14  0 0 0 1 0"/></filter>` : '';
+    ? `<filter id="${pre}ghost"><feColorMatrix type="matrix" values="0.25 0.2 0.1 0 0.02  0.3 0.6 0.25 0 0.16  0.3 0.5 0.4 0 0.16  0 0 0 1 0"/></filter>` : '';
   return assemble(P, part, ghostWrap, defs);
 }
 
@@ -253,21 +239,38 @@ export function kardorimChibiSvg(part?: ChaferPart): string {
   P.armF.push(blob('M42,90 L58,86 L60,92 L44,97 Z', GOLD, { ink: GOLD_INK, w: 1.2 }));
   P.armF.push(blob('M50,94 Q58,90 63,96 Q63,104 56,105 Q50,102 50,94 Z', K_SKIN, { ink: K_SKIN_INK, rim: false }));
 
-  // tête : casque à cornes d'or, visière sombre, yeux verts
+  // tête : visage gris visible sous un casque à cornes d'or, yeux verts, crocs
   const h = P.head;
   const hg = uid('hg');
   h.push(glowFilter(hg, 2));
-  h.push(blob('M34,42 C32,18 50,6 68,6 C88,6 104,18 102,42 C101,58 90,68 68,68 C46,68 35,58 34,42 Z', '#6f6a62', { ink: '#26221c' }));
-  h.push(`<path d="M38,38 Q68,30 98,38 L96,50 Q68,44 40,50 Z" fill="#1a1612" stroke="#0e0c0a" stroke-width="1.2"/>`);
-  h.push(`<ellipse cx="54" cy="44" rx="6" ry="3" fill="${K_GLOW}" filter="url(#${hg})"/><ellipse cx="78" cy="43" rx="5" ry="2.6" fill="${K_GLOW}" filter="url(#${hg})"/>`);
-  h.push(`<ellipse cx="54" cy="44" rx="3.4" ry="1.6" fill="#eaffd8"/><ellipse cx="78" cy="43" rx="2.8" ry="1.3" fill="#eaffd8"/>`);
-  h.push(`<path d="M68,8 L68,36 M40,56 Q68,62 96,56" fill="none" stroke="#26221c" stroke-width="1.2" opacity="0.5"/>`);
-  h.push(`<path d="M37,34 Q68,26 99,34" fill="none" stroke="${GOLD_INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M37,34 Q68,26 99,34" fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linecap="round"/>`);
-  h.push(blob('M38,22 Q22,16 14,2 Q30,4 42,14 Z', GOLD, { ink: GOLD_INK }));
-  h.push(blob('M96,20 Q110,12 116,-2 Q104,2 92,12 Z', GOLD, { ink: GOLD_INK }));
-  h.push(`<ellipse cx="54" cy="16" rx="9" ry="4" fill="#fff" opacity="0.35" transform="rotate(-15 54 16)"/>`);
+  // visage large, mâchoire carrée
+  h.push(blob('M36,40 C36,28 50,22 68,22 C86,22 100,28 100,42 C100,58 90,70 68,70 C46,70 36,58 36,40 Z', K_SKIN, { ink: K_SKIN_INK }));
+  // orbites sombres et yeux verts lumineux
+  h.push(`<path d="M42,44 Q50,38 60,42 Q58,50 50,51 Q43,50 42,44 Z M74,42 Q83,37 92,42 Q90,50 82,50 Q75,49 74,42 Z" fill="#26302a" opacity="0.75"/>`);
+  h.push(`<ellipse cx="51" cy="45" rx="5.5" ry="3" fill="${K_GLOW}" filter="url(#${hg})"/><ellipse cx="83" cy="44.5" rx="5" ry="2.8" fill="${K_GLOW}" filter="url(#${hg})"/>`);
+  h.push(`<ellipse cx="51" cy="45" rx="3" ry="1.6" fill="#f4ffe6"/><ellipse cx="83" cy="44.5" rx="2.6" ry="1.4" fill="#f4ffe6"/>`);
+  h.push(`<path d="M40,38 L61,42 M73,41 L94,36" stroke="#1e2a22" stroke-width="2.6" stroke-linecap="round"/>`);
+  // nez et bouche à crocs
+  h.push(`<path d="M66,48 Q63,54 66,56 Q69,57 71,55" fill="none" stroke="${K_SKIN_INK}" stroke-width="1.2" stroke-linecap="round"/>`);
+  h.push(`<path d="M52,61 Q68,66 84,60" fill="none" stroke="#1e2a22" stroke-width="2" stroke-linecap="round"/>`);
+  h.push(`<path d="M56,61.6 l2,-5 l2,5.6 Z M76,61.6 l2,-5.4 l2,5 Z" fill="#f4ecd6" stroke="#3a3428" stroke-width="0.7"/>`);
+  // casque (couvre le haut de la tête), bandeau d'or, cornes
+  h.push(blob('M32,34 C30,12 48,2 68,2 C88,2 106,12 104,34 Q68,24 32,34 Z', '#6f6a62', { ink: '#26221c' }));
+  h.push(`<path d="M68,4 L68,26" stroke="#26221c" stroke-width="1.2" opacity="0.45"/>`);
+  h.push(`<path d="M33,33 Q68,23 103,33" fill="none" stroke="${GOLD_INK}" stroke-width="4.6" stroke-linecap="round"/><path d="M33,33 Q68,23 103,33" fill="none" stroke="${GOLD}" stroke-width="2.8" stroke-linecap="round"/>`);
+  h.push(blob('M36,22 Q20,16 12,2 Q28,4 40,14 Z', GOLD, { ink: GOLD_INK }));
+  h.push(blob('M100,20 Q114,12 120,-2 Q108,2 96,12 Z', GOLD, { ink: GOLD_INK }));
+  h.push(`<ellipse cx="54" cy="12" rx="9" ry="3.6" fill="#fff" opacity="0.35" transform="rotate(-12 54 12)"/>`);
 
-  return assemble(P, part);
+  // contour lumineux vert-jaune autour de tout le corps (comme dans Dofus)
+  const og = uid('og');
+  const defs = `<filter id="${og}" x="-20%" y="-20%" width="140%" height="140%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/>
+    <feFlood flood-color="#d4ff5a" flood-opacity="0.85"/><feComposite in2="d" operator="in" result="c"/>
+    <feGaussianBlur in="c" stdDeviation="1.6" result="g"/>
+    <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+  return assemble(P, part, (b2) => `<g filter="url(#${og})">${b2}</g>`, defs);
+
 }
 
 /** Kardorib : petit chien squelette à cornes de bélier. */
