@@ -90,8 +90,10 @@ async function main() {
   const CR = RES * CHAR_SCALE;
 
   // ---------- Textures ----------
+  let save = loadSave();
+  hud.setHeroLook(save.appearance);
   const [sacriTex, swordTex, gateTex, ...chaferFlat] = await Promise.all([
-    Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p), CR))),
+    Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
     svgTexture(sacrieurSwordSvg(), CR),
     svgTexture(gateBarsSvg(), RES),
     ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
@@ -140,7 +142,6 @@ async function main() {
   let fadeA = 1;
 
   // ---------- Monde ----------
-  let save = loadSave();
   /** Le Sacrieur tel que sauvegardé : niveau, caractéristiques, équipement porté. */
   const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory));
   const game = new World(Math.floor(Math.random() * 1e6), heroFromSave());
@@ -329,6 +330,15 @@ async function main() {
   const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'épée suit sa rotation
   sword.position.set(SACRIEUR_HAND[0] - SACRIEUR_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRIEUR_PIVOTS.armF[1]);
   armF.addChild(sword);
+  /** Couleurs changées au camp : on redessine les morceaux du Sacrieur. */
+  let lookKey = JSON.stringify(save.appearance);
+  async function refreshHeroLook() {
+    const key = JSON.stringify(save.appearance);
+    if (key === lookKey) return;
+    lookKey = key;
+    const tex = await Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR)));
+    SACRI_PARTS.forEach((p, i) => heroRig.setTexture(p, tex[i]));
+  }
   const heroC = new Container();
   const heroAura = new Graphics();
   // vie (et Souffrance) au-dessus du Sacrieur, à la place de la grosse barre du bas
@@ -657,7 +667,13 @@ async function main() {
       save = { ...save, profile: resetCarac(save.profile) };
       storeSave(save);
     },
-  }, invHooks);
+  }, invHooks, {
+    get: () => save.appearance,
+    set(c) {
+      save = { ...save, appearance: c };
+      storeSave(save);
+    },
+  }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
   const resSeen = new Set<string>();
 

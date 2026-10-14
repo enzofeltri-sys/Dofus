@@ -51,6 +51,12 @@ export class Rig {
     }
   }
 
+  /** Remplace l'image d'un morceau (même taille), par ex. après un changement de couleurs. */
+  setTexture(name: string, tex: Texture) {
+    const s = this.parts.get(name)?.children[0];
+    if (s instanceof Sprite) s.texture = tex;
+  }
+
   /** Oriente le personnage vers la droite (1) ou la gauche (-1). */
   face(dir: 1 | -1) {
     this.root.scale.x = dir * this.artDir;

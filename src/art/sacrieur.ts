@@ -1,23 +1,22 @@
 import { ellipse, line, shape, svg, vgrad } from './kit';
-import { H_OPTS, pivotsFor, variantH } from './sacrieur-variants/official-cartoon';
+import { CHIBI_FOOT, CHIBI_HAND, CHIBI_PIVOTS, sacriChibi, type ChibiPart, type SacriColors } from './sacrieur-chibi';
 
 /**
- * Le Sacrieur du jeu : D2 affiné (« H », d'après G3 : traits fins, buste très fin, tête plus petite et plus fine), choisi par Enzo.
- * Silhouette cartoon, tenue officielle (bandana olive à pièce jaune, yeux blancs, peintures de guerre,
- * marque en cœur, avant-bras bandés de rouge et moufles, pagne jaune, pantalon olive effiloché,
- * tibias bandés, pieds nus). Regarde vers la DROITE.
+ * Le Sacrieur du jeu : version Archero (chibi), choisie par Enzo (proposition A).
+ * Reprend les codes du Sacrieur de Dofus ; couleurs réglables (peau, cheveux, 4 couleurs de vêtements).
+ * Regarde vers la DROITE.
  */
 export const SACRIEUR_W = 140;
 export const SACRIEUR_H = 170;
-/** Pieds (les jambes de H sont allongées de 4 px). */
-export const SACRIEUR_FOOT: [number, number] = [70, 160 + (H_OPTS.legLen ?? 0)];
-/** Pivots des morceaux articulés (les épaules suivent le buste affiné). */
-export const SACRIEUR_PIVOTS = pivotsFor(H_OPTS);
-/** Poing qui tient l'arme (coordonnées du SVG, haut du corps remonté de 14 px). */
-export const SACRIEUR_HAND: [number, number] = [97 + SACRIEUR_PIVOTS.armF[0] - 93, 106];
+export const SACRIEUR_FOOT: [number, number] = CHIBI_FOOT;
+export const SACRIEUR_PIVOTS = CHIBI_PIVOTS;
+/** Poing qui tient l'arme. */
+export const SACRIEUR_HAND: [number, number] = CHIBI_HAND;
 export const SACRIEUR_FACES_LEFT = false;
+/** Cadrage du visage pour le médaillon (viewBox). */
+export const SACRIEUR_FACE_BOX = '26 8 96 96';
 
-export const sacrieurSvg = variantH;
+export const sacrieurSvg = (part?: ChibiPart, colors?: SacriColors) => sacriChibi(part, colors);
 
 /** Épée grossière du Sacrieur (verticale, pointe en haut). Poignée en SWORD_GRIP. */
 export const SWORD_W = 40;

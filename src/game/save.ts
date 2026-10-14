@@ -8,6 +8,7 @@
 import { addXp, defaultProfile, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
 import { addItem, rollItem, starterInventory, type Inventory } from './inventory';
+import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
 export interface SaveData {
   v: 3;
@@ -25,6 +26,8 @@ export interface SaveData {
   profile: Profile;
   /** Équipements possédés (avec leurs jets) et objets portés. */
   inventory: Inventory;
+  /** Couleurs du Sacrieur (peau, cheveux, 4 couleurs de vêtements). */
+  appearance: SacriColors;
 }
 
 /** Ce qu'une partie rapporte. */
@@ -52,7 +55,7 @@ export interface RunResult {
 const KEY = 'dofus-enzo-save';
 
 export const emptySave = (): SaveData => ({
-  v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(),
+  v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(), appearance: { ...SACRI_COLORS },
 });
 
 export function loadSave(): SaveData {
@@ -66,7 +69,8 @@ export function loadSave(): SaveData {
     const inventory = d.inventory?.items ? { ...d.inventory, items: d.inventory.items.filter((i) => ITEMS[i.id]) } : base.inventory;
     // les ressources inconnues (anciennes versions) sont ignorées
     const resources = Object.fromEntries(Object.entries(d.resources ?? {}).filter(([k]) => ITEMS[Number(k)]));
-    return { ...base, ...d, profile, inventory, resources, v: 3 };
+    const appearance = { ...SACRI_COLORS, ...(d.appearance ?? {}) };
+    return { ...base, ...d, profile, inventory, resources, appearance, v: 3 };
   } catch {
     return emptySave();
   }

@@ -1,5 +1,6 @@
 import './hud.css';
-import { sacrieurSvg } from '../art/sacrieur';
+import { SACRIEUR_FACE_BOX, sacrieurSvg } from '../art/sacrieur';
+import { COLOR_SLOTS, SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import { ICONS } from './grimoire-icons';
 import type { SheetView } from './sheet-view';
 import type { InvView, ItemDetail } from './inv-view';
@@ -18,7 +19,7 @@ export interface CardView {
 const PA_MAX = 6;
 
 /** Tête du Sacrieur recadrée pour le médaillon (même dessin que le personnage en jeu). */
-const portraitSvg = () => sacrieurSvg('head').replace(/viewBox="[^"]*" width="\d+" height="\d+"/, 'viewBox="31 13 66 66"');
+const portraitSvg = (c?: SacriColors) => sacrieurSvg('head', c).replace(/viewBox="[^"]*" width="\d+" height="\d+"/, `viewBox="${SACRIEUR_FACE_BOX}"`);
 
 const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/></svg>`;
 
@@ -74,6 +75,7 @@ export class Hud {
         <div class="camp-btns">
           <button type="button" class="gr-btn magic sm sheet-btn">Caractéristiques<span class="badge gr-num" hidden></span></button>
           <button type="button" class="gr-btn turquoise sm inv-btn">Inventaire<span class="badge gr-num" hidden></span></button>
+          <button type="button" class="gr-btn sm look-btn">Apparence</button>
         </div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
@@ -116,6 +118,12 @@ export class Hud {
         <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button></div>
         <div class="inv-grid"></div>
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
+      </div>
+      <div class="look gr-paper" hidden>
+        <div class="sh-head"><h2 class="gr-h2">Apparence</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="look-hero"></div>
+        <div class="look-rows"></div>
+        <div class="look-btns"><button type="button" class="gr-btn sm magic rnd">Aléatoire</button><button type="button" class="gr-btn sm ghost reset">Couleurs du jeu</button></div>
       </div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.paFill = root.querySelector('.pa-side .vfill')!;
@@ -303,7 +311,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -312,8 +320,16 @@ export class Hud {
     sheet: () => SheetView,
     act: { invest(id: string, n: number): void; reset(): void },
     inv?: InvHooks,
+    look?: { get(): SacriColors; set(c: SacriColors): void },
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
+    const lookBtn = el.querySelector<HTMLButtonElement>('.look-btn')!;
+    lookBtn.hidden = !look;
+    lookBtn.onclick = async () => {
+      if (!look) return;
+      await this.appearance(look);
+    };
+    if (look) this.setHeroLook(look.get());
     const refresh = () => {
       const v = sheet();
       el.querySelector('.lvl')!.textContent = `Niveau ${v.level}`;
@@ -398,6 +414,53 @@ export class Hud {
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.close')!.onclick = () => {
         el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
+  /** Met à jour le Sacrieur affiché (médaillon, camp, inventaire) avec ses couleurs. */
+  setHeroLook(c: SacriColors) {
+    this.root.querySelector('.medal .face')!.innerHTML = portraitSvg(c);
+    this.root.querySelector('.camp-hero')!.innerHTML = sacrieurSvg(undefined, c);
+    this.root.querySelector('.inv-doll .hero')!.innerHTML = sacrieurSvg(undefined, c);
+  }
+
+  /** Apparence : les 6 couleurs du Sacrieur, aperçu en direct, aléatoire, couleurs du jeu. */
+  appearance(h: { get(): SacriColors; set(c: SacriColors): void }): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.look')!;
+    const render = () => {
+      const c = h.get();
+      el.querySelector('.look-hero')!.innerHTML = sacrieurSvg(undefined, c);
+      el.querySelector('.look-rows')!.innerHTML = COLOR_SLOTS.map((s) =>
+        `<label class="look-row"><span>${s.label}</span><code class="gr-num">${c[s.key].toUpperCase()}</code><input type="color" data-k="${s.key}" value="${c[s.key].toLowerCase()}"></label>`).join('');
+      this.setHeroLook(c);
+    };
+    const preview = () => {
+      el.querySelector('.look-hero')!.innerHTML = sacrieurSvg(undefined, h.get());
+    };
+    el.oninput = (e) => {
+      const t = e.target as HTMLInputElement;
+      if (!t.dataset.k) return;
+      h.set({ ...h.get(), [t.dataset.k]: t.value.toUpperCase() });
+      t.previousElementSibling!.textContent = t.value.toUpperCase();
+      preview();
+    };
+    el.onchange = () => render();
+    el.querySelector<HTMLButtonElement>('.rnd')!.onclick = () => {
+      h.set(randomColors());
+      render();
+    };
+    el.querySelector<HTMLButtonElement>('.reset')!.onclick = () => {
+      h.set({ ...SACRI_COLORS });
+      render();
+    };
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.close')!.onclick = () => {
+        el.hidden = true;
+        this.setHeroLook(h.get());
         resolve();
       };
     });
@@ -547,4 +610,24 @@ export interface InvHooks {
   toggle(uid: number): void;
   /** L'objet a été regardé (plus « nouveau »). */
   seen(uid: number): void;
+}
+
+/** Couleurs aléatoires harmonieuses : peau naturelle, vêtements dans 2 teintes accordées. */
+function randomColors(): SacriColors {
+  const hsl = (h: number, s: number, l: number) => {
+    s /= 100; l /= 100;
+    const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+    const f = (n: number) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+    return '#' + [f(0), f(8), f(4)].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+  };
+  const r = (a: number, b: number) => a + Math.random() * (b - a);
+  const base = r(0, 360), accent = (base + r(120, 220)) % 360;
+  return {
+    skin: hsl(r(18, 32), r(40, 65), r(42, 78)),
+    hair: hsl(r(0, 360), r(40, 90), r(30, 75)),
+    c1: hsl(base, r(25, 60), r(25, 45)),
+    c2: hsl(accent, r(45, 75), r(25, 40)),
+    c3: hsl((accent + r(20, 60)) % 360, r(70, 95), r(50, 62)),
+    c4: hsl(r(15, 35), r(30, 55), r(20, 35)),
+  };
 }

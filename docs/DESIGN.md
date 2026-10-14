@@ -55,6 +55,11 @@ Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
 
 ---
 
+### 3.x Personnage (validé par Enzo, octobre 2026)
+- **Sacrieur « version Archero »** : un personnage chibi à nous (grosse tête ronde, petit corps trapu, gros poings, modelé brillant) qui reprend les codes du Sacrieur de Dofus (bandana-casque à pièce cousue, oreilles pointues, yeux blancs, peintures de guerre, cœur, bandages, pagne déchiqueté, pantalon effiloché, pieds nus à lanières).
+- **Couleurs réglables** comme dans Dofus 3 : peau, cheveux, vêtements 1 à 4 (écran Apparence au camp, aléatoire, retour aux couleurs du jeu).
+- Les monstres passeront dans le même style pour rester cohérents.
+
 ## 4. Combat
 
 ### 4.1 Principe
