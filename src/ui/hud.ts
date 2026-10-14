@@ -2,6 +2,7 @@ import './hud.css';
 import { sacrieurSvg } from '../art/sacrieur';
 import { ICONS } from './grimoire-icons';
 import type { SheetView } from './sheet-view';
+import type { InvView, ItemDetail } from './inv-view';
 
 /** Une case de sort telle qu'affichée (null = case vide). */
 export type SlotView = { icon: string; name: string; pa: number } | null;
@@ -70,14 +71,17 @@ export class Hud {
         <div class="camp-hero">${sacrieurSvg()}</div>
         <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span></div>
         <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
-        <button type="button" class="gr-btn magic sm sheet-btn">Caractéristiques<span class="badge gr-num" hidden></span></button>
+        <div class="camp-btns">
+          <button type="button" class="gr-btn magic sm sheet-btn">Caractéristiques<span class="badge gr-num" hidden></span></button>
+          <button type="button" class="gr-btn turquoise sm inv-btn">Inventaire<span class="badge gr-num" hidden></span></button>
+        </div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
           <div class="dj-txt"><span class="gr-label">Donjon · niveau 10</span><b>Crypte de Kardorim</b><span class="dj-sub">9 salles · mini-boss · Kardorim</span></div>
           <button type="button" class="gr-btn enter">Entrer</button>
         </div>
         <div class="camp-soon"><span class="gr-label">Bientôt au camp</span>
-          <div><span class="gr-chip">${ICONS.sac.svg}Inventaire</span><span class="gr-chip">${ICONS.pa.svg}Grimoire</span><span class="gr-chip">${ICONS.artisan.svg}Artisan</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
+          <div><span class="gr-chip">${ICONS.pa.svg}Grimoire</span><span class="gr-chip">${ICONS.artisan.svg}Artisan</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
         </div>
       </div>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
@@ -85,6 +89,7 @@ export class Hud {
         <div class="sum-stats"></div>
         <div class="sum-cards"></div>
         <div class="sum-xp"></div>
+        <div class="sum-items"></div>
         <p class="sum-loot"></p>
         <button type="button" class="gr-btn turquoise back">Retour au camp</button>
       </div></div>
@@ -98,6 +103,19 @@ export class Hud {
         <div class="sh-caracs"></div>
         <div class="gr-tabs sh-tabs"></div>
         <div class="sh-rows"></div>
+      </div>
+      <div class="inv gr-paper" hidden>
+        <div class="sh-head"><h2 class="gr-h2">Inventaire</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="inv-doll">
+          <div class="col left"></div>
+          <div class="hero">${sacrieurSvg()}</div>
+          <div class="col right"></div>
+          <div class="row bottom"></div>
+        </div>
+        <div class="inv-sets"></div>
+        <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button></div>
+        <div class="inv-grid"></div>
+        <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.paFill = root.querySelector('.pa-side .vfill')!;
@@ -285,7 +303,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -293,6 +311,7 @@ export class Hud {
     rec: { runs: number; wins: number; bestRoom: number; bestWinTime: number | null },
     sheet: () => SheetView,
     act: { invest(id: string, n: number): void; reset(): void },
+    inv?: InvHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const refresh = () => {
@@ -303,6 +322,17 @@ export class Hud {
       badge.hidden = v.free <= 0;
       badge.textContent = String(v.free);
       this.setLevel(v.level);
+      const nb = el.querySelector<HTMLElement>('.inv-btn .badge')!;
+      const fresh = inv ? inv.get().equipment.filter((e) => e.fresh).length : 0;
+      nb.hidden = fresh <= 0;
+      nb.textContent = String(fresh);
+    };
+    const invBtn = el.querySelector<HTMLButtonElement>('.inv-btn')!;
+    invBtn.hidden = !inv;
+    invBtn.onclick = async () => {
+      if (!inv) return;
+      await this.inventory(inv);
+      refresh();
     };
     refresh();
     el.querySelector<HTMLButtonElement>('.sheet-btn')!.onclick = async () => {
@@ -373,8 +403,99 @@ export class Hud {
     });
   }
 
+  private invTab = 0;
+  /** Inventaire : équipement porté autour du Sacrieur, sac (équipements / ressources), fiche d'objet. */
+  inventory(h: InvHooks): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.inv')!;
+    const detail = el.querySelector<HTMLElement>('.inv-detail')!;
+    let open: { kind: 'uid'; uid: number } | { kind: 'res'; id: number } | null = null;
+    const slotHtml = (s: InvView['slots'][number]) =>
+      `<button type="button" class="inv-slot ${s.uid !== null ? 'full' : ''} ${s.locked ? 'locked' : ''}" data-uid="${s.uid ?? ''}" data-slot="${s.slot}" aria-label="${s.name}">${s.icon || `<span>${s.name}</span>`}</button>`;
+    const render = () => {
+      const v = h.get();
+      const by = new Map(v.slots.map((s) => [s.slot, s]));
+      el.querySelector('.inv-doll .left')!.innerHTML = (['chapeau', 'amulette', 'anneau1', 'anneau2'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      el.querySelector('.inv-doll .right')!.innerHTML = (['cape', 'ceinture', 'bottes', 'arme'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      el.querySelector('.inv-doll .bottom')!.innerHTML = (['bouclier', 'familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      el.querySelector('.inv-sets')!.innerHTML = v.sets
+        .map((st) => `<div class="inv-set"><b>${st.name}</b><span class="gr-num">${st.count}/${st.total}</span>${st.bonus.length ? `<small>${st.bonus.join(' · ')}</small>` : ''}</div>`)
+        .join('');
+      el.querySelectorAll<HTMLElement>('.inv-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.invTab));
+      const grid = el.querySelector('.inv-grid')!;
+      if (this.invTab === 0) {
+        grid.innerHTML = v.equipment.length
+          ? v.equipment.map((e) => `<button type="button" class="inv-cell ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''}" data-uid="${e.uid}">
+              ${e.icon}<span class="lv gr-num">${e.level}</span>${e.worn ? '<span class="tag">porté</span>' : e.fresh ? '<span class="tag new">nouveau</span>' : ''}</button>`).join('')
+          : '<p class="inv-empty">Aucun équipement.</p>';
+      } else {
+        grid.innerHTML = v.resources.length
+          ? v.resources.map((r) => `<button type="button" class="inv-cell" data-res="${r.id}">${r.icon}<span class="qty gr-num">${r.count}</span></button>`).join('')
+          : '<p class="inv-empty">Aucune ressource : elles tombent sur les monstres.</p>';
+      }
+      if (open) showDetail(open.kind === 'uid' ? h.detail(open.uid) : h.resource(open.id));
+    };
+    const showDetail = (d: ItemDetail | null) => {
+      if (!d) {
+        detail.hidden = true;
+        open = null;
+        return;
+      }
+      detail.querySelector('.det-card')!.innerHTML = `
+        <div class="det-head">${d.icon}<div><h3 class="gr-h3">${d.name}</h3><span class="det-sub">${d.sub}</span></div></div>
+        ${d.lines.length ? `<div class="det-lines">${d.lines.map((l) => `<div><span>${l.text}</span>${l.range ? `<small>${l.range}</small>` : ''}</div>`).join('')}</div>` : ''}
+        ${d.set ? `<div class="det-set"><span class="gr-label">${d.set.name} · ${d.set.count}/${d.set.total} portés</span>${d.set.rows.map((r) => `<div class="${r.on ? 'on' : ''}"><b class="gr-num">${r.n}</b> ${r.text}</div>`).join('')}</div>` : ''}
+        ${d.diffTitle ? `<div class="det-diff"><span class="gr-label">${d.diffTitle}</span>${d.diff.length ? d.diff.map((x) => `<span class="${x.up ? 'up' : 'down'}">${x.text}</span>`).join('') : '<span>Aucun changement</span>'}</div>` : ''}
+        ${d.note ? `<p class="det-note">${d.note}</p>` : ''}
+        <div class="det-btns">
+          ${d.action ? `<button type="button" class="gr-btn sm ${d.action.label === 'Retirer' ? 'ghost' : 'leaf'} act" ${d.action.enabled ? '' : 'disabled'}>${d.action.enabled ? d.action.label : d.action.reason}</button>` : ''}
+          <button type="button" class="gr-btn ghost sm det-close">Fermer</button>
+        </div>`;
+      detail.hidden = false;
+    };
+    el.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      const tab = t.closest<HTMLElement>('.inv-tabs .gr-tab');
+      if (tab) {
+        this.invTab = Number(tab.dataset.t);
+        render();
+        return;
+      }
+      if (t.closest('.det-close') || t === detail) {
+        showDetail(null);
+        return;
+      }
+      if (t.closest('.act') && open?.kind === 'uid') {
+        h.toggle(open.uid);
+        render();
+        return;
+      }
+      const cell = t.closest<HTMLElement>('[data-uid],[data-res]');
+      if (!cell || cell.closest('.inv-detail')) return;
+      if (cell.dataset.res) open = { kind: 'res', id: Number(cell.dataset.res) };
+      else if (cell.dataset.uid) open = { kind: 'uid', uid: Number(cell.dataset.uid) };
+      else return;
+      h.seen(open.kind === 'uid' ? open.uid : -1);
+      render();
+    };
+    open = null;
+    detail.hidden = true;
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        el.hidden = true;
+        detail.hidden = true;
+        resolve();
+      };
+    });
+  }
+
   /** Bilan de fin de partie (victoire ou défaite). */
-  summary(won: boolean, rows: [string, string][], cards: string[], loot: string, xp?: { gained: number; before: number; view: SheetView }): Promise<void> {
+  summary(
+    won: boolean, rows: [string, string][], cards: string[], loot: string,
+    xp?: { gained: number; before: number; view: SheetView },
+    items?: { icon: string; name: string; count: number; boss: boolean; lost: boolean }[],
+  ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.summary')!;
     el.querySelector('h2')!.textContent = won ? 'Victoire !' : 'Le Sacrieur est tombé';
     el.querySelector('.sum-sub')!.textContent = won ? 'Kardorim est vaincu, la Crypte est terminée.' : 'Il reviendra plus fort.';
@@ -383,6 +504,13 @@ export class Hud {
       ? `<span class="gr-label">Cartes prises</span><div>${cards.map((c) => `<span class="gr-chip">${c}</span>`).join('')}</div>`
       : '';
     el.querySelector('.sum-loot')!.textContent = loot;
+    const box2 = el.querySelector<HTMLElement>('.sum-items')!;
+    box2.hidden = !items;
+    if (items) {
+      box2.innerHTML = `<span class="gr-label">Butin</span><div>${items.length
+        ? items.map((i) => `<span class="sum-item ${i.boss ? 'boss' : ''} ${i.lost ? 'lost' : ''}" title="${i.name}">${i.icon}${i.count > 1 ? `<b class="gr-num">${i.count}</b>` : ''}</span>`).join('')
+        : '<em>Rien cette fois.</em>'}</div>${items.some((i) => i.boss) ? `<small>${items.some((i) => i.lost) ? 'Butin du boss perdu : il faut gagner pour le garder.' : 'Encadré doré : butin du boss.'}</small>` : ''}`;
+    }
     const box = el.querySelector<HTMLElement>('.sum-xp')!;
     box.hidden = !xp;
     if (xp) {
@@ -408,4 +536,15 @@ const fmt = (n: number) => Math.round(n).toLocaleString('fr-FR');
 function setXpBar(el: HTMLElement, v: { level: number; xpInto: number; xpNeed: number }) {
   el.querySelector<HTMLElement>('.fill')!.style.setProperty('--v', v.xpNeed ? `${(100 * v.xpInto) / v.xpNeed}%` : '100%');
   el.querySelector('.txt')!.textContent = v.xpNeed ? `${fmt(v.xpInto)} / ${fmt(v.xpNeed)} XP` : 'Niveau max';
+}
+
+/** Ce dont l'inventaire a besoin (fourni par le jeu). */
+export interface InvHooks {
+  get(): InvView;
+  detail(uid: number): ItemDetail;
+  resource(id: number): ItemDetail;
+  /** Équipe ou retire. */
+  toggle(uid: number): void;
+  /** L'objet a été regardé (plus « nouveau »). */
+  seen(uid: number): void;
 }

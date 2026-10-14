@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MONSTERS } from './data/monsters';
-import { GATE, PERSP, STEP, TOTAL_ROOMS, World } from './world';
+import { escapeChance, escapeOf, tackleOf } from './formulas';
+import { GATE, PERSP, STEP, TACKLE_MIN, TOTAL_ROOMS, World } from './world';
 
 type In = { x: number; y: number } | ((w: World) => { x: number; y: number });
 const run = (w: World, seconds: number, input: In = { x: 0, y: 0 }) => {
@@ -207,11 +208,13 @@ describe('Mécaniques de Dofus en temps réel', () => {
     expect(w.hero.maxHp).toBe(max);
   });
 
-  it('tacle : au contact d’un Piquier (tacle 15), le Sacrieur sans fuite ralentit', () => {
+  it('tacle : au contact d’un Piquier (tacle 15), le Sacrieur ralentit selon sa fuite', () => {
     const { w, m } = lone();
     m.x = w.hero.x + 50;
     m.y = w.hero.y;
-    expect(w.tackleFactor()).toBeLessThan(0.5);
+    const fuite = escapeOf(w.heroStats());
+    expect(w.tackleFactor()).toBeCloseTo(TACKLE_MIN + (1 - TACKLE_MIN) * escapeChance(fuite, tackleOf(m.stats)));
+    expect(w.tackleFactor()).toBeLessThan(0.6);
     m.x = w.hero.x + 300;
     expect(w.tackleFactor()).toBe(1);
   });
@@ -235,5 +238,27 @@ describe('Mécaniques de Dofus en temps réel', () => {
     const boss = w.drain().find((e) => e.type === 'initiative');
     expect(boss && boss.type === 'initiative' && boss.hero).toBe(false);
     expect(w.hero.castCd).toBeGreaterThan(0);
+  });
+});
+
+describe('Butin en combat', () => {
+  it('les monstres vaincus remplissent le sac de la partie, le boss remplit son propre sac', () => {
+    const w = new World(4);
+    let drops = 0;
+    for (let room = 0; room < 3; room++) {
+      w.startRoom(room);
+      w.drain();
+      for (const m of w.monsters) m.hp = 1;
+      w.reserve = [];
+      for (const m of w.monsters) {
+        m.state = 'chase';
+        m.x = w.hero.x + 50;
+        m.y = w.hero.y;
+      }
+      drops += run(w, 4).filter((e) => e.type === 'drop').length;
+    }
+    expect(drops).toBeGreaterThan(0);
+    expect(Object.values(w.stats.loot).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+    expect(Object.keys(w.stats.bossLoot)).toHaveLength(0);
   });
 });

@@ -1,6 +1,7 @@
 import { rng } from '../iso';
-import { erosionLoss, escapeChance, escapeOf, initiativeOf, pushDamage, resolveHit, tackleOf, type Element, type HitContext } from './formulas';
+import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
+import { rollDrops } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
 import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import type { Stats } from './formulas';
@@ -167,7 +168,8 @@ export type WorldEvent =
   | { type: 'mutilation'; stage: number; sacrifice: number }
   | { type: 'coagulation'; shield: number }
   | { type: 'initiative'; hero: boolean }
-  | { type: 'xp'; amount: number; x: number; y: number };
+  | { type: 'xp'; amount: number; x: number; y: number }
+  | { type: 'drop'; items: number[]; x: number; y: number; boss: boolean };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -199,9 +201,12 @@ export class World {
   private events: WorldEvent[] = [];
   private uid = 1;
   private rnd: () => number;
+  /** Tirages du butin (séparés : le butin ne change pas le déroulé du combat). */
+  private lootRnd: () => number;
 
   constructor(private seed = 1, def: HeroDef = startingHero()) {
     this.rnd = rng(seed);
+    this.lootRnd = rng(seed * 7919 + 17);
     this.hero = {
       def, x: ROOM_W / 2, y: 1300, hp: def.hp, maxHp: def.hp, facing: 1, moving: false, alive: true,
       attackCd: 0, swing: null, hurtT: 0, invulnT: 0, ...freshCombat(),
@@ -627,6 +632,14 @@ export class World {
       this.stats.xp += xp;
       this.events.push({ type: 'xp', amount: xp, x: m.x, y: m.y });
     }
+    // butin : les invocations ne lâchent rien ; celui du boss n'est gagné qu'en cas de victoire
+    if (m.summoner === null) {
+      const boss = m === this.boss;
+      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite, prospection: prospectionOf(this.heroStats()) }, this.lootRnd);
+      const bag = boss ? this.stats.bossLoot : this.stats.loot;
+      for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
+      if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });
+    }
     m.state = 'dead';
     m.t = 0;
     m.hp = Math.min(m.hp, 0);
@@ -902,5 +915,5 @@ function freshRun(level: number): RunState {
 }
 
 function freshStats() {
-  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0 };
+  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0, loot: {} as Record<number, number>, bossLoot: {} as Record<number, number> };
 }

@@ -1,5 +1,6 @@
 import { addStats, baseStats, maxHp, type DamageRoll, type Stats } from '../formulas';
 import { defaultProfile, levelForXp, type Profile } from '../progression';
+import { gearStats, starterInventory } from '../inventory';
 
 /** Arme : attaque de base automatique, frappe tout ce qui est dans son arc. */
 export interface WeaponDef {
@@ -26,18 +27,6 @@ export const EPEE_ROUILLEE: WeaponDef = {
   impactAt: 0.35,
 };
 
-/** Équipement porté : pour l'instant un bloc de stats fixe, en attendant l'inventaire (étape 6). */
-export interface GearDef {
-  name: string;
-  stats: Partial<Stats>;
-}
-
-/**
- * Équipement de niveau 10 : jets moyens de la Panoplie du Piou Vert (DofusDB, niv. 12, 6 objets,
- * jets max Force 60, Vitalité 60, Critique 3), sans bonus de panoplie.
- */
-export const STUFF_NIVEAU_10: GearDef = { name: 'Équipement de niveau 10', stats: { force: 40, vitalite: 40, critique: 2 } };
-
 /** Base du Sacrieur dans Dofus : 6 PA, 3 PM, 1 invocation ; 2 dommages critiques (arme de départ). */
 export const SACRIEUR_BASE: Partial<Stats> = { pa: 6, pm: 3, invocations: 1, dommagesCritiques: 2 };
 
@@ -50,15 +39,16 @@ export interface HeroDef {
   speed: number;
   radius: number;
   weapon: WeaponDef;
-  gear: GearDef;
+  /** Stats apportées par l'équipement porté (objets + bonus de panoplie). */
+  gear: Partial<Stats>;
 }
 
 /** Vitesse de déplacement (px/s) selon les PM. */
 export const speedForPm = (pm: number) => 250 + pm * 30;
 
-/** Sacrieur construit depuis son profil (par défaut : niveau 10, tous ses points en Force) et l'équipement de niveau 10. */
-export function startingHero(profile: Profile = defaultProfile()): HeroDef {
-  const level = levelForXp(profile.xp), gear = STUFF_NIVEAU_10;
-  const stats = addStats(baseStats(SACRIEUR_BASE), profile.carac, gear.stats);
+/** Sacrieur construit depuis son profil (par défaut : niveau 10, tous ses points en Force) et son équipement (par défaut : celui de départ). */
+export function startingHero(profile: Profile = defaultProfile(), gear: Partial<Stats> = gearStats(starterInventory())): HeroDef {
+  const level = levelForXp(profile.xp);
+  const stats = addStats(baseStats(SACRIEUR_BASE), profile.carac, gear);
   return { level, stats, hp: maxHp(level, stats.vitalite), speed: speedForPm(stats.pm), radius: 22, weapon: EPEE_ROUILLEE, gear };
 }

@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
+import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, chaferSvg, type ChaferKind } from './art/chafer';
 import { kardoribSvg, kardorimSvg } from './art/kardorim';
 import type { MonsterArt } from './game/data/monsters';
@@ -18,6 +18,10 @@ import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
 import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
 import { elementName, resLine, sheetView } from './ui/sheet-view';
+import { equip, gearStats, isWorn, unequip } from './game/inventory';
+import { equipmentDetail, invView, resourceDetail } from './ui/inv-view';
+import { item, type SlotId } from './game/data/items';
+import { allItemIconUrls, itemIconImg, itemIconUrl } from './ui/item-icons';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
@@ -137,7 +141,11 @@ async function main() {
 
   // ---------- Monde ----------
   let save = loadSave();
-  const game = new World(Math.floor(Math.random() * 1e6), startingHero(save.profile));
+  /** Le Sacrieur tel que sauvegardé : niveau, caractéristiques, équipement porté. */
+  const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory));
+  const game = new World(Math.floor(Math.random() * 1e6), heroFromSave());
+  // icônes des objets (butin qui vole vers le Sacrieur)
+  await Assets.load(allItemIconUrls()).catch(() => {});
   hud.setLevel(game.hero.def.level);
   (window as unknown as { __game: World }).__game = game;
   const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
@@ -180,6 +188,18 @@ async function main() {
     floatLayer.addChild(t);
     floaters.push({ t, life: 1, vy: -80, x: x + rand(-12, 12), y });
   };
+  /** Butin : l'icône de l'objet saute du monstre puis vole jusqu'au Sacrieur. */
+  const flyers: { s: Sprite; t: number; x0: number; y0: number; boss: boolean }[] = [];
+  const flyLoot = (id: number, x: number, y: number, boss: boolean) => {
+    const tex = Assets.get<Texture>(itemIconUrl(id));
+    if (!tex) return;
+    const s = new Sprite(tex);
+    s.anchor.set(0.5);
+    s.width = s.height = boss ? 64 : 44;
+    floatLayer.addChild(s);
+    flyers.push({ s, t: 0, x0: x + rand(-20, 20), y0: y - 40, boss });
+  };
+
   /** Petit texte flottant (« Faible Terre ! », « +230 XP »). */
   const labelAt = (x: number, y: number, txt: string, color: string) => {
     const t = new Text({
@@ -240,6 +260,7 @@ async function main() {
     for (const p of particles.splice(0)) p.s.destroy();
     for (const f of fxs.splice(0)) f.g.destroy();
     for (const f of floaters.splice(0)) f.t.destroy();
+    for (const f of flyers.splice(0)) f.s.destroy();
 
     const old = bg.texture;
     bg.texture = newBg;
@@ -478,6 +499,9 @@ async function main() {
       case 'death':
         for (let i = 0; i < 18; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-150, 150), vy: rand(-210, -40), life: 0.6, size: 0.1, add: false, grav: 320 });
         break;
+      case 'drop':
+        ev.items.forEach((id, i) => later(0.1 + i * 0.12, () => flyLoot(id, ev.x, ev.y, ev.boss)));
+        break;
       case 'xp':
         later(0.25, () => labelAt(ev.x, ev.y - 110 * CHAR_SCALE, `+${ev.amount} XP`, '#cdaaf2'));
         break;
@@ -605,7 +629,24 @@ async function main() {
 
   const cardsTaken: string[] = [];
 
-  const currentSheet = () => sheetView(save.profile, startingHero(save.profile));
+  const currentSheet = () => sheetView(save.profile, heroFromSave());
+  /** Équipements obtenus depuis le lancement, pas encore regardés. */
+  const freshItems = new Set<number>();
+  const heroLevel = () => heroFromSave().level;
+  const invHooks = {
+    get: () => invView(save.inventory, save.resources, heroLevel(), freshItems),
+    detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel()),
+    resource: (id: number) => resourceDetail(id, save.resources[id] ?? 0),
+    toggle(uid: number) {
+      const inv = save.inventory;
+      if (isWorn(inv, uid)) {
+        const slot = (Object.keys(inv.equipped) as SlotId[]).find((k) => inv.equipped[k] === uid)!;
+        save = { ...save, inventory: unequip(inv, slot) };
+      } else save = { ...save, inventory: equip(inv, uid, heroLevel()) };
+      storeSave(save);
+    },
+    seen: (uid: number) => void freshItems.delete(uid),
+  };
   /** Camp : records, niveau, fiche de caractéristiques (les points se répartissent ici). */
   const openCamp = () => hud.camp(save, currentSheet, {
     invest(id, n) {
@@ -616,7 +657,7 @@ async function main() {
       save = { ...save, profile: resetCarac(save.profile) };
       storeSave(save);
     },
-  });
+  }, invHooks);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
   const resSeen = new Set<string>();
 
@@ -625,10 +666,19 @@ async function main() {
     const st = game.stats;
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
-      cards: [...cardsTaken], loot: { xp: st.xp, resources: {} }, bossLoot: { xp: 0, resources: {} },
+      cards: [...cardsTaken], loot: { xp: st.xp, items: { ...st.loot } }, bossLoot: { xp: 0, items: { ...st.bossLoot } },
     };
     const levelBefore = levelForXp(save.profile.xp);
-    save = applyRun(save, result);
+    const applied = applyRun(save, result);
+    save = applied.save;
+    for (const uid of applied.fresh) freshItems.add(uid);
+    const lootList = [
+      ...Object.entries(st.loot).map(([k, n]) => ({ id: Number(k), count: n, boss: false })),
+      ...Object.entries(st.bossLoot).map(([k, n]) => ({ id: Number(k), count: n, boss: true })),
+    ]
+      // équipement d'abord, puis par niveau
+      .sort((a, b) => Number(b.boss) - Number(a.boss) || Number(item(b.id).slot !== null) - Number(item(a.id).slot !== null) || item(b.id).level - item(a.id).level)
+      .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, boss: l.boss, lost: l.boss && !won }));
     storeSave(save);
     hud.setBoss(null);
     const t = Math.round(st.time);
@@ -640,10 +690,10 @@ async function main() {
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
     ], result.cards, won ? 'Les drops arrivent à l’étape 6.' : 'L’XP gagnée est gardée, même en cas de défaite.',
-    { gained: st.xp, before: levelBefore, view: currentSheet() });
+    { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList);
     if (SHOW_CAMP) await openCamp();
     await transition(() => {
-      game.restart(startingHero(save.profile));
+      game.restart(heroFromSave());
       hud.setLevel(game.hero.def.level);
       cardsTaken.length = 0;
       return buildRoom(0);
@@ -713,7 +763,7 @@ async function main() {
   if (SHOW_CAMP) {
     void openCamp().then(() => {
       // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
-      game.restart(startingHero(save.profile));
+      game.restart(heroFromSave());
       hud.setLevel(game.hero.def.level);
       hud.setSlots(slotViews());
     });
@@ -834,6 +884,22 @@ async function main() {
       f.life -= dt;
       f.draw(f.g, Math.max(0, f.life / f.max));
       if (f.life <= 0) { f.g.destroy(); fxs.splice(i, 1); }
+    }
+    for (let i = flyers.length - 1; i >= 0; i--) {
+      const f = flyers[i];
+      f.t += dt;
+      const hold = f.boss ? 1.4 : 0.45, fly = 0.45;
+      if (f.t < hold) {
+        // saut au-dessus du monstre
+        const k = Math.min(1, f.t / 0.35);
+        f.s.position.set(f.x0, f.y0 - Math.sin(k * Math.PI * 0.5) * 70);
+      } else {
+        const k = Math.min(1, (f.t - hold) / fly), e = k * k;
+        const hx = game.hero.x, hy = game.hero.y - 80;
+        f.s.position.set(f.x0 + (hx - f.x0) * e, f.y0 - 70 + (hy - f.y0 + 70) * e);
+        f.s.alpha = 1 - k * 0.6;
+        if (k >= 1) { f.s.destroy(); flyers.splice(i, 1); }
+      }
     }
     for (let i = floaters.length - 1; i >= 0; i--) {
       const f = floaters[i];
