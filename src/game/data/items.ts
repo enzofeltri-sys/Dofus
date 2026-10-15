@@ -34,6 +34,17 @@ export interface ItemData {
   set: number | null;
   /** Lignes de stats : chemin, jet min, jet max. */
   effects: [StatPath, number, number][];
+  /** Arme : coût en PA, critique (1/x → %), bonus en critique, portée, lignes de dommages [élément, min, max, vol de vie]. */
+  weapon?: WeaponData;
+}
+
+export interface WeaponData {
+  pa: number;
+  crit: number;
+  critBonus: number;
+  range: number;
+  minRange: number;
+  lines: [Element, number, number, boolean][];
 }
 
 export interface ItemSetData {

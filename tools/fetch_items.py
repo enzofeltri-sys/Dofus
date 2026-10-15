@@ -46,6 +46,10 @@ CHAR = {
     120: 'pctDistance', 121: 'resDistance', 122: 'pctArme', 123: 'pctSort', 124: 'resMelee', 125: 'pctMelee',
 }
 
+# armes : lignes de dommages (effet → élément) et de vol de vie
+WEAPON_DMG = {96: 'eau', 97: 'terre', 98: 'air', 99: 'feu', 100: 'neutre'}
+WEAPON_STEAL = {91: 'eau', 92: 'terre', 93: 'air', 94: 'feu', 95: 'neutre'}
+
 _cache: dict = {}
 
 
@@ -104,6 +108,16 @@ def add_item(iid):
         'slot': SLOT.get(sup), 'icon': d['iconId'], 'set': d.get('itemSetId') if (d.get('itemSetId') or -1) > 0 else None,
         'effects': stat_lines(d.get('effects', [])) if sup in SLOT else [],
     }
+    if it['slot'] == 'arme':
+        lines = []
+        for e in d.get('effects', []):
+            el = WEAPON_DMG.get(e['effectId']) or WEAPON_STEAL.get(e['effectId'])
+            if el:
+                lo, hi = e.get('from', 0), e.get('to', 0) or e.get('from', 0)
+                lines.append((el, lo, hi, e['effectId'] in WEAPON_STEAL))
+        it['weapon'] = {'pa': d.get('apCost', 4), 'crit': d.get('criticalHitProbability', 0) or 0,
+                        'critBonus': d.get('criticalHitBonus', 0) or 0, 'range': d.get('range', 1) or 1,
+                        'minRange': d.get('minRange', 1) or 1, 'lines': lines}
     items[iid] = it
     if it['set'] and it['set'] not in sets:
         s = get(f"/item-sets/{it['set']}")
@@ -173,7 +187,7 @@ while frontier:
                 continue
             d = get(f'/items/{rid}')
             sup = d['type'].get('superTypeId')
-            if sup != RESOURCE_SUPER and (sup not in SLOT or SLOT[sup] == 'arme'):
+            if sup != RESOURCE_SUPER and sup not in SLOT:
                 continue
             if not add_item(rid):
                 continue
@@ -223,6 +237,20 @@ for it in items.values():
     im.thumbnail((64, 64), Image.LANCZOS)
     im.save(path, optimize=True)
 
+# 3 bis) Armes : icône en 128 px, tenue en main par le Sacrieur
+OUT_WEAPONS = os.path.join(ROOT, 'src/assets/weapons')
+os.makedirs(OUT_WEAPONS, exist_ok=True)
+for it in items.values():
+    if not it or it['slot'] != 'arme':
+        continue
+    path = os.path.join(OUT_WEAPONS, f"{it['icon']}.png")
+    if os.path.exists(path):
+        continue
+    with urllib.request.urlopen(f"{API}/img/items/{it['icon']}.png", timeout=30) as r:
+        im = Image.open(io.BytesIO(r.read())).convert('RGBA')
+    im.thumbnail((128, 128), Image.LANCZOS)
+    im.save(path, optimize=True)
+
 # 4) TypeScript
 def ts_stats(lines):
     return '[' + ', '.join(f"['{s}', {a}, {b}]" for s, a, b in lines) + ']'
@@ -235,8 +263,13 @@ out = ['// Généré par tools/fetch_items.py depuis DofusDB — ne pas modifier
 for it in sorted(kept.values(), key=lambda x: (x['slot'] is None, x['level'], x['id'])):
     slot = f"'{it['slot']}'" if it['slot'] else 'null'
     st = it['set'] if it['set'] else 'null'
+    wp = ''
+    if it.get('weapon'):
+        w = it['weapon']
+        ls = ', '.join(f"['{el}', {a}, {b}, {'true' if steal else 'false'}]" for el, a, b, steal in w['lines'])
+        wp = f", weapon: {{ pa: {w['pa']}, crit: {w['crit']}, critBonus: {w['critBonus']}, range: {w['range']}, minRange: {w['minRange']}, lines: [{ls}] }}"
     out.append(f"  {it['id']}: {{ id: {it['id']}, name: {json.dumps(it['name'], ensure_ascii=False)}, level: {it['level']}, "
-               f"type: {json.dumps(it['type'], ensure_ascii=False)}, slot: {slot}, icon: {it['icon']}, set: {st}, effects: {ts_stats(it['effects'])} }},")
+               f"type: {json.dumps(it['type'], ensure_ascii=False)}, slot: {slot}, icon: {it['icon']}, set: {st}, effects: {ts_stats(it['effects'])}{wp} }},")
 out.append('};')
 out.append('')
 out.append('export const SET_DATA: Record<number, ItemSetData> = {')

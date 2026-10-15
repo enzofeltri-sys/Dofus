@@ -95,11 +95,11 @@ describe('butin', () => {
     expect(c2[310] / n).toBeCloseTo(0.58 * DROP_MULT.resource * 2, 2);
   });
 
-  it('boss : taux réels (20 % par pièce de sa panoplie)', () => {
+  it('boss : moitié du taux réel pour l’équipement (20 % → 10 % par pièce de sa panoplie)', () => {
     const r = rng(5);
     let casques = 0;
     for (let i = 0; i < 10000; i++) if (rollDrops({ dofusId: 4051, boss: true, prospection: 100 }, r).includes(CASQUE)) casques++;
-    expect(casques / 10000).toBeCloseTo(0.2, 1);
+    expect(casques / 10000).toBeCloseTo(0.1, 1);
   });
 
   it('butin de région : environ 10 % des monstres lâchent un objet d’Incarnam', () => {
@@ -128,12 +128,15 @@ describe('sauvegarde', () => {
     expect(casque.rolls[0]).toBeGreaterThanOrEqual(11);
     expect(won.save.resources['16525']).toBe(1);
   });
-  it('une ancienne sauvegarde reçoit l’équipement de départ', () => {
-    const store: Record<string, string> = { 'dofus-enzo-save': JSON.stringify({ v: 2, runs: 4, wins: 1, bestRoom: 9, bestWinTime: 213, xp: 0, resources: {} }) };
+  it('version 4 : une ancienne sauvegarde repart au niveau 1, sans équipement (couleurs gardées)', () => {
+    const store: Record<string, string> = { 'dofus-enzo-save': JSON.stringify({ v: 3, runs: 4, wins: 1, bestRoom: 9, bestWinTime: 213, xp: 0, resources: { 310: 4 }, appearance: { hair: '#123456' }, profile: { xp: 99999, carac: { force: 50 } } }) };
     (globalThis as unknown as { localStorage: Pick<Storage, 'getItem'> }).localStorage = { getItem: (k: string) => store[k] ?? null };
     const s = loadSave();
-    expect(s.v).toBe(3);
-    expect(s.runs).toBe(4);
-    expect(s.inventory.items).toHaveLength(5);
+    expect(s.v).toBe(4);
+    expect(s.runs).toBe(0);
+    expect(s.profile.xp).toBe(0);
+    expect(s.inventory.items).toHaveLength(0);
+    expect(s.resources).toEqual({});
+    expect(s.appearance.hair).toBe('#123456');
   });
 });

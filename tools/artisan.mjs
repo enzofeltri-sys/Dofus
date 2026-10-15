@@ -14,7 +14,7 @@ await p.reload();
 await ready();
 // sauvegarde avec des ressources de la Crypte et d'Incarnam
 await p.evaluate(() => {
-  const s = { v: 3, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0,
+  const s = { v: 4, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0,
     resources: { 310: 14, 16524: 11, 16663: 9, 16525: 5, 303: 22, 312: 12, 16513: 6, 16512: 4, 1984: 4, 421: 3 } };
   localStorage.setItem('dofus-enzo-save', JSON.stringify(s));
 });

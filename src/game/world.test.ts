@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { startingHero, weaponDef } from './data/hero';
 import { MONSTERS } from './data/monsters';
 import { escapeChance, escapeOf, tackleOf } from './formulas';
 import { GATE, PERSP, STEP, TACKLE_MIN, TOTAL_ROOMS, World } from './world';
@@ -22,7 +23,7 @@ describe('World', () => {
   });
 
   it("l'arme frappe automatiquement un monstre à portée et peut le tuer", () => {
-    const w = new World(1);
+    const w = new World(1, startingHero(undefined, undefined, 30828)); // Bounihimée
     w.startRoom(0);
     const m = w.monsters[0];
     w.monsters = [m];
@@ -35,6 +36,21 @@ describe('World', () => {
     expect(ev.some((e) => e.type === 'hit' && e.target === 'monster')).toBe(true);
     expect(m.state).toBe('dead');
     expect(ev.some((e) => e.type === 'roomCleared')).toBe(true);
+  });
+
+  it('vraies armes de Dofus converties au temps réel ; mains nues par défaut', () => {
+    const nu = weaponDef(null);
+    expect(nu.name).toBe('Mains nues');
+    expect(nu.lines[0]).toMatchObject({ min: 1, max: 3, element: 'neutre' });
+    const bouni = weaponDef(30828); // 14 à 18 Neutre, 4 PA
+    expect(bouni.lines[0]).toMatchObject({ min: 8, max: 10 });
+    expect(bouni.speed).toBeCloseTo(1.9);
+    const dague = weaponDef(97); // Dagues de Boisaille : 2 PA → deux fois plus rapides
+    expect(dague.speed).toBeCloseTo(3.8);
+    const arc = weaponDef(1942); // Arc de Chasse : distance
+    expect(arc.ranged).toBe(true);
+    expect(arc.reach).toBeGreaterThan(bouni.reach);
+    expect(startingHero().weapon.itemId).toBeNull();
   });
 
   it('un monstre annonce son attaque avant de frapper, et la frappe touche dans la zone', () => {

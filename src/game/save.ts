@@ -5,14 +5,14 @@
  * Règle de mort (document de design §7.3) : on garde l'XP et les ressources ramassées pendant la partie,
  * on perd le butin du boss.
  */
-import { addXp, defaultProfile, type Profile } from './progression';
+import { addXp, emptyCarac, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
-import { starterInventory, type Inventory } from './inventory';
+import { emptyInventory, type Inventory } from './inventory';
 import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
 export interface SaveData {
-  v: 3;
+  v: 4;
   runs: number;
   wins: number;
   /** Plus loin atteint (numéro de salle). */
@@ -59,8 +59,11 @@ export interface RunResult {
 
 const KEY = 'dofus-enzo-save';
 
+/** Nouveau personnage (version 4, validé par Enzo) : niveau 1, sans équipement, à mains nues. */
+export const newProfile = (): Profile => ({ xp: 0, carac: emptyCarac() });
+
 export const emptySave = (): SaveData => ({
-  v: 3, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: defaultProfile(), inventory: starterInventory(), appearance: { ...SACRI_COLORS }, jobXp: 0,
+  v: 4, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: newProfile(), inventory: emptyInventory(), appearance: { ...SACRI_COLORS }, jobXp: 0,
   resMarks: { fav: [], lock: [] },
 });
 
@@ -68,16 +71,17 @@ export function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptySave();
-    const d = JSON.parse(raw) as Partial<SaveData>;
-    // version 1 : pas encore de profil ; versions 1 et 2 : pas d'inventaire → équipement de départ
+    const d = JSON.parse(raw) as Partial<SaveData> & { v?: number };
     const base = emptySave();
+    // avant la version 4 (départ niveau 10 équipé) : on repart de zéro, niveau 1 à mains nues ; seules les couleurs sont gardées
+    if ((d.v ?? 1) < 4) return { ...base, appearance: { ...SACRI_COLORS, ...(d.appearance ?? {}) } };
     const profile = d.profile ? { xp: d.profile.xp ?? base.profile.xp, carac: { ...base.profile.carac, ...d.profile.carac } } : base.profile;
     const inventory = d.inventory?.items ? { ...d.inventory, items: d.inventory.items.filter((i) => ITEMS[i.id]) } : base.inventory;
     // les ressources inconnues (anciennes versions) sont ignorées
     const resources = Object.fromEntries(Object.entries(d.resources ?? {}).filter(([k]) => ITEMS[Number(k)]));
     const appearance = { ...SACRI_COLORS, ...(d.appearance ?? {}) };
     const resMarks = { fav: d.resMarks?.fav ?? [], lock: d.resMarks?.lock ?? [] };
-    return { ...base, ...d, profile, inventory, resources, appearance, resMarks, v: 3 };
+    return { ...base, ...d, profile, inventory, resources, appearance, resMarks, v: 4 };
   } catch {
     return emptySave();
   }

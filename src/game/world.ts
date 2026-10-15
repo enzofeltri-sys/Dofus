@@ -127,7 +127,7 @@ export interface Hero {
   alive: boolean;
   attackCd: number;
   /** Coup d'arme en cours. */
-  swing: { t: number; dur: number; hit: boolean; dir: Vec } | null;
+  swing: { t: number; dur: number; hit: boolean; dir: Vec; target: number } | null;
   hurtT: number;
   invulnT: number;
   /** PA disponibles (jauge qui se recharge). */
@@ -149,7 +149,7 @@ export interface Hero {
 }
 
 export type WorldEvent =
-  | { type: 'swing'; dir: Vec }
+  | { type: 'swing'; dir: Vec; ranged: boolean; x: number; y: number }
   | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean }
   | { type: 'telegraph'; uid: number }
   | { type: 'strike'; uid: number }
@@ -411,7 +411,7 @@ export class World {
       h.swing.t += STEP;
       if (!h.swing.hit && h.swing.t >= h.swing.dur * w.impactAt) {
         h.swing.hit = true;
-        this.weaponImpact(h.swing.dir);
+        this.weaponImpact(h.swing.dir, h.swing.target);
       }
       if (h.swing.t >= h.swing.dur) h.swing = null;
     } else if (h.attackCd <= 0) {
@@ -421,9 +421,9 @@ export class World {
         const dir = { x: dx / d, y: dy / d };
         h.facing = dx >= 0 ? 1 : -1;
         const ws = w.speed * (1 + this.passive('frenesie'));
-        h.swing = { t: 0, dur: Math.min(0.42, 0.8 / ws), hit: false, dir };
+        h.swing = { t: 0, dur: Math.min(0.42, 0.8 / ws), hit: false, dir, target: target.uid };
         h.attackCd = 1 / ws;
-        this.events.push({ type: 'swing', dir });
+        this.events.push({ type: 'swing', dir, ranged: w.ranged, x: target.x, y: target.y });
       }
     }
 
@@ -453,8 +453,16 @@ export class World {
       ...s,
       force: s.force + this.run.force,
       critique: s.critique + this.run.critique,
-      puissance: s.puissance + h.souffrance * (SOUFFRANCE.powerPerCharge + this.passive('douleur')) + h.mutStage * MUTILATION.power,
+      puissance: s.puissance + h.mutStage * MUTILATION.power,
+      // Souffrance : dégâts finaux des armes et des sorts
+      pctArme: s.pctArme + this.souffrancePct(),
+      pctSort: s.pctSort + this.souffrancePct(),
     };
+  }
+
+  /** Bonus de dégâts finaux (%) donné par la Souffrance. */
+  souffrancePct(): number {
+    return this.hero.souffrance * (SOUFFRANCE.pctPerCharge + this.passive('douleur'));
   }
 
   /** Valeur cumulée d'un passif (0 si aucune carte prise). */
@@ -595,29 +603,43 @@ export class World {
     return best;
   }
 
-  private weaponImpact(dir: Vec) {
+  private weaponImpact(dir: Vec, targetUid: number) {
     const h = this.hero, w = h.def.weapon;
     for (const m of this.monsters) {
       if (m.state === 'dead' || m.state === 'spawn') continue;
       const dx = m.x - h.x, dy = (m.y - h.y) / PERSP, d = Math.hypot(dx, dy);
-      if (d - m.def.radius > w.reach + 6) continue;
-      const ang = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / (d || 1))));
-      if (d > 30 && ang > w.arc) continue;
-      const hit = resolveHit(w.roll, this.heroStats(), m.stats, this.rnd, WEAPON_HIT);
+      if (w.ranged) {
+        // arme à distance : seulement la cible visée, si elle est encore à portée
+        if (m.uid !== targetUid || d - m.def.radius > w.reach + 30) continue;
+      } else {
+        if (d - m.def.radius > w.reach + 6) continue;
+        const ang = Math.acos(Math.max(-1, Math.min(1, (dx * dir.x + dy * dir.y) / (d || 1))));
+        if (d > 30 && ang > w.arc) continue;
+      }
+      // chaque ligne de l'arme est un jet (élément propre) ; vol de vie : soigne de la moitié
+      const st = this.heroStats();
+      const crit = this.rnd() * 100 < w.lines[0].critBase + st.critique;
+      let damage = 0;
+      for (const line of w.lines) {
+        const dmg = resolveHit({ ...line, critBase: crit ? 1e6 : -1e6 }, st, m.stats, this.rnd, WEAPON_HIT).damage;
+        damage += dmg;
+        if (line.steal) this.healHero(Math.floor(dmg / 2));
+      }
       // Supplice : frapper une cible marquée soigne de 20 % des dommages
-      if (m.markT > 0) this.healHero(Math.floor(hit.damage * SUPPLICE_MARK));
-      m.hp -= hit.damage;
-      this.stats.dealt += hit.damage;
+      if (m.markT > 0) this.healHero(Math.floor(damage * SUPPLICE_MARK));
+      m.hp -= damage;
+      this.stats.dealt += damage;
       m.hurtT = 0.18;
-      m.knock.x += (dx / (d || 1)) * 34;
-      m.knock.y += (dy / (d || 1)) * 34;
+      const kb = w.ranged ? 14 : 34;
+      m.knock.x += (dx / (d || 1)) * kb;
+      m.knock.y += (dy / (d || 1)) * kb;
       m.pushT = PUSH_WINDOW;
-      const el = w.roll.element;
-      this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage: hit.damage, crit: hit.crit, element: el, eff: resEffect(m.stats, el) });
-      this.hitstop = Math.max(this.hitstop, hit.crit ? 0.075 : 0.035);
+      const el = w.lines[0].element;
+      this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit, element: el, eff: resEffect(m.stats, el) });
+      this.hitstop = Math.max(this.hitstop, crit ? 0.075 : 0.035);
       if (m.hp <= 0) {
         this.kill(m);
-      } else if (m.state === 'windup' && hit.crit) {
+      } else if (m.state === 'windup' && crit) {
         // un coup critique interrompt l'attaque en préparation
         m.state = 'recover';
         m.t = 0;

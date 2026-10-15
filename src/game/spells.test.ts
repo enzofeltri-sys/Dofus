@@ -75,7 +75,8 @@ describe('Sorts du Sacrieur', () => {
     expect(w.hero.hp).toBe(hp0 - Math.round(hp0 * 0.1));
     // le sacrifice de 10 % des PV donne aussi 1 charge de Souffrance
     expect(w.hero.souffrance).toBe(1);
-    expect(w.heroStats().puissance).toBe(MUTILATION.power + SOUFFRANCE.powerPerCharge);
+    expect(w.heroStats().puissance).toBe(MUTILATION.power);
+    expect(w.heroStats().pctSort - w.hero.def.stats.pctSort).toBe(SOUFFRANCE.pctPerCharge);
     run(w, TURN + 0.1);
     expect(w.hero.mutStage).toBe(2);
     w.hero.hp = Math.floor(w.hero.maxHp * 0.3);

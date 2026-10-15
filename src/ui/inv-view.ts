@@ -46,8 +46,8 @@ export interface ItemDetail {
   links: Link[];
 }
 
-/** Cases sans objet possible pour l'instant (pas encore de familiers, boucliers ni Dofus dans le jeu). */
-const NOT_YET: SlotId[] = ['bouclier', 'familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'];
+/** Cases sans objet possible pour l'instant (pas encore de familiers ni de Dofus dans le jeu). */
+const NOT_YET: SlotId[] = ['familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'];
 
 /** Haut de la fourchette (ou bas pour un malus). */
 const top = (a: number, b: number) => (Math.abs(b) >= Math.abs(a) ? b : a);

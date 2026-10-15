@@ -26,7 +26,7 @@ export function sourcesOf(id: number): Source[] {
     const d = drops.find(([i]) => i === id);
     if (!d) continue;
     const boss = BOSS_IDS.has(Number(mid));
-    const chance = boss ? d[1] : d[1] * (isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource);
+    const chance = d[1] * (boss ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1) : isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource);
     out.push({ kind: 'dungeon', text: `${monsterName(Number(mid))}${boss ? ' (boss)' : ''} · Crypte de Kardorim · ${pct(chance)}` });
   }
   const region = [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))];

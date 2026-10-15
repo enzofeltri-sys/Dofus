@@ -105,7 +105,7 @@ export function invest(p: Profile, id: CaracId, n = 1): Profile {
 /** Remise à zéro gratuite des caractéristiques (au camp). */
 export const resetCarac = (p: Profile): Profile => ({ xp: p.xp, carac: emptyCarac() });
 
-const emptyCarac = (): Record<CaracId, number> => ({ vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 });
+export const emptyCarac = (): Record<CaracId, number> => ({ vitalite: 0, sagesse: 0, force: 0, intelligence: 0, chance: 0, agilite: 0 });
 
 /** Sacrieur de départ : niveau 10, tous ses points en Force. */
 export function defaultProfile(): Profile {

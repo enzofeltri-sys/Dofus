@@ -31,7 +31,7 @@ await p.evaluate(async () => {
   for (const id of [16500, 16501, 16502]) i = f.addNew(i, id, 2, Math.random); // panoplie Épique → Légendaire (Crânes)
   i = f.addNew(i, 787, 0, Math.random); // Anneau Rexik à briser
   i = f.addNew(i, 16501, 4, Math.random); // une Cape Mythique pour voir le rendu
-  const s = { v: 3, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 9000, carac: {} }, inventory: i,
+  const s = { v: 4, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 9000, carac: {} }, inventory: i,
     resources: { 16525: 5, 310: 4 } };
   localStorage.setItem('dofus-enzo-save', JSON.stringify(s));
 });

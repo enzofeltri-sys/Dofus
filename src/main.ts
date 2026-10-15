@@ -3,7 +3,7 @@ import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, type ChaferKind } from './art
 import { chaferChibiSvg as chaferSvg, kardoribChibiSvg as kardoribSvg, kardorimChibiSvg as kardorimSvg } from './art/monsters-chibi';
 import type { MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
-import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg, sacrieurSwordSvg, SWORD_GRIP, SWORD_H, SWORD_W } from './art/sacrieur';
+import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
 import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
@@ -21,7 +21,7 @@ import { elementName, resLine, sheetView } from './ui/sheet-view';
 import { equip, gearStats, isWorn, toggleMark, unequip } from './game/inventory';
 import { catalogDetail, equipmentDetail, invView, resourceDetail } from './ui/inv-view';
 import { fmtLine, item, type SlotId } from './game/data/items';
-import { allItemIconUrls, itemIconImg, itemIconUrl } from './ui/item-icons';
+import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, forgeRows, fusionView } from './ui/craft-view';
 import { breakItem, fuse, RARITIES } from './game/forge';
@@ -73,7 +73,7 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
 
 const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles };
 
-interface HeroView { rig: Rig; c: Container; sword: Sprite; anim: HeroAnim; deadT: number }
+interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
 interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
 interface Floater { t: Text; life: number; vy: number; x: number; y: number }
 interface Fx { g: Graphics; life: number; max: number; draw: (g: Graphics, k: number) => void }
@@ -95,9 +95,8 @@ async function main() {
   // ---------- Textures ----------
   let save = loadSave();
   hud.setHeroLook(save.appearance);
-  const [sacriTex, swordTex, gateTex, ...chaferFlat] = await Promise.all([
+  const [sacriTex, gateTex, ...chaferFlat] = await Promise.all([
     Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
-    svgTexture(sacrieurSwordSvg(), CR),
     svgTexture(gateBarsSvg(), RES),
     ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
@@ -146,7 +145,12 @@ async function main() {
 
   // ---------- Monde ----------
   /** Le Sacrieur tel que sauvegardé : niveau, caractéristiques, équipement porté. */
-  const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory));
+  /** Arme portée (objet DofusDB), null : mains nues. */
+  const weaponOf = (inv: SaveData['inventory']) => {
+    const uid = inv.equipped.arme;
+    return uid !== undefined ? inv.items.find((i) => i.uid === uid)?.id ?? null : null;
+  };
+  const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory), weaponOf(save.inventory));
   const game = new World(Math.floor(Math.random() * 1e6), heroFromSave());
   // icônes des objets (butin qui vole vers le Sacrieur)
   await Assets.load(allItemIconUrls()).catch(() => {});
@@ -328,11 +332,24 @@ async function main() {
     SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRIEUR_PIVOTS[p] })),
     SACRIEUR_FOOT, CHAR_SCALE, false,
   );
-  const sword = new Sprite(swordTex);
-  sword.anchor.set(SWORD_GRIP[0] / SWORD_W, SWORD_GRIP[1] / SWORD_H);
-  const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'épée suit sa rotation
+  // arme tenue en main : l'icône officielle de l'arme équipée (rien à mains nues)
+  const sword = new Container();
+  const weaponSprite = new Sprite();
+  weaponSprite.anchor.set(0.24, 0.78); // poignée : en bas à gauche de l'icône (arme dessinée en diagonale)
+  weaponSprite.rotation = -Math.PI / 4; // diagonale → verticale, pointe en haut
+  weaponSprite.scale.set(0.82);
+  sword.addChild(weaponSprite);
+  const armF = heroRig.parts.get('armF')!; // conteneur du bras : l'arme suit sa rotation
   sword.position.set(SACRIEUR_HAND[0] - SACRIEUR_PIVOTS.armF[0], SACRIEUR_HAND[1] - SACRIEUR_PIVOTS.armF[1]);
   armF.addChild(sword);
+  let shownWeapon: number | null | undefined;
+  async function refreshWeapon(itemId: number | null) {
+    if (itemId === shownWeapon) return;
+    shownWeapon = itemId;
+    const url = itemId !== null ? weaponIconUrl(itemId) : '';
+    sword.visible = !!url;
+    if (url) weaponSprite.texture = await Assets.load<Texture>(url);
+  }
   /** Couleurs changées au camp : on redessine les morceaux du Sacrieur. */
   let lookKey = JSON.stringify(save.appearance);
   async function refreshHeroLook() {
@@ -352,14 +369,21 @@ async function main() {
   });
   heroHpText.anchor.set(0.5, 1);
   heroHpText.resolution = RES * 1.2;
+  /** Bonus de dégâts de la Souffrance, à droite des gouttes. */
+  const souffText = new Text({
+    text: '',
+    style: { fontFamily: 'Lilita One', fontSize: 17, fill: '#ff8a7a', stroke: { color: '#3b1a12', width: 5, join: 'round' } },
+  });
+  souffText.anchor.set(0, 0.5);
+  souffText.resolution = RES * 1.2;
   heroC.addChild(shadowOf(28 * CHAR_SCALE), heroAura, heroRig.root);
   // au premier plan (jamais cachée par un monstre), suit le héros
   const heroHpBox = new Container();
-  heroHpBox.addChild(heroHp, heroHpText);
+  heroHpBox.addChild(heroHp, heroHpText, souffText);
   floatLayer.addChild(heroHpBox);
   actors.addChild(heroC);
   const HP_Y = -180 * CHAR_SCALE;
-  function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean, eroded = 0) {
+  function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean, eroded = 0, souffPct = 0) {
     heroHpBox.visible = alive;
     if (!alive) return;
     heroHpBox.position.set(heroView.c.x, heroView.c.y);
@@ -380,6 +404,9 @@ async function main() {
       heroHp.roundRect(-W / 2 + 2 + i * 11.2, HP_Y + H + 4, 8, 8, 3).fill({ color: i < souffrance ? 0xb8202e : 0x3b1a12, alpha: i < souffrance ? 1 : 0.4 })
         .stroke({ width: 1.5, color: 0x3b2414, alpha: i < souffrance ? 1 : 0.4 });
     }
+    souffText.visible = souffrance > 0;
+    souffText.text = `+${souffPct} %`;
+    souffText.position.set(W / 2 + 6, HP_Y + H + 8);
     heroHpText.text = String(Math.ceil(Math.max(0, hp)));
     heroHpText.position.set(0, HP_Y - (shield > 0 ? 10 : 1));
   }
@@ -471,14 +498,24 @@ async function main() {
     switch (ev.type) {
       case 'swing': {
         const h = game.hero, w = h.def.weapon;
-        const dir = ev.dir;
+        const dir = ev.dir, tx = ev.x, ty = ev.y;
         later(Math.min(0.42, 0.8 / w.speed) * w.impactAt, () => {
+          if (w.ranged) {
+            // arme à distance : trait lumineux du Sacrieur à la cible
+            const x0 = h.x, y0 = h.y - 60;
+            addFx(0.16, (g, k) => {
+              g.clear().moveTo(0, 0).lineTo((tx - x0) * (1 - k * 0.3), (ty - 70 - y0) * (1 - k * 0.3))
+                .stroke({ width: 7 * k + 2, color: 0xffe9a0, alpha: k });
+            }, x0, y0);
+            return;
+          }
           const ang = Math.atan2(dir.y * PERSP, dir.x);
+          const bare = w.itemId === null;
           addFx(0.2, (g, k) => {
             g.clear();
-            const r = 84;
-            const a0 = ang - 1.25, a1 = ang + 1.1, head = a0 + (a1 - a0) * Math.min(1, (1 - k) * 2.4);
-            for (let j = 0; j < 4; j++) g.arc(0, 0, r - j * 5, a0 + (head - a0) * (j * 0.18), head).stroke({ width: 9 - j * 2, color: j < 2 ? 0xffffff : 0xffe9a0, alpha: k * (1 - j * 0.2) });
+            const r = bare ? 58 : 84;
+            const a0 = ang - (bare ? 0.6 : 1.25), a1 = ang + (bare ? 0.5 : 1.1), head = a0 + (a1 - a0) * Math.min(1, (1 - k) * 2.4);
+            for (let j = 0; j < 4; j++) g.arc(0, 0, r - j * 5, a0 + (head - a0) * (j * 0.18), head).stroke({ width: (bare ? 7 : 9) - j * 2, color: j < 2 ? 0xffffff : 0xffe9a0, alpha: k * (1 - j * 0.2) });
             g.scale.y = PERSP + 0.15;
           }, h.x, h.y - 34);
         });
@@ -990,7 +1027,8 @@ async function main() {
     if (!busy) fadeA = Math.max(0, fadeA - dt * 3);
     fade.clear().rect(0, 0, window.innerWidth, window.innerHeight).fill({ color: 0x0e0604, alpha: fadeA });
 
-    drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive, h.eroded);
+    drawHeroHp(h.hp, h.maxHp, h.shield, h.souffrance, h.alive, h.eroded, game.souffrancePct());
+    void refreshWeapon(h.def.weapon.itemId);
     // taclé : poussière grise aux pieds quand un monstre au contact freine le Sacrieur
     if (h.alive && h.moving && h.tackled < 0.95 && Math.random() < 0.35) emit(h.x + rand(-18, 18), h.y - 6, 0x9a8f80, { vx: rand(-40, 40), vy: rand(-60, -20), life: 0.35, size: 0.06, add: false });
     const big = game.boss ?? game.elite;
@@ -1008,6 +1046,13 @@ async function main() {
     if (h.mutStage > 0 && h.alive) {
       const k = 0.25 + 0.15 * h.mutStage + 0.08 * Math.sin(time * 9);
       heroAura.ellipse(0, 0, 46, 46 * PERSP).fill({ color: 0xc8303c, alpha: k * 0.5 }).stroke({ width: 3, color: 0xff6a5a, alpha: k });
+    }
+    // Souffrance : halo de sang qui grandit avec les charges, gouttes qui montent
+    if (h.souffrance > 0 && h.alive) {
+      const q = h.souffrance / 10, pulse = 0.5 + 0.5 * Math.sin(time * (4 + 6 * q));
+      heroAura.ellipse(0, -2, 30 + 30 * q, (30 + 30 * q) * PERSP).fill({ color: 0x8a1020, alpha: 0.18 + 0.32 * q * (0.7 + 0.3 * pulse) })
+        .stroke({ width: 2 + 3 * q, color: 0xff3a3a, alpha: 0.25 + 0.55 * q * pulse });
+      if (Math.random() < 0.08 + 0.5 * q) emit(h.x + rand(-26, 26), h.y - rand(10, 70), 0xd8202e, { vx: rand(-15, 15), vy: rand(-90, -40), life: 0.5, size: 0.05 + 0.04 * q, add: true });
     }
     if (h.shield > 0 && h.alive) {
       heroAura.ellipse(0, -60 * CHAR_SCALE, 58, 78).stroke({ width: 4, color: 0x8ddccf, alpha: 0.55 + 0.2 * Math.sin(time * 6) });

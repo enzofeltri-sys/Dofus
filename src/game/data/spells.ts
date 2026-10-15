@@ -99,7 +99,8 @@ export const MUTILATION = { power: 30, sacrifice: 0.1, maxStage: 3, shield: [5, 
 export const SUPPLICE_MARK = 0.2;
 
 /** Souffrance : 1 charge par tranche de 10 % de PV perdus (elle suit la vie, ne retombe pas toute seule). */
-export const SOUFFRANCE = { max: 10, powerPerCharge: 2, pullBonusAt: 6, pullBonusCells: 4 };
+/** Chaque charge : +5 % de dégâts finaux (armes et sorts), soit +50 % à 10 charges. */
+export const SOUFFRANCE = { max: 10, pctPerCharge: 5, pullBonusAt: 6, pullBonusCells: 4 };
 
 /** Sorts accessibles à un niveau donné (le grimoire). */
 export const spellsForLevel = (level: number): SpellDef[] => Object.values(SPELLS).filter((s) => s.level <= level);
@@ -113,7 +114,7 @@ export const PASSIVES: Record<PassiveId, { name: string; text: string; per: numb
   vampirisme: { name: 'Soif de sang', text: 'Vol de vie des sorts +10 % (50 % → 60 %).', per: 0.1, max: 3 },
   regeneration: { name: 'Sang neuf', text: 'Tu régénères 0,6 % de tes PV max par seconde.', per: 0.006, max: 3 },
   epines: { name: 'Épines', text: 'Renvoie 15 % des dégâts reçus à l’attaquant.', per: 0.15, max: 3 },
-  frenesie: { name: 'Frénésie', text: 'Ton épée frappe 15 % plus vite.', per: 0.15, max: 3 },
-  douleur: { name: 'Douleur exaltée', text: 'Chaque charge de Souffrance donne +1 Puissance de plus.', per: 1, max: 3 },
+  frenesie: { name: 'Frénésie', text: 'Ton arme frappe 15 % plus vite.', per: 0.15, max: 3 },
+  douleur: { name: 'Douleur exaltée', text: 'Chaque charge de Souffrance donne +1 % de dégâts de plus.', per: 1, max: 3 },
   endurance: { name: 'Peau de cuir', text: 'Tu subis 8 % de dégâts en moins.', per: 0.08, max: 3 },
 };
