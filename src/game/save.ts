@@ -7,7 +7,7 @@
  */
 import { addXp, defaultProfile, emptyCarac, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
-import { addItem, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
+import { addItem, averageRolls, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
 import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
@@ -70,7 +70,7 @@ export const newProfile = (): Profile => ({ xp: 0, carac: emptyCarac() });
 export const STARTER_WEAPON = 30828;
 const withWeapon = (inv: Inventory): Inventory => {
   if (inv.equipped.arme !== undefined) return inv;
-  const added = addItem(inv, STARTER_WEAPON, []);
+  const added = addItem(inv, STARTER_WEAPON, averageRolls(STARTER_WEAPON));
   return equip(added, added.nextUid - 1, 200);
 };
 
