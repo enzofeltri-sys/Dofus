@@ -40,6 +40,10 @@ export class Hud {
 
   constructor(root: HTMLElement) {
     this.root = root;
+    root.addEventListener('click', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('.sec-tab[data-panel]');
+      if (t && !t.classList.contains('on')) this.secGo?.(t.dataset.panel!);
+    });
     root.innerHTML = `
       <div class="top">
         <div class="medal">
@@ -76,21 +80,18 @@ export class Hud {
         <div class="camp-hero">${sacrieurSvg()}</div>
         <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span></div>
         <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
-        <div class="camp-btns">
-          <button type="button" class="gr-btn magic sm sheet-btn">Caractéristiques<span class="badge gr-num" hidden></span></button>
-          <button type="button" class="gr-btn turquoise sm inv-btn">Inventaire<span class="badge gr-num" hidden></span></button>
-          <button type="button" class="gr-btn sm look-btn">Apparence</button>
-          <button type="button" class="gr-btn leaf sm craft-btn">Artisan<span class="badge gr-num" hidden></span></button>
-        </div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
           <div class="dj-txt"><span class="gr-label">Donjon · niveau 10</span><b>Crypte de Kardorim</b><span class="dj-sub">9 salles · mini-boss · Kardorim</span></div>
           <button type="button" class="gr-btn enter">Entrer</button>
         </div>
-        <div class="camp-soon"><span class="gr-label">Bientôt au camp</span>
-          <div><span class="gr-chip">${ICONS.pa.svg}Grimoire</span><span class="gr-chip">${ICONS.carte.svg}Donjons</span></div>
-        </div>
       </div>
+      <nav class="camp-nav" hidden>
+        <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Caractéristiques</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipements</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab soon" disabled>${ICONS.pa.svg}<span>Grimoire</span><i>bientôt</i></button>
+        <button type="button" class="nav-tab soon" disabled>${ICONS.carte.svg}<span>Donjons</span><i>bientôt</i></button>
+      </nav>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
         <h2 class="gr-title"></h2><p class="sum-sub"></p>
         <div class="sum-stats"></div>
@@ -101,6 +102,7 @@ export class Hud {
         <button type="button" class="gr-btn turquoise back">Retour au camp</button>
       </div></div>
       <div class="sheet gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sheet">Caractéristiques</button><button type="button" class="sec-tab" data-panel="look">Apparence</button></div>
         <div class="sh-head">
           <div><h2 class="gr-h2">Caractéristiques</h2><span class="gr-chip lvl"></span></div>
           <button type="button" class="gr-btn ghost sm close">Fermer</button>
@@ -112,6 +114,7 @@ export class Hud {
         <div class="sh-rows"></div>
       </div>
       <div class="inv gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
         <div class="sh-head"><h2 class="gr-h2">Inventaire</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="inv-doll">
           <div class="col left"></div>
@@ -126,6 +129,7 @@ export class Hud {
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="atelier gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
         <div class="sh-head"><div><h2 class="gr-h2">Artisan</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="at-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
         <div class="gr-tabs at-tabs at-modes"><button type="button" class="gr-tab on" data-t="0">Fabrication</button><button type="button" class="gr-tab" data-t="1">Fusion</button><button type="button" class="gr-tab" data-t="2">Brisage</button><button type="button" class="gr-tab" data-t="3">Forge&shy;magie</button></div>
@@ -134,6 +138,7 @@ export class Hud {
         <div class="inv-detail at-modal" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="look gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sheet">Caractéristiques</button><button type="button" class="sec-tab" data-panel="look">Apparence</button></div>
         <div class="sh-head"><h2 class="gr-h2">Apparence</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="look-hero"></div>
         <div class="look-rows"></div>
@@ -338,54 +343,61 @@ export class Hud {
     work?: CraftHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
+    const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
-    const lookBtn = el.querySelector<HTMLButtonElement>('.look-btn')!;
-    lookBtn.hidden = !look;
-    lookBtn.onclick = async () => {
-      if (!look) return;
-      await this.appearance(look);
-    };
     if (look) this.setHeroLook(look.get());
-    const craftBtn = el.querySelector<HTMLButtonElement>('.craft-btn')!;
-    craftBtn.hidden = !work;
-    const craftBadge = () => {
-      const b = craftBtn.querySelector<HTMLElement>('.badge')!;
-      const n = work ? work.get().rows.filter((r) => r.ok).length : 0;
+    type Panel = 'sheet' | 'look' | 'inv' | 'atelier';
+    const SECTION: Record<Panel, 'perso' | 'equip'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip' };
+    let current: Panel | null = null;
+    const open: Record<Panel, () => Promise<void>> = {
+      sheet: () => this.charSheet(sheet, act),
+      look: () => (look ? this.appearance(look) : Promise.resolve()),
+      inv: () => (inv ? this.inventory(inv) : Promise.resolve()),
+      atelier: () => (work ? this.atelier(work) : Promise.resolve()),
+    };
+    const badge = (b: HTMLElement | null, n: number) => {
+      if (!b) return;
       b.hidden = n <= 0;
       b.textContent = String(n);
-    };
-    craftBadge();
-    craftBtn.onclick = async () => {
-      if (!work) return;
-      await this.atelier(work);
-      craftBadge();
-      refresh();
     };
     const refresh = () => {
       const v = sheet();
       el.querySelector('.lvl')!.textContent = `Niveau ${v.level}`;
       setXpBar(el.querySelector('.camp-xp')!, v);
-      const badge = el.querySelector<HTMLElement>('.sheet-btn .badge')!;
-      badge.hidden = v.free <= 0;
-      badge.textContent = String(v.free);
       this.setLevel(v.level);
-      const nb = el.querySelector<HTMLElement>('.inv-btn .badge')!;
       const fresh = inv ? inv.get().equipment.filter((e) => e.fresh).length : 0;
-      nb.hidden = fresh <= 0;
-      nb.textContent = String(fresh);
+      const craftable = work ? work.get().rows.filter((r) => r.ok).length : 0;
+      badge(nav.querySelector('[data-sec="perso"] .badge'), v.free);
+      badge(nav.querySelector('[data-sec="equip"] .badge'), fresh || craftable);
+      this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="inv"]').forEach((t) => t.dataset.n = fresh ? String(fresh) : '');
+      this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="atelier"]').forEach((t) => t.dataset.n = craftable ? String(craftable) : '');
+      this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="sheet"]').forEach((t) => t.dataset.n = v.free ? String(v.free) : '');
+      nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', !!current && SECTION[current] === t.dataset.sec));
+      this.root.querySelectorAll<HTMLElement>('.sec-tab').forEach((t) => t.classList.toggle('on', t.dataset.panel === current));
     };
-    const invBtn = el.querySelector<HTMLButtonElement>('.inv-btn')!;
-    invBtn.hidden = !inv;
-    invBtn.onclick = async () => {
-      if (!inv) return;
-      await this.inventory(inv);
+    /** Ouvre un panneau (ferme proprement celui qui est ouvert). Un panneau se ferme avec « Fermer » ou en touchant son onglet. */
+    const show = async (p: Panel) => {
+      const prev = current;
+      current = p;
+      if (prev) this.root.querySelector<HTMLButtonElement>(`.${prev} .sh-head .close`)?.click();
+      refresh();
+      await open[p]();
+      if (current === p) current = null;
       refresh();
     };
+    this.secGo = (k) => void show(k as Panel);
+    nav.onclick = (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLElement>('.nav-tab[data-sec]');
+      if (!t) return;
+      const sec = t.dataset.sec;
+      if (current && SECTION[current] === sec) {
+        this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
+        return;
+      }
+      void show(sec === 'perso' ? 'sheet' : 'inv');
+    };
+    nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
     refresh();
-    el.querySelector<HTMLButtonElement>('.sheet-btn')!.onclick = async () => {
-      await this.charSheet(sheet, act);
-      refresh();
-    };
     const t = rec.bestWinTime;
     el.querySelector('.camp-records')!.innerHTML = [
       ['Parties', String(rec.runs)],
@@ -394,13 +406,19 @@ export class Hud {
       ['Record', t === null ? '—' : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`],
     ].map(([k, v]) => `<div><span class="gr-label">${k}</span><b class="gr-num">${v}</b></div>`).join('');
     el.hidden = false;
+    nav.hidden = false;
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.enter')!.onclick = () => {
+        if (current) this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         el.hidden = true;
+        nav.hidden = true;
+        this.secGo = null;
         resolve();
       };
     });
   }
+  /** Sous-onglets des panneaux du camp (Caractéristiques / Apparence, Inventaire / Artisanat). */
+  private secGo: ((k: string) => void) | null = null;
 
   private sheetTab = 0;
   /** Fiche de caractéristiques : répartition des points, remise à zéro, et toute la fiche Dofus. */

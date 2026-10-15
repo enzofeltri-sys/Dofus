@@ -33,7 +33,7 @@ await p.evaluate(async () => {
 });
 await p.reload();
 await ready();
-await p.click('.inv-btn');
+await p.click('.nav-tab[data-sec="equip"]');
 await p.waitForTimeout(200);
 console.log('équipements :', await count());
 

@@ -42,7 +42,8 @@ await p.evaluate(() => {
   t.style.animation = 'none';
   new MutationObserver(() => { if (t.hidden && t.textContent) t.hidden = false; }).observe(t, { attributes: true });
 });
-await p.click('.craft-btn');
+await p.click('.nav-tab[data-sec="equip"]');
+await p.click('.inv .sec-tab[data-panel="atelier"]');
 await p.click('.at-tabs .gr-tab[data-t="1"]');
 await p.waitForTimeout(150);
 console.log('fusion — lignes :', await p.evaluate(() => document.querySelectorAll('.at-row.fg').length), '· possibles :', await p.evaluate(() => document.querySelectorAll('.at-row.fg .fz-go').length));
@@ -91,7 +92,7 @@ await p.click('.atelier .sh-head .close');
 
 // inventaire : cadres de rareté, fiche Légendaire
 await p.evaluate(() => { document.querySelector('.toast').hidden = true; document.querySelector('.toast').textContent = ''; });
-await p.click('.inv-btn');
+await p.click('.nav-tab[data-sec="equip"]');
 await p.waitForTimeout(200);
 await p.evaluate(() => document.querySelector('.inv-tabs').scrollIntoView());
 await shot('forge_inv');

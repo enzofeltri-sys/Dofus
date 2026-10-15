@@ -14,7 +14,7 @@ await p.waitForSelector('.camp:not([hidden]) .enter', { timeout: 20000 });
 console.log('camp :', await p.evaluate(() => document.querySelector('.camp .lvl').textContent + ' · ' + document.querySelector('.camp-xp .txt').textContent));
 await p.screenshot({ path: 'shots/prog_camp.png' });
 // fiche : remise à zéro, puis 30 en Force, 10 en Vitalité, 1 en Sagesse (3 points)
-await p.click('.sheet-btn');
+await p.click('.nav-tab[data-sec="perso"]');
 await p.click('.sheet .reset');
 for (let i = 0; i < 3; i++) await p.click('.sh-carac[data-id="force"] .add[data-n="10"]');
 await p.click('.sh-carac[data-id="vitalite"] .add[data-n="10"]');
@@ -24,7 +24,7 @@ await p.screenshot({ path: 'shots/prog_sheet.png' });
 await p.click('.sh-tabs .gr-tab:nth-child(3)');
 await p.screenshot({ path: 'shots/prog_sheet_res.png' });
 await p.click('.sheet .close');
-console.log('badge :', await p.evaluate(() => document.querySelector('.sheet-btn .badge').hidden ? 'caché' : document.querySelector('.sheet-btn .badge').textContent));
+console.log('badge :', await p.evaluate(() => document.querySelector('.nav-tab[data-sec="perso"] .badge').hidden ? 'caché' : document.querySelector('.nav-tab[data-sec="perso"] .badge').textContent));
 await p.click('.camp .enter');
 await p.waitForTimeout(600);
 console.log('héros :', await p.evaluate(() => { const g = window.__game; return `niv ${g.hero.def.level} Force ${g.hero.def.stats.force} Vita ${g.hero.def.stats.vitalite} Sagesse ${g.hero.def.stats.sagesse} PV ${g.hero.maxHp}`; }));
@@ -43,7 +43,7 @@ console.log('bilan :', await p.evaluate(() => document.querySelector('.sum-xp').
 await p.screenshot({ path: 'shots/prog_summary.png' });
 await p.click('.summary .back');
 await p.waitForSelector('.camp:not([hidden])');
-console.log('camp après :', await p.evaluate(() => document.querySelector('.camp .lvl').textContent + ' · badge ' + document.querySelector('.sheet-btn .badge').textContent));
+console.log('camp après :', await p.evaluate(() => document.querySelector('.camp .lvl').textContent + ' · badge ' + document.querySelector('.nav-tab[data-sec="perso"] .badge').textContent));
 await p.screenshot({ path: 'shots/prog_camp2.png' });
 console.log('sauvegarde :', await p.evaluate(() => localStorage.getItem('dofus-enzo-save')));
 console.log(errors.length ? errors.join('\n') : 'aucune erreur');

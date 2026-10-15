@@ -21,7 +21,8 @@ await p.evaluate(() => {
 await p.reload();
 await ready();
 await p.screenshot({ path: 'shots/art_camp.png' });
-await p.click('.craft-btn');
+await p.click('.nav-tab[data-sec="equip"]');
+await p.click('.inv .sec-tab[data-panel="atelier"]');
 await p.waitForTimeout(200);
 console.log('disponibles :', await p.evaluate(() => document.querySelectorAll('.at-row').length));
 await p.screenshot({ path: 'shots/art_list.png' });
@@ -41,7 +42,7 @@ await p.screenshot({ path: 'shots/art_toast.png' });
 console.log('fabrication :', await p.evaluate(() => document.querySelector('.toast').textContent), '|', await p.evaluate(() => document.querySelector('.atelier .lvl').textContent));
 await p.screenshot({ path: 'shots/art_done.png' });
 await p.click('.atelier .sh-head .close');
-await p.click('.inv-btn');
+await p.click('.nav-tab[data-sec="equip"]');
 await p.waitForTimeout(200);
 console.log('inventaire :', await p.evaluate(() => document.querySelectorAll('.inv-cell').length + ' objets, nouveaux : ' + document.querySelectorAll('.inv-cell.fresh').length));
 await p.click('.inv-tabs .gr-tab[data-t="1"]');
