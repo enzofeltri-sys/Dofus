@@ -5,9 +5,9 @@
  * Règle de mort (document de design §7.3) : on garde l'XP et les ressources ramassées pendant la partie,
  * on perd le butin du boss.
  */
-import { addXp, emptyCarac, type Profile } from './progression';
+import { addXp, defaultProfile, emptyCarac, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
-import { emptyInventory, type Inventory } from './inventory';
+import { addItem, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
 import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
@@ -59,11 +59,26 @@ export interface RunResult {
 
 const KEY = 'dofus-enzo-save';
 
-/** Nouveau personnage (version 4, validé par Enzo) : niveau 1, sans équipement, à mains nues. */
+/**
+ * Départ validé par Enzo : niveau 1, sans équipement, à mains nues. Il n'est jouable qu'avec la première carte de farm
+ * (Champs d'Incarnam, étape 9a) : d'ici là, un nouveau personnage part encore niveau 10 avec l'équipement de départ.
+ */
+export const LEVEL1_START = false;
 export const newProfile = (): Profile => ({ xp: 0, carac: emptyCarac() });
 
+/** Bounihimée : vraie épée de Dofus 3 (niveau 1), réglée sur l'ancienne épée inventée. */
+export const STARTER_WEAPON = 30828;
+const withWeapon = (inv: Inventory): Inventory => {
+  if (inv.equipped.arme !== undefined) return inv;
+  const added = addItem(inv, STARTER_WEAPON, []);
+  return equip(added, added.nextUid - 1, 200);
+};
+
 export const emptySave = (): SaveData => ({
-  v: 4, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, profile: newProfile(), inventory: emptyInventory(), appearance: { ...SACRI_COLORS }, jobXp: 0,
+  v: 4, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {},
+  profile: LEVEL1_START ? newProfile() : defaultProfile(),
+  inventory: LEVEL1_START ? emptyInventory() : withWeapon(starterInventory()),
+  appearance: { ...SACRI_COLORS }, jobXp: 0,
   resMarks: { fav: [], lock: [] },
 });
 
@@ -73,10 +88,11 @@ export function loadSave(): SaveData {
     if (!raw) return emptySave();
     const d = JSON.parse(raw) as Partial<SaveData> & { v?: number };
     const base = emptySave();
-    // avant la version 4 (départ niveau 10 équipé) : on repart de zéro, niveau 1 à mains nues ; seules les couleurs sont gardées
-    if ((d.v ?? 1) < 4) return { ...base, appearance: { ...SACRI_COLORS, ...(d.appearance ?? {}) } };
+    const old = (d.v ?? 1) < 4;
     const profile = d.profile ? { xp: d.profile.xp ?? base.profile.xp, carac: { ...base.profile.carac, ...d.profile.carac } } : base.profile;
-    const inventory = d.inventory?.items ? { ...d.inventory, items: d.inventory.items.filter((i) => ITEMS[i.id]) } : base.inventory;
+    let inventory = d.inventory?.items ? { ...d.inventory, items: d.inventory.items.filter((i) => ITEMS[i.id]) } : base.inventory;
+    // version 4 : l'épée inventée disparaît ; un personnage existant reçoit la Bounihimée (même puissance)
+    if (old) inventory = withWeapon(inventory);
     // les ressources inconnues (anciennes versions) sont ignorées
     const resources = Object.fromEntries(Object.entries(d.resources ?? {}).filter(([k]) => ITEMS[Number(k)]));
     const appearance = { ...SACRI_COLORS, ...(d.appearance ?? {}) };

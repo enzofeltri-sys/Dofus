@@ -128,15 +128,16 @@ describe('sauvegarde', () => {
     expect(casque.rolls[0]).toBeGreaterThanOrEqual(11);
     expect(won.save.resources['16525']).toBe(1);
   });
-  it('version 4 : une ancienne sauvegarde repart au niveau 1, sans équipement (couleurs gardées)', () => {
+  it('version 4 : une ancienne sauvegarde est gardée et reçoit la Bounihimée équipée', () => {
     const store: Record<string, string> = { 'dofus-enzo-save': JSON.stringify({ v: 3, runs: 4, wins: 1, bestRoom: 9, bestWinTime: 213, xp: 0, resources: { 310: 4 }, appearance: { hair: '#123456' }, profile: { xp: 99999, carac: { force: 50 } } }) };
     (globalThis as unknown as { localStorage: Pick<Storage, 'getItem'> }).localStorage = { getItem: (k: string) => store[k] ?? null };
     const s = loadSave();
     expect(s.v).toBe(4);
-    expect(s.runs).toBe(0);
-    expect(s.profile.xp).toBe(0);
-    expect(s.inventory.items).toHaveLength(0);
-    expect(s.resources).toEqual({});
+    expect(s.runs).toBe(4);
+    expect(s.profile.xp).toBe(99999);
+    expect(s.resources).toEqual({ 310: 4 });
+    const arme = s.inventory.items.find((i) => i.uid === s.inventory.equipped.arme);
+    expect(arme?.id).toBe(30828);
     expect(s.appearance.hair).toBe('#123456');
   });
 });

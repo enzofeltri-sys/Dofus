@@ -261,12 +261,24 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - **Niveau requis réel** (panoplie Kardorim : niveau 12). Icônes officielles des objets (DofusDB), dans un cadre au style du jeu.
 - **Départ** : Panoplie du Jeune Aventurier sans le Chapeau (lâché par les Chafers : premier objectif) ; nombre de pièces ajusté par simulation pour garder le calibrage.
 
-### 8.3 Zones de farm (validé, étape 9)
-Une zone par région (ex. Plaines d'Incarnam) : 5 salles en vagues avec les vrais monstres du monde ouvert. Garde-fous pour ne pas rendre le jeu facile :
-1. Seulement le butin de la région (taux pleins) : jamais les ressources propres aux donjons ni les panoplies de boss.
-2. XP ×0,5 par minute par rapport au donjon du même niveau.
-3. 1 carte toutes les 2 salles, ni mini-boss ni boss.
-4. Même règle de difficulté que les donjons (vraies stats, aucun ajustement au personnage).
+### 8.3 Zones, cartes de farm et arbre des donjons (validé par Enzo, étape 9 — remplace l'ancienne règle)
+- **Arbre de progression** : zones et donjons en branches ; un donjon vaincu débloque **uniquement sa branche** (ex. Donjon des Champs vaincu → Zone Bouftou + Donjon Bouftou, mais pas Mob l'Éponge). Écran : onglet « Donjons » de la barre du camp.
+- **Zone** = **4 cartes de farm**, puis le **donjon** de la zone (débloqué quand les 4 cartes sont terminées).
+- **Carte de farm** = **5 salles**, une élite ou un mini-boss à la fin. XP pleine, vraies tables de drop des monstres de la carte, une carte de bonus entre chaque salle. (Les anciens garde-fous — XP ×0,5, 1 carte sur 2, pas de mini-boss — sont abandonnés : les cartes sont le chemin normal. Farmer trop bas est déjà freiné par l'XP dégressive au-delà de 10 niveaux d'écart.)
+- **Départ** : niveau 1, sans équipement, à mains nues, sur la 1re carte d'Incarnam (simulation : à mains nues, la Crypte est impossible au niveau 1).
+- **Zone 1 — Incarnam** (vrais monstres DofusDB) :
+  1. **Champs** : Tofu Chimérique (1-5), Pissenlit Miroitant (2-6), Rose Vaporeuse (2-6) ; élite Tournesol Nébuleux (3-7).
+  2. **Pâturages** : Boufton Pâlichon (3-7), Boufton Orageux (3-7), Bouftou Nuageux (4-8) ; élite Bouftor Éthéré (5-9).
+  3. **Forêt** : Chakrobat (4-8), Tigrimas (5-9) ; élite Ronronchon (6-10).
+  4. **Cimetière** : Chafers (+ Chafer Éclaireur 6-10) ; élite Chafer Piquier ou Sergent.
+  - **Donjon** : Crypte de Kardorim. (Lac, Mine et Route des âmes : cartes en plus ou expéditions plus tard.)
+- **Clés** : 3 clés génériques gratuites par jour, valables sur tout donjon déjà débloqué ; 1 clé = 1 entrée, perdue en cas de défaite ; clés en plus par drop ou par craft (clés **propres à un donjon**, vraies recettes de Dofus, ex. Clef de la Crypte de Kardorim, avec les ressources de la zone). **Tant qu'un donjon n'a jamais été vaincu, les tentatives sont gratuites** (validé : pas de blocage de la progression).
+- **Difficulté** : jamais adaptée au joueur (§7.6) ; une zone trop haute reste très difficile, une zone trop basse devient du farm.
+
+### 8.3 bis Idées validées en stock (plus tard)
+- **Boss Rush** : mini-jeu uniquement avec des boss de donjons, par tranches 1-20, 21-30, 31-40… ; 6 salles au plus, chacune avec 1 boss et ses sbires. Quand il y aura 3 ou 4 donjons.
+- **Expédition (farm hors ligne)** depuis le camp sur une carte terminée ; récompenses au retour, plafond 8 h, ≈ 25 % du rendement actif, ressources et XP seulement (pas d'équipement). Chiffres à confirmer.
+- **Auto-farm** en direct (sans toucher le téléphone) sur une carte terminée, récompenses réduites : après l'expédition, si Enzo le veut toujours.
 
 ### 8.4 Raretés
 **Commun → Rare → Épique → Légendaire → Mythique.**
@@ -341,8 +353,11 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
 6. 🔶 **Drop (avec butin de région), inventaire, équipement, panoplies** (à valider en jeu) : vraies tables de la Crypte et butin d'Incarnam (34 objets, icônes officielles), jets aléatoires, niveau requis, bonus de panoplie, inventaire au camp (Sacrieur et ses cases, fiche d'objet avec comparaison), butin qui vole vers le Sacrieur, butin au bilan (celui du boss perdu en cas de défaite). Départ : Panoplie du Jeune Aventurier sans le Chapeau (simulation : difficulté équivalente au calibrage).
 7. 🔶 **Artisan** (à valider en jeu) : atelier au camp, 105 vraies recettes, ressources intermédiaires, XP et niveaux de métier sauvegardés (§9.1).
 8. 🔶 **Raretés, fusion, brisage** (livraison 8a, à valider en jeu) ; **forgemagie** (livraison 8b).
-9. Zones de farm (Plaines d'Incarnam d'abord : ≈ 6 familles de monstres à dessiner).
-10. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
+9. **Zones, cartes de farm, arbre des donjons** (§8.3) : 9a écran Donjons + structure + carte des Champs (4 monstres) et départ niveau 1 à mains nues ; 9b cartes 2 à 4 ; 9c clés.
+10. Forgemagie (8b), puis expédition hors ligne, Boss Rush (§8.3 bis).
+11. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
+
+Fait en plus (retours d'Enzo) : onglets du camp en bas (Caractéristiques + Apparence, Équipements = Inventaire + Artisanat, place pour Grimoire, Donjons…) ; recherche/filtres/Encyclopédie/favoris/verrou (§8.5) ; vraies armes de Dofus 3 (24 armes niveau 1 à 12, toutes fabricables ; cadence = 1,9 × 4 / PA, dommages × 0,56 ; icône officielle tenue en main ; mains nues 1 à 5 Neutre, valeur non confirmée par une source) ; drop d'équipement réduit (monstres ×0,02, région ÷10, boss moitié du taux réel) ; Souffrance +5 % de dégâts finaux par charge, halo visible.
 
 ---
 
