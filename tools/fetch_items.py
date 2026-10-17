@@ -37,7 +37,9 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 101, 134, 149, 148, 4822, 103, 104, 4823, 159, 5228, 5229, 5230, 5231, 255, 465, 475, 3205,
                 2315, 2316, 2317, 2324, 2333, 2349, 2353, 2334, 2350, 2393, 147,
                 # Amakna : Champ des Ingalsse, Donjon des Tofus (+ archimonstre, Batofu)
-                98, 796, 804, 806, 4824, 808, 2355, 800]
+                98, 796, 804, 806, 4824, 808, 2355, 800, 802,
+                # Plaine et Donjon des Scarafeuilles (+ archimonstres, Scarabosse Doré)
+                194, 198, 240, 241, 795, 798, 2280, 2281, 2282, 2283, 797]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -219,7 +221,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139}
 dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')

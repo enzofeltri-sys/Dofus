@@ -255,6 +255,7 @@ export type WorldEvent =
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
   | { type: 'poisoned'; x: number; y: number }
+  | { type: 'explode'; x: number; y: number; radius: number }
   | { type: 'bless'; uid: number; x: number; y: number; radius: number; spell: string }
   | { type: 'wanderers'; name: string }
   | { type: 'archi'; name: string }
@@ -1135,7 +1136,7 @@ export class World {
       }
       this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: b.crackRadius });
     }
-    this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons });
+    this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons, count: b.summonCount });
   }
 
   /** Soutien (Picota, Mutation Prolifique, Bénédiction du Tofulailler) : soin du plus blessé ou bénédiction des alliés proches. */
@@ -1155,7 +1156,7 @@ export class World {
       this.events.push({ type: 'bless', uid: m.uid, x: m.x, y: m.y, radius: k.radius, spell: k.name });
       return;
     }
-    const hurt = near.filter((o) => o.hp < o.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    const hurt = near.filter((o) => o.hp < o.maxHp && !(k.notBoss && o.def.boss)).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
     if (!hurt) { m.supportT = 0.5; return; }
     m.supportT = k.every;
     const [lo, hi] = k.heal ?? k.healPct!.map((p) => (p * hurt.maxHp) / 100);
@@ -1165,20 +1166,22 @@ export class World {
   }
 
   /** Invocation à intervalle régulier, à côté de l'invocateur. */
-  private stepSummon(m: Monster, k: { every: number; id: string | string[]; max: number }) {
+  private stepSummon(m: Monster, k: { every: number; id: string | string[]; max: number; count?: number }) {
     m.summonT -= STEP;
     if (m.summonT > 0) return;
     m.summonT = k.every;
-    const alive = this.monsters.filter((o) => o.summoner === m.uid && o.state !== 'dead').length;
-    if (alive >= k.max) return;
-    const side = this.rnd() < 0.5 ? -1 : 1;
-    const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + side * 90));
-    const [sx, sy] = this.pushOut(x, m.y + 30, 26);
-    const id = Array.isArray(k.id) ? k.id[Math.floor(this.rnd() * k.id.length)] : k.id;
-    const s = this.makeMonster(MONSTERS[id], 1, sx, sy);
-    s.summoner = m.uid;
-    this.pending.push(s);
-    this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
+    let alive = this.monsters.filter((o) => o.summoner === m.uid && o.state !== 'dead').length + this.pending.filter((o) => o.summoner === m.uid).length;
+    for (let i = 0; i < (k.count ?? 1) && alive < k.max; i++, alive++) {
+      // autour de l'invocateur (plusieurs d'un coup : en éventail)
+      const ang = (k.count ?? 1) > 1 ? Math.PI * (0.15 + (0.7 * i) / Math.max(1, (k.count ?? 1) - 1)) : this.rnd() < 0.5 ? Math.PI : 0;
+      const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + Math.cos(ang) * 90));
+      const [sx, sy] = this.pushOut(x, m.y + 30 + Math.sin(ang) * 60 * PERSP, 26);
+      const id = Array.isArray(k.id) ? k.id[Math.floor(this.rnd() * k.id.length)] : k.id;
+      const s = this.makeMonster(MONSTERS[id], 1, sx, sy);
+      s.summoner = m.uid;
+      this.pending.push(s);
+      this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
+    }
   }
 
   private stepMonster(m: Monster) {
@@ -1293,6 +1296,11 @@ export class World {
       if (m.t >= a.windup) {
         this.events.push({ type: 'strike', uid: m.uid });
         if (h.alive && h.invulnT <= 0 && this.inAttack(m)) this.hurtHero(m);
+        if (a.selfDestruct) {
+          this.events.push({ type: 'explode', x: m.x, y: m.y, radius: a.size });
+          this.kill(m);
+          return;
+        }
         // fente vers l'avant (la charge traverse toute la ligne)
         const lunge = a.atTarget ? 0 : m.def.charge && a === m.def.charge.attack ? m.def.charge.dash : 40;
         m.knock.x += m.dir.x * lunge;
@@ -1338,6 +1346,8 @@ export class World {
     const melee = m.atk.trigger <= MONSTER_MELEE;
     const mine = this.heroStats();
     const hit = resolveHit(m.atk.roll, st, mine, this.rnd, { melee, source: 'sort' });
+    // Picoti : un jet par élément, additionnés
+    if (m.atk.multi) for (const el of m.atk.multi.slice(1)) hit.damage += resolveHit({ ...m.atk.roll, element: el }, st, mine, this.rnd, { melee, source: 'sort' }).damage;
     // Graine Empoisonnée, Bénédiction : sorts sans dommages directs
     const dmg = m.atk.roll.max > 0 ? Math.round(hit.damage * (1 - this.passive('endurance'))) : 0;
     const absorbed = Math.min(h.shield, dmg);
@@ -1360,6 +1370,7 @@ export class World {
     h.hurtT = 0.25;
     h.invulnT = 0.35;
     if (dmg > 0 || !m.atk.poison) this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: hit.crit });
+    if (m.atk.steal && dmg > 0 && m.state !== 'dead') m.hp = Math.min(m.maxHp, m.hp + Math.round(dmg / 2));
     if (m.atk.poison) {
       if (h.poisonT <= 0) this.events.push({ type: 'poisoned', x: h.x, y: h.y });
       h.poisonT = m.atk.poison.duration;

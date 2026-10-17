@@ -45,6 +45,12 @@ export interface MonsterAttack {
   atTarget?: boolean;
   /** Poison sur le héros (Graine Empoisonnée) : dommages Neutre par PA dépensé, pendant `duration` s. */
   poison?: { min: number; max: number; duration: number };
+  /** Un jet par élément (Picoti du Scarabosse : 11-15 dans chacun des 4 éléments). */
+  multi?: DamageRoll['element'][];
+  /** Vol de vie : le monstre récupère la moitié des dommages infligés. */
+  steal?: boolean;
+  /** Explose : le monstre meurt en frappant (Détonation du poulailler du Bomberfu). */
+  selfDestruct?: boolean;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -104,7 +110,7 @@ export interface MonsterDef {
    * Sort de soutien lancé toutes les `every` s sur les alliés à `radius` px ou moins (lui compris) :
    * soin du plus blessé (PV fixes ou % des PV max), ou bénédiction de tous (attaques plus rapides, PV en plus).
    */
-  support?: { name: string; every: number; radius: number; heal?: [number, number]; healPct?: [number, number]; bless?: { duration: number; speed: number; hp: number } };
+  support?: { name: string; every: number; radius: number; heal?: [number, number]; healPct?: [number, number]; notBoss?: boolean; bless?: { duration: number; speed: number; hp: number } };
 }
 
 /** Dessin : Chafers et Kardorim (rig des Chafers), ou une des bestioles d'Incarnam et d'Astrub. */
@@ -122,6 +128,8 @@ export interface BossKit {
   /** Monstre invoqué (au hasard dans la liste). */
   summon: string | string[];
   maxSummons: number;
+  /** Nombre d'invocations à chaque appel (Naissance : 5 Scarafeuilles Immatures), 1 par défaut. */
+  summonCount?: number;
   /** Soin périodique du boss (PV, toutes les `every` s). */
   heal?: { every: number; min: number; max: number; spell?: string };
 }
@@ -191,6 +199,8 @@ export const MONSTERS: Record<string, MonsterDef> = {
   bouftouNoirElite: eliteOf(ASTRUB.bouftouNoir, 'bouftouNoirElite', 'Bouftou Noir d’élite'),
   tofuNoirElite: eliteOf(ASTRUB.tofuNoir, 'tofuNoirElite', 'Tofu Noir d’élite'),
   tofuMutantElite: eliteOf(ASTRUB.tofuMutant, 'tofuMutantElite', 'Tofu Mutant d’élite'),
+  scaraVertElite: eliteOf(ASTRUB.scaraVert, 'scaraVertElite', 'Scarafeuille Vert d’élite'),
+  scaraNoirElite: eliteOf(ASTRUB.scaraNoir, 'scaraNoirElite', 'Scarafeuille Noir d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
    * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
@@ -218,6 +228,21 @@ export const MONSTERS: Record<string, MonsterDef> = {
     attack: { shape: 'circle', trigger: 150, size: 90, spread: 0, offset: 86, windup: 0.7, recover: 0.4, cooldown: [1.1, 1.5], roll: { min: 17, max: 26, critBonus: 4, critBase: 3, element: 'air' } },
     charge: { every: 8, dash: 0, attack: { shape: 'line', trigger: 480, size: 520, spread: 26, offset: 0, windup: 0.9, recover: 0.5, cooldown: [1.2, 1.6], roll: { min: 21, max: 30, critBonus: 4, critBase: 3, element: 'neutre' } } },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 8, summonEvery: 20, summon: 'tofuNoir', maxSummons: 2 },
+  },
+  /**
+   * Scarabosse Doré (797) : boss du Donjon des Scarafeuilles, niveau 40, 1 600 à 2 400 PV, toutes caractéristiques 280, Sagesse 280,
+   * résistances 24 % partout ; 3 PM.
+   * Picoti : vol de vie Eau, Terre, Air et Feu 11-15 chacun, 1-3 cases en ligne (valeurs réelles), 1 fois par tour → toutes les 4 s ;
+   * Premiers soins : se soigne de 17-26 PV tous les 3 tours → toutes les 12 s ;
+   * Naissance : invoque 5 Scarafeuilles Immatures d'un coup tous les 5 tours → toutes les 20 s.
+   * Expulsion (repousse autour de lui) et Brouillard Empoisonné (-6 PO, -2 PM) ne sont pas repris.
+   */
+  scarabosse: {
+    id: 'scarabosse', name: 'Scarabosse Doré', dofusId: 797,
+    grades: ([[1600, 17000], [1800, 21000], [2000, 25000], [2200, 30000], [2400, 34560]] as const).map(([hp, xp]) => g(40, hp, 280, [24, 24, 24, 24, 24], xp, 280, 0, -7, 2, { intelligence: 280, chance: 280, agilite: 280 })),
+    behavior: 'boss', speed: 100, radius: 48, art: 'scarabosse', scale: 1.6,
+    attack: { shape: 'circle', trigger: 190, size: 90, spread: 0, offset: 110, windup: 0.85, recover: 0.5, cooldown: [3.6, 4.4], roll: { min: 11, max: 15, critBonus: 3, critBase: 3, element: 'eau' }, multi: ['eau', 'terre', 'air', 'feu'], steal: true },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 10, summonEvery: 20, summon: 'scaraImmature', maxSummons: 5, summonCount: 5, heal: { every: 12, min: 17, max: 26, spell: 'Premiers soins' } },
   },
   /**
    * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.

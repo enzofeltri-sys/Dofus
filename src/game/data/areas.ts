@@ -8,7 +8,7 @@ import { CRYPT_POOL } from './monsters';
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
-  | 'ingalsse' | 'tofus';
+  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -267,6 +267,30 @@ export const TOFULAILLER: AreaDef = {
   theme: 'tofus',
 };
 
+/* Plaine des Scarafeuilles (sous-zone 170, niveau 30) → Donjon des Scarafeuilles (sous-zone 297, niveau 40), validés par Enzo :
+   en parallèle du Champ des Ingalsse, après le Donjon des Bouftous. Les Dragodindes sauvages (niveau 62-70) sont laissées de côté. */
+const SCARAS = ['scaraRouge', 'scaraBleu', 'scaraVert', 'scaraBlanc'];
+const SCARA_ARCHIS = ['archi2280', 'archi2281', 'archi2282', 'archi2283'];
+
+export const PLAINE_SCARA: AreaDef = {
+  id: 'plaineScara', name: 'Plaine des Scarafeuilles', kind: 'map', zone: 'amakna', level: 36,
+  sub: '5 salles · élite : Scarafeuille Vert d’élite',
+  rooms: 5, pool: SCARAS, count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'scaraVertElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: SCARA_ARCHIS,
+  theme: 'plaineScara',
+};
+
+export const SCARA_DONJON: AreaDef = {
+  id: 'scaraDonjon', name: 'Donjon des Scarafeuilles', kind: 'dungeon', zone: 'amakna', level: 40,
+  sub: '7 salles · mini-boss · Scarabosse Doré',
+  rooms: 7, pool: [...SCARAS, 'scaraNoir', 'scaraImmature'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'scaraNoirElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'scarabosse', grade: 5, adds: 3 },
+  archis: SCARA_ARCHIS,
+  theme: 'scaraDonjon',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -323,6 +347,8 @@ export const ZONES: Zone[] = [
     nodes: [
       { id: 'ingalsse', name: 'Champ des Ingalsse', level: 32, kind: 'map', area: INGALSSE, needs: ['cour'] },
       { id: 'tofus', name: 'Donjon des Tofus', level: 40, kind: 'dungeon', area: TOFULAILLER, needs: ['ingalsse'] },
+      { id: 'plaineScara', name: 'Plaine des Scarafeuilles', level: 36, kind: 'map', area: PLAINE_SCARA, needs: ['cour'] },
+      { id: 'scaraDonjon', name: 'Donjon des Scarafeuilles', level: 40, kind: 'dungeon', area: SCARA_DONJON, needs: ['plaineScara'] },
     ],
   },
 ];
@@ -332,7 +358,7 @@ export const AREAS: Record<string, AreaDef> = {
   cite: CITE, souterrains: SOUTERRAINS, champsAstrub: CHAMPS_ASTRUB, prairies: PRAIRIES, grange: GRANGE,
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
   tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
-  ingalsse: INGALSSE, tofus: TOFULAILLER,
+  ingalsse: INGALSSE, tofus: TOFULAILLER, plaineScara: PLAINE_SCARA, scaraDonjon: SCARA_DONJON,
 };
 
 /** Étapes jouables et débloquées. */

@@ -87,8 +87,23 @@ d('tofuMutant', 4824, 'tofuMutant', 'melee', 170, 24, 0.95, "{ shape: 'circle', 
   'Bigle : Feu 21-26 au corps à corps (le retrait de portée n\'est pas repris) ; Mutation Prolifique : se soigne de 15-20 % de ses PV tous les 3 tours',
   ", support: { name: 'Mutation Prolifique', every: 12, radius: 0, healPct: [15, 20] }")
 d('tofuVentripotent', 808, 'tofuVentripotent', 'caster', 60, 32, 1.35, "{ shape: 'circle', trigger: 200, size: 60, spread: 0, offset: 0, windup: 1, recover: 0.4, cooldown: [999, 999], roll: neutre(0, 0), atTarget: true }",
-  'N\'attaque pas ; 3 PM (très lent). Bénédiction du Tofulailler : tous les 2 tours, les alliés à 3 cases ou moins gagnent +1 PA (attaques 1,2 fois plus fréquentes) et 21-30 Vitalité (+25 PV) pendant 4 tours. Invocation de Bomberfu non reprise (pas de dessin)',
-  ", support: { name: 'Bénédiction du Tofulailler', every: 8, radius: 180, bless: { duration: 16, speed: 0.83, hp: 25 } }")
+  'N\'attaque pas ; 3 PM (très lent). Bénédiction du Tofulailler : tous les 2 tours, les alliés à 3 cases ou moins gagnent +1 PA (attaques 1,2 fois plus fréquentes) et 21-30 Vitalité (+25 PV) pendant 4 tours. Invocation de Bomberfu : 1 fois par tour, 2 au plus',
+  ", support: { name: 'Bénédiction du Tofulailler', every: 8, radius: 180, bless: { duration: 16, speed: 0.83, hp: 25 } }, summons: { first: 3, every: 4, id: 'bomberfu', max: 2 }")
+
+# Bomberfu (validé par Enzo : vraie valeur de l'explosion, elle ne part qu'une fois) : invoqué par le Tofu Ventripotent
+d('bomberfu', 802, 'bomberfu', 'melee', 150, 20, 0.7,
+  "{ shape: 'circle', trigger: 70, size: 110, spread: 0, offset: 0, windup: 0.7, recover: 0.2, cooldown: [0.2, 0.3], roll: roll('feu', 6, 10), selfDestruct: true }",
+  'Détonation du poulailler : Feu 6-10 autour de lui (valeur réelle), puis il meurt ; 4 PM')
+# Plaine et Donjon des Scarafeuilles (validés par Enzo). Scaraforce Neutre 17-19 et Spirit Element Feu 11-15 (1-2 cases) → un coup Neutre 4-5
+SCARA_ATK = "{ shape: 'circle', trigger: 120, size: 62, spread: 0, offset: 64, windup: 0.45, recover: 0.25, cooldown: [1.0, 1.4], roll: neutre(4, 5) }"
+SCARA_NOTE = 'Scaraforce (Neutre 17-19, tous les 2 tours) et Spirit Element (Feu 11-15, 2 fois par tour), 1-2 cases → un coup Neutre 4-5 ; 4 PM. Immunisé à un élément (100 %), faible à un autre (-50 %). Scarinvoc (Flammèche, pas de dessin) et Elemental Dispersion non repris'
+for id, did in [('scaraRouge', 194), ('scaraBleu', 198), ('scaraVert', 240), ('scaraBlanc', 241)]:
+    d(id, did, id, 'melee', 140, 28, 1, SCARA_ATK, SCARA_NOTE)
+d('scaraNoir', 795, 'scaraNoir', 'stealth', 150, 28, 1.05, SCARA_ATK.replace('neutre(4, 5)', 'neutre(4, 5)'), 'Scaraforce : Neutre 17-19 à 1-2 cases ; Scarinvi → devient invisible par moments ; 5 PM. Résiste à 100 % au Neutre. Scarimmo (-10 PM) non repris')
+d('scaraImmature', 798, 'scaraImmature', 'caster', 90, 26, 0.85,
+  "{ shape: 'circle', trigger: 190, size: 60, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.6, 2.2], roll: roll('terre', 2, 3), atTarget: true }",
+  'Scarapoison : Terre 10, 1-3 cases ; Scarasoin : soigne un allié de 7 % de ses PV, 1 fois par tour ; 3 PM. Résiste à 100 % à la Terre',
+  ", support: { name: 'Scarasoin', every: 4, radius: 180, healPct: [7, 7] }")
 
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
@@ -97,7 +112,7 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc'),
          (2315, 'bouftonBlanc'), (2316, 'bouftonNoir'), (2317, 'bouftou'), (2324, 'chefBouftou'), (2333, 'milimulou'), (2349, 'prespic'), (2353, 'sanglier'),
          (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts'),
-         (2355, 'tofuJaune')]
+         (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -105,7 +120,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

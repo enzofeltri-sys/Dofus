@@ -8,7 +8,7 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, TOFUS, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
+import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, SCARAS, TOFUS, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
@@ -155,7 +155,7 @@ async function main() {
   };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
+    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
       : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
@@ -754,6 +754,14 @@ async function main() {
         for (const o of game.monsters) if (o.blessT > 0 && o.state !== 'dead') for (let i = 0; i < 5; i++) emit(o.x, o.y - 50, 0xffe27a, { vx: rand(-60, 60), vy: rand(-160, -60), life: 0.6, size: 0.07 });
         break;
       }
+      case 'explode':
+        // Bomberfu : explosion de feu
+        shake = Math.max(shake, 7);
+        addFx(0.4, (g, k) => {
+          g.clear().ellipse(ev.x, ev.y, ev.radius * (1.2 - k * 0.6), ev.radius * PERSP * (1.2 - k * 0.6)).fill({ color: 0xff8a2a, alpha: 0.35 * k }).stroke({ width: 8 * k, color: 0xffd060, alpha: k });
+        });
+        for (let i = 0; i < 22; i++) emit(ev.x, ev.y - 30, i % 2 ? 0xff7a1a : 0xffd060, { vx: rand(-220, 220), vy: rand(-260, -40), life: 0.45, size: 0.1, grav: 300 });
+        break;
       case 'poisoned':
         numberAt(ev.x, ev.y - 160 * CHAR_SCALE, 'Empoisonné', '#8bd04a');
         for (let i = 0; i < 12; i++) emit(ev.x, ev.y - 50, 0x8bd04a, { vx: rand(-80, 80), vy: rand(-140, -40), life: 0.6, size: 0.08 });

@@ -214,6 +214,9 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   // Amakna, d'après les vraies cartes : prairie aux arbres d'automne et grosses bottes de foin ; Tofulailler (grange sombre, paille, caisses, tonneaux)
   ingalsse: { block: [['autumnTree', 1.05, 1.25], ['haystack', 1.0, 1.2], ['autumnTree', 1.05, 1.25], ['mossrock', 0.8, 1], ['fence', 1, 1.1]], decor: ['flowers'] },
   tofus: { block: [['haystack', 0.9, 1.1], ['crates', 0.9, 1.1], ['barrels', 0.9, 1.05], ['haystack', 0.9, 1.1]], decor: ['pebbles'] },
+  // Plaine des Scarafeuilles : prairie, arbres d'automne, ruines de pierre, étals ; Donjon : grotte-jungle moussue
+  plaineScara: { block: [['autumnTree', 1.05, 1.25], ['stall', 0.9, 1.05], ['mossrock', 0.85, 1.05], ['autumnTree', 1.05, 1.25], ['block', 0.8, 1]], decor: ['flowers'] },
+  scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 
 /** Zone de la salle et formes à éviter pour poser un décor. */
