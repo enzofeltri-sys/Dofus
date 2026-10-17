@@ -10,9 +10,8 @@ describe('Artisan', () => {
   it('recettes réelles : tous les ingrédients existent dans le jeu, la panoplie Kardorim et l’Aventurier sont fabricables', () => {
     for (const r of RECIPES) for (const [id] of r.ingredients) expect(ITEMS[id], `ingrédient ${id} de ${r.id}`).toBeDefined();
     expect(recipeFor(16500)?.ingredients).toEqual(expect.arrayContaining([[16525, 4]]));
-    // l'Anneau de l'Aventurier demande des Graines de Sésame, absentes d'Incarnam : pas fabricable ici
-    for (const id of [2473, 2474, 2476, 2477, 2478]) expect(recipeFor(id)).toBeDefined();
-    expect(recipeFor(2475)).toBeUndefined();
+    // l'Anneau de l'Aventurier demande des Graines de Sésame : lâchées par les Pious d'Astrub, il devient fabricable
+    for (const id of [2473, 2474, 2475, 2476, 2477, 2478]) expect(recipeFor(id)).toBeDefined();
   });
 
   it('niveau d’Artisan requis et ingrédients comptés', () => {

@@ -23,7 +23,7 @@ export function atlasView(done: string[], selected: string): AtlasView {
       id: z.id, name: z.name,
       nodes: z.nodes.map((n) => ({
         id: n.id, name: n.name, level: n.level, kind: n.kind,
-        sub: n.soon ? 'Bientôt (étape 9b)' : n.area?.sub ?? '',
+        sub: n.soon ? 'Bientôt' : n.area?.sub ?? '',
         state: n.soon ? 'soon' : done.includes(n.id) ? 'done' : isUnlocked(n, done) ? 'open' : 'locked',
         need: n.needs.length ? `Termine : ${n.needs.map(nameOf).join(', ')}` : '',
         selected: n.id === selected,

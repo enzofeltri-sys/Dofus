@@ -7,7 +7,8 @@
 import type { Theme } from './data/areas';
 
 export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
-  | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain';
+  | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain'
+  | 'autumnTree' | 'fence' | 'barn' | 'haystack' | 'house' | 'stall' | 'crates' | 'sunflowers' | 'pipe';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -27,7 +28,8 @@ export interface Obstacle {
 
 /** Rayon d'obstacle de chaque objet (0 = décor traversable). */
 const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
-  redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56 };
+  redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56,
+  autumnTree: 32, fence: 40, barn: 66, haystack: 38, house: 66, stall: 44, crates: 36, sunflowers: 0, pipe: 30 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -168,12 +170,12 @@ const CIMETIERE_TEMPLATES: PropPlacement[][] = [
   ],
 ];
 
-const THEME_TEMPLATES: Record<Theme, PropPlacement[][]> = {
+const THEME_TEMPLATES: Partial<Record<Theme, PropPlacement[][]>> = {
   crypt: TEMPLATES, champs: CHAMPS_TEMPLATES, paturages: PATURAGES_TEMPLATES, foret: FORET_TEMPLATES, cimetiere: CIMETIERE_TEMPLATES,
 };
 
 export function roomLayout(index: number, theme: Theme = 'crypt'): PropPlacement[] {
-  const t = THEME_TEMPLATES[theme];
+  const t = THEME_TEMPLATES[theme] ?? CHAMPS_TEMPLATES;
   return t[index % t.length];
 }
 
@@ -186,6 +188,12 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   paturages: { block: [['redbush', 0.9, 1.2], ['redbush', 0.9, 1.2], ['block', 0.8, 1], ['blossom', 1.25, 1.35], ['stone', 0.85, 1]], decor: ['flowers'] },
   foret: { block: [['blossom', 1.25, 1.4], ['blossom', 1.25, 1.4], ['blossom', 1.25, 1.4], ['horns', 0.9, 1.1]], decor: ['flowers'] },
   cimetiere: { block: [['tomb', 0.85, 1], ['tomb', 0.85, 1], ['deadtree', 1, 1.25], ['lantern', 1, 1]], decor: ['bones'] },
+  // Astrub, d'après les vraies cartes
+  cite: { block: [['house', 0.75, 0.85], ['stall', 0.95, 1.1], ['crates', 0.9, 1.1], ['autumnTree', 1, 1.15]], decor: ['flowers'] },
+  souterrains: { block: [['pipe', 0.95, 1.15], ['pipe', 0.95, 1.15], ['crates', 0.9, 1.1], ['block', 0.8, 1]], decor: ['bones'] },
+  champsAstrub: { block: [['barn', 0.75, 0.85], ['haystack', 0.9, 1.15], ['haystack', 0.9, 1.15], ['fence', 1, 1.1]], decor: ['sunflowers', 'flowers'] },
+  prairies: { block: [['autumnTree', 1.05, 1.25], ['autumnTree', 1.05, 1.25], ['fence', 1, 1.1], ['haystack', 0.9, 1.05]], decor: ['flowers'] },
+  grange: { block: [['haystack', 0.9, 1.15], ['crates', 0.9, 1.1], ['fence', 1, 1.1], ['haystack', 0.9, 1.15]], decor: ['sunflowers'] },
 };
 
 /** Zone de la salle et formes à éviter pour poser un décor. */
@@ -237,6 +245,9 @@ export function roomObstacles(layout: PropPlacement[]): Obstacle[] {
     if (p.kind === 'sarcophagus') {
       // le sarcophage est long : une capsule horizontale
       obs.push({ x: p.x, y: p.y - 12, r: 44, hx: 70 });
+    } else if (p.kind === 'fence') {
+      // clôture : une capsule basse et longue
+      obs.push({ x: p.x, y: p.y - 10, r: 16 * (p.scale ?? 1), hx: 42 * (p.scale ?? 1) });
     } else if (BLOCK[p.kind] > 0) {
       obs.push({ x: p.x, y: p.y, r: BLOCK[p.kind] * (p.scale ?? 1), hx: 0 });
     }

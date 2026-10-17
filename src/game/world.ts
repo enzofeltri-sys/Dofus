@@ -4,6 +4,7 @@ import { xpGain } from './progression';
 import { rollDrops } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
 import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
+import { ARCHI_OF } from './data/monsters.astrub';
 import { CRYPTE, type AreaDef } from './data/areas';
 import type { Stats } from './formulas';
 import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
@@ -63,6 +64,8 @@ export const SPECIAL_ODDS: [Special, number][] = [['embuscade', 0.12], ['vagues'
 export const WAVES_TIME = 20;
 /** Chance qu'une salle normale accueille des monstres errants (Lac, Mine, Route des âmes). */
 export const WANDER_CHANCE = 0.2;
+/** Archimonstre (Astrub) : 1 % des monstres de la carte qui en ont un. */
+export const ARCHI_CHANCE = 0.01;
 /** Vagues : monstres au départ, au plus en même temps, et délai entre deux renforts (s). */
 export const WAVES = { start: 2, maxAlive: 4, every: 3 };
 export const FOUNTAIN_RATE = 0.06;
@@ -240,7 +243,8 @@ export type WorldEvent =
   | { type: 'rooted' }
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
-  | { type: 'wanderers'; name: string };
+  | { type: 'wanderers'; name: string }
+  | { type: 'archi'; name: string };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -442,7 +446,7 @@ export class World {
     }
     // monstres de plus en plus nombreux ; à partir de `waveFrom`, une partie arrive en deuxième vague
     const count = Math.min(A.count.max, A.count.base + Math.floor(index * A.count.perRoom));
-    const roll = () => ({ def: pick(), grade: roomGrade(index, this.rnd(), A.rooms) });
+    const roll = () => ({ def: this.maybeArchi(pick()), grade: roomGrade(index, this.rnd(), A.rooms) });
     if (this.special === 'embuscade') {
       // la salle a l'air vide… puis tout le monde surgit autour du héros
       this.reserve = [...Array(count)].map(roll);
@@ -556,9 +560,17 @@ export class World {
     return { x: ROOM_W / 2, y: this.bounds.y0 + 120 };
   }
 
+  /** 1 % des monstres de la carte sont remplacés par leur archimonstre (s'il est de la zone). */
+  private maybeArchi(def: MonsterDef): MonsterDef {
+    const id = ARCHI_OF[def.id];
+    if (!id || !this.area.archis?.includes(id)) return def;
+    return this.rnd() < ARCHI_CHANCE ? MONSTERS[id] : def;
+  }
+
   private makeMonster(def: MonsterDef, grade: number, x: number, y: number): Monster {
     const g = gradeStats(def, grade);
     this.stats.seen[def.id] = (this.stats.seen[def.id] ?? 0) + 1;
+    if (def.archi) this.events.push({ type: 'archi', name: def.name });
     return {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
@@ -921,7 +933,7 @@ export class World {
     // butin : les invocations ne lâchent rien ; celui du boss n'est gagné qu'en cas de victoire
     if (m.summoner === null) {
       const boss = m === this.boss;
-      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite, prospection: prospectionOf(this.heroStats()) }, this.lootRnd);
+      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) }, this.lootRnd);
       const bag = boss ? this.stats.bossLoot : this.stats.loot;
       for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
       if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });
@@ -1167,7 +1179,7 @@ export class World {
       const alive = this.monsters.filter((m) => m.state !== 'dead').length;
       if (this.wavesT > 0 && this.waveSpawnT <= 0 && alive < WAVES.maxAlive) {
         const A = this.area;
-        this.spawnRoll({ def: MONSTERS[A.pool[Math.floor(this.rnd() * A.pool.length)]], grade: roomGrade(this.roomIndex, this.rnd(), A.rooms) });
+        this.spawnRoll({ def: this.maybeArchi(MONSTERS[A.pool[Math.floor(this.rnd() * A.pool.length)]]), grade: roomGrade(this.roomIndex, this.rnd(), A.rooms) });
         this.waveSpawnT = WAVES.every;
       }
       if (this.wavesT <= 0) {
@@ -1226,7 +1238,7 @@ export class World {
     if (h.rootT > 0) h.rootT = Math.max(0, h.rootT - STEP);
     // salle vidée : les pièges annoncés s'éteignent (un troupeau déjà lancé finit sa course)
     if (this.phase !== 'fight') this.hazards = this.hazards.filter((z) => z.kind === 'herd' && z.state === 'active');
-    if (!this.hazards.length && (this.phase !== 'fight' || t === 'crypt' || t === 'champs')) return;
+    if (!this.hazards.length && (this.phase !== 'fight' || !(t === 'paturages' || t === 'foret' || t === 'cimetiere'))) return;
     this.hazardT -= STEP;
     const span = (e: readonly [number, number] | readonly number[]) => e[0] + this.rnd() * (e[1] - e[0]);
     if (this.phase === 'fight' && h.alive && this.hazardT <= 0 && !this.elite && !this.boss) {

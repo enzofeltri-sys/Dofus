@@ -37,14 +37,50 @@ interface Look {
   stone: string;
   cliff?: [string, string, string];
   void: [string, string, string, string];
+  /** Carte terrestre (Astrub) : pas de vide, des haies ou des murs, des étangs à la place des trous. */
+  land?: Land;
+}
+
+/** Astrub, d'après les vraies cartes : ciel de jour, collines, haies ou murs, étangs, sols variés. */
+interface Land {
+  sky: [string, string];
+  hills: [string, string];
+  /** Ce qu'on voit au fond : arbres, maisons de la Cité, granges, ou un mur (Souterrains). */
+  far: 'trees' | 'houses' | 'barns' | 'wall';
+  /** Bordure des côtés et du fond : haie ou mur de briques. */
+  border: 'hedge' | 'wall';
+  water: [string, string, string];
+  /** Sol : place pavée (Cité), arène de planches en damier (Grange), dalles moussues (Souterrains). */
+  floor?: 'plaza' | 'planks' | 'slabs';
+  /** Carrés de blé et de tournesols, chemins de terre. */
+  wheat: number;
+  dirt: number;
+  /** Herbe dessinée (touffes, touches) : 1 = partout. */
+  grassy: number;
+  arch: [string, string, string];
 }
 const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
+  ...ASTRUB_LOOKS(),
   champs: { grass: ['#f2cf52', '#efc743', '#e8bb3a'], light: '#fbe08a', dark: '#c8962a', tuftTones: ['#c8962a', '#e3ad34', '#f8dc70'], touch: ['#ffe78a', '#d9a52e'], flowers: 60, glyphs: true, cobbles: true, tiles: false, petals: false, fog: false, stone: '#efe2b8', void: ['#155a66', '#1a3f66', '#2c2a6a', '#4a2a72'] },
   paturages: { grass: ['#f0cc4e', '#ebc040', '#e2b236'], light: '#fbe08a', dark: '#c08a26', tuftTones: ['#c08a26', '#e3ad34', '#f8dc70'], touch: ['#ffe78a', '#d9a52e'], flowers: 40, glyphs: true, cobbles: false, tiles: true, petals: false, fog: false, stone: '#efe2b8', void: ['#155a66', '#1a3f66', '#2c2a6a', '#4a2a72'] },
   foret: { grass: ['#eec84c', '#e6bb3e', '#d8a834'], light: '#f8dc80', dark: '#b88424', tuftTones: ['#b88424', '#dca632', '#f2d468'], touch: ['#fbe286', '#cf9a2a'], flowers: 30, glyphs: true, cobbles: true, tiles: false, petals: true, fog: false, stone: '#efe2b8', void: ['#14525e', '#183a60', '#2a2866', '#46286c'] },
   cimetiere: { grass: ['#8a7c44', '#74683a', '#5e5430'], light: '#a89a58', dark: '#3e3622', tuftTones: ['#5a4e2a', '#7a6c3a', '#9a8a4c'], touch: ['#a8986a', '#4a4228'], flowers: 0, glyphs: false, cobbles: true, tiles: false, petals: false, fog: true, stone: '#a8a494', cliff: ['#7a7062', '#4e463c', '#2a2420'], void: ['#0e3a48', '#14304e', '#1e2448', '#2a2040'] },
 };
 let L: Look = LOOKS.champs;
+
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange', Look> {
+  const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
+  const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
+  const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
+  const water: [string, string, string] = ['#7ad0e8', '#3a98c8', '#2a6a9a'];
+  return {
+    cite: { ...base, ...green, flowers: 20, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'hedge', water, floor: 'plaza', wheat: 0, dirt: 0, grassy: 0.35, arch: ['#f0ece0', '#b8b0a0', '#6a6458'] } },
+    prairies: { ...base, ...green, flowers: 50, land: { sky, hills: ['#9ad058', '#78b444'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 5, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    champsAstrub: { ...base, ...green, grass: ['#a6cc48', '#98c040', '#88b036'], flowers: 30, land: { sky, hills: ['#a8cc58', '#88b444'], far: 'barns', border: 'hedge', water, wheat: 7, dirt: 2, grassy: 0.9, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    grange: { ...base, ...green, flowers: 10, land: { sky, hills: ['#a8cc58', '#88b444'], far: 'barns', border: 'hedge', water, floor: 'planks', wheat: 6, dirt: 0, grassy: 0.6, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    souterrains: { ...base, grass: ['#5e6656', '#545c4c', '#4a5042'], light: '#727a62', dark: '#363c30', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#8a8c7c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1e221c', '#2e342a'], hills: ['#3a4032', '#2a3024'], far: 'wall', border: 'wall', water: ['#5a7a4a', '#3e5a34', '#24381e'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
+  };
+}
 
 const OCHRE = '#a8761e';
 const STONE_DARK = '#c2ad78';
@@ -146,6 +182,7 @@ function ground(r: () => number): string {
       o.push(`<path d="M${f1(px)},${f1(py - h / 2)} L${f1(px + w / 2)},${f1(py)} L${f1(px)},${f1(py + h / 2)} L${f1(px - w / 2)},${f1(py)} Z" fill="${shade(L.stone, (i + j) % 2 ? -0.04 : 0.04)}" stroke="${STONE_DARK}" stroke-width="1.4" opacity="0.92"/>`);
     }
   }
+  if (L.land) o.push(landFloor(L.land, r));
   // gravures dans l'herbe
   if (L.glyphs) for (let k = 0; k < 12; k++) o.push(glyph(x0 + 30 + r() * (x1 - x0 - 140), y0 + 80 + r() * (y1 - y0 - 160), 2.2 + r() * 1.2, Math.floor(r() * 4)));
   // chemin de pavés ronds en grès crème, du bas jusqu'à l'arche
@@ -166,11 +203,11 @@ function ground(r: () => number): string {
     }
   }
   // texture d'herbe : petites touches claires et sombres, puis touffes dorées
-  for (let k = 0; k < 700; k++) {
+  for (let k = 0; k < 700 * (L.land?.grassy ?? 1); k++) {
     const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0), w = 4 + r() * 7;
     o.push(`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(w)}" ry="${f1(w * 0.45)}" fill="${r() < 0.5 ? L.touch[0] : L.touch[1]}" opacity="${(0.35 + r() * 0.35).toFixed(2)}"/>`);
   }
-  for (let k = 0; k < 170; k++) {
+  for (let k = 0; k < 170 * (L.land?.grassy ?? 1); k++) {
     const x = x0 + r() * (x1 - x0), y = y0 + 10 + r() * (y1 - y0 - 10), h = 10 + r() * 14;
     const c = r() < 0.3 ? L.tuftTones[0] : r() < 0.6 ? L.tuftTones[1] : L.tuftTones[2];
     o.push(`<path d="M${f1(x - 5)},${f1(y)} q1,${f1(-h * 0.6)} -2,${f1(-h)} M${f1(x)},${f1(y)} q1,${f1(-h * 0.8)} 3,${f1(-h * 1.2)} M${f1(x + 5)},${f1(y)} q-1,${f1(-h * 0.5)} 3,${f1(-h * 0.9)}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>`);
@@ -264,6 +301,170 @@ function holesSvg(shape: RoomShape, r: () => number): string {
   return o.join('\n');
 }
 
+
+/* ---------- Astrub : cartes terrestres ---------- */
+
+/** Fond au-delà de la haie : ciel de jour, collines, et selon la carte des arbres, des maisons ou des granges. */
+function landBackdrop(D: Land, r: () => number): string {
+  const o: string[] = [];
+  if (D.far === 'wall') {
+    // Souterrains : voûte de briques sombres, tuyaux de cuivre, mousse
+    o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP + 10}" fill="${D.sky[0]}"/>`);
+    for (let y = 0, row = 0; y < FLOOR_TOP; y += 26, row++) for (let x = row % 2 ? -30 : 0; x < ROOM_W; x += 60) {
+      o.push(`<rect x="${x + 2}" y="${y + 2}" width="56" height="22" rx="3" fill="${shade(D.hills[0], (r() - 0.5) * 0.25)}" stroke="#14160f" stroke-width="2"/>`);
+    }
+    for (const x of [90, 250, 470, 630]) {
+      o.push(`<rect x="${x - 14}" y="0" width="28" height="${FLOOR_TOP}" fill="#8a5a2a" stroke="#2a1a0a" stroke-width="3"/><rect x="${x - 8}" y="0" width="6" height="${FLOOR_TOP}" fill="#c08a4a" opacity="0.6"/>`);
+      for (const y of [60, 180]) o.push(`<rect x="${x - 20}" y="${y}" width="40" height="12" rx="3" fill="#6a4020" stroke="#2a1a0a" stroke-width="2"/>`);
+    }
+    for (let k = 0; k < 30; k++) o.push(`<ellipse cx="${f1(r() * ROOM_W)}" cy="${f1(FLOOR_TOP - r() * 120)}" rx="${f1(10 + r() * 20)}" ry="${f1(5 + r() * 6)}" fill="#4e7a2e" opacity="${(0.4 + r() * 0.3).toFixed(2)}"/>`);
+    o.push(`<rect x="0" y="${FLOOR_TOP - 60}" width="${ROOM_W}" height="70" fill="#000" opacity="0.25" filter="url(#soft)"/>`);
+    return o.join('\n');
+  }
+  o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP + 10}" fill="url(#skyG)"/>`);
+  for (let k = 0; k < 4; k++) {
+    const x = r() * ROOM_W, y = 30 + r() * 90, w = 60 + r() * 70;
+    o.push(`<g opacity="0.9">${[0, 1, 2].map((i) => `<ellipse cx="${f1(x + (i - 1) * w * 0.5)}" cy="${f1(y - (i === 1 ? 12 : 0))}" rx="${f1(w * 0.5)}" ry="${f1(w * 0.28)}" fill="#ffffff"/>`).join('')}</g>`);
+  }
+  // collines au loin
+  o.push(`<path d="M0,${FLOOR_TOP - 90} Q160,${FLOOR_TOP - 170} 330,${FLOOR_TOP - 110} Q500,${FLOOR_TOP - 190} ${ROOM_W},${FLOOR_TOP - 120} V${FLOOR_TOP + 10} H0 Z" fill="${D.hills[0]}" opacity="0.75"/>`);
+  o.push(`<path d="M0,${FLOOR_TOP - 50} Q200,${FLOOR_TOP - 110} 380,${FLOOR_TOP - 60} Q560,${FLOOR_TOP - 100} ${ROOM_W},${FLOOR_TOP - 60} V${FLOOR_TOP + 10} H0 Z" fill="${D.hills[1]}"/>`);
+  const roof = (x: number, w: number, h: number, c: string, dark: string) =>
+    `<rect x="${f1(x - w * 0.42)}" y="${f1(FLOOR_TOP - 34 - h * 0.55)}" width="${f1(w * 0.84)}" height="${f1(h * 0.55 + 20)}" fill="#efe2c4" stroke="#5a4028" stroke-width="2"/>` +
+    `<path d="M${f1(x - w / 2)},${f1(FLOOR_TOP - 30 - h * 0.5)} Q${f1(x - w / 2)},${f1(FLOOR_TOP - 34 - h * 1.1)} ${f1(x)},${f1(FLOOR_TOP - 36 - h * 1.15)} Q${f1(x + w / 2)},${f1(FLOOR_TOP - 34 - h * 1.1)} ${f1(x + w / 2)},${f1(FLOOR_TOP - 30 - h * 0.5)} Z" fill="${c}" stroke="${dark}" stroke-width="2.4"/>`;
+  if (D.far === 'houses') for (let x = 40; x < ROOM_W; x += 100 + r() * 30) o.push(roof(x, 80 + r() * 30, 60 + r() * 40, r() < 0.7 ? '#4a7ab8' : '#c85a3a', '#22344e'));
+  if (D.far === 'barns') for (let x = 60; x < ROOM_W; x += 190 + r() * 60) o.push(roof(x, 110 + r() * 30, 70 + r() * 30, '#e8783a', '#7a3010'));
+  // rangée d'arbres ronds (verts et dorés : l'automne d'Astrub)
+  for (let x = -20; x < ROOM_W + 20; x += 36 + r() * 30) {
+    if (D.far !== 'trees' && r() < 0.5) continue;
+    const y = FLOOR_TOP - 40 - r() * 30, R = 22 + r() * 18, c = r() < 0.25 ? '#e8902a' : r() < 0.5 ? '#9ac83a' : '#6aa834';
+    o.push(`<rect x="${f1(x - 4)}" y="${f1(y)}" width="8" height="40" fill="#6a4020"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R + 2)}" fill="#2a3a10"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${c}"/><circle cx="${f1(x - R * 0.3)}" cy="${f1(y - R * 0.35)}" r="${f1(R * 0.4)}" fill="#fff" opacity="0.2"/>`);
+  }
+  return o.join('\n');
+}
+
+/** Haie (boules de feuillage sombre) ou mur de briques le long d'une ligne de points. */
+function landBorder(D: Land, pts: [number, number][], r: () => number, width: number): string {
+  const o: string[] = [];
+  if (D.border === 'wall') {
+    for (const [x, y] of pts) {
+      o.push(`<rect x="${f1(x - width / 2)}" y="${f1(y - 30)}" width="${f1(width)}" height="56" fill="${shade(D.hills[0], (r() - 0.5) * 0.2)}" stroke="#14160f" stroke-width="2.4"/>`);
+      o.push(`<path d="M${f1(x - width / 2)},${f1(y - 2)} H${f1(x + width / 2)} M${f1(x)},${f1(y - 30)} V${f1(y - 2)}" stroke="#14160f" stroke-width="1.6" opacity="0.7"/>`);
+    }
+    return o.join('\n');
+  }
+  for (const [x, y] of pts) {
+    const R = width * (0.42 + r() * 0.16);
+    o.push(`<circle cx="${f1(x)}" cy="${f1(y + 4)}" r="${f1(R + 3)}" fill="#1e3a10"/>`);
+  }
+  for (const [x, y] of pts) {
+    const R = width * (0.4 + r() * 0.14), c = r() < 0.12 ? '#d8862a' : r() < 0.5 ? '#4e8a2a' : '#5e9a32';
+    o.push(`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${c}"/><circle cx="${f1(x - R * 0.3)}" cy="${f1(y - R * 0.35)}" r="${f1(R * 0.38)}" fill="#c8f080" opacity="0.25"/>`);
+  }
+  return o.join('\n');
+}
+
+/** Sols d'Astrub posés sur l'herbe : place pavée, arène de planches, dalles ; carrés de blé ; chemins de terre. */
+function landFloor(D: Land, r: () => number): string {
+  const o: string[] = [];
+  const x0 = EDGE, x1 = ROOM_W - EDGE, y0 = FLOOR_TOP, y1 = ROOM_H;
+  for (let k = 0; k < D.dirt; k++) {
+    const x = x0 + r() * (x1 - x0), y = y0 + 100 + r() * (y1 - y0 - 200), w = 70 + r() * 90;
+    o.push(`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(w)}" ry="${f1(w * 0.45)}" fill="#c89a5a" opacity="0.85" filter="url(#blur8)"/>`);
+    for (let j = 0; j < 8; j++) o.push(`<circle cx="${f1(x + (r() - 0.5) * w * 1.4)}" cy="${f1(y + (r() - 0.5) * w * 0.6)}" r="${f1(2 + r() * 3)}" fill="#8a6030" opacity="0.6"/>`);
+  }
+  if (D.floor === 'plaza') {
+    // pavés gris-beige de la Cité, toute la place
+    for (let y = y0 + 20, row = 0; y < y1 + 20; y += 34, row++) for (let x = x0 + (row % 2 ? -26 : 0); x < x1 + 30; x += 52) {
+      if (r() < 0.04) continue;
+      const w = 22 + r() * 4, h = 14 + r() * 2;
+      o.push(`<rect x="${f1(x - w)}" y="${f1(y - h)}" width="${f1(w * 2)}" height="${f1(h * 2)}" rx="7" fill="${shade(L.stone, (r() - 0.5) * 0.14)}" stroke="#8a8270" stroke-width="1.6"/>`);
+    }
+    o.push(`<circle cx="${ROOM_W / 2}" cy="${y0 + 640}" r="120" fill="none" stroke="#b8a888" stroke-width="10" opacity="0.7"/>`);
+  } else if (D.floor === 'slabs') {
+    for (let y = y0 + 30, row = 0; y < y1 + 40; y += 80, row++) for (let x = x0 + (row % 2 ? -50 : 0); x < x1 + 60; x += 100) {
+      o.push(`<rect x="${f1(x + 3)}" y="${f1(y + 3)}" width="94" height="74" rx="6" fill="${shade(L.stone, (r() - 0.5) * 0.22)}" stroke="#2a2c22" stroke-width="2.4"/>`);
+      if (r() < 0.35) o.push(`<ellipse cx="${f1(x + 20 + r() * 60)}" cy="${f1(y + 70)}" rx="${f1(14 + r() * 16)}" ry="6" fill="#5a8a2e" opacity="0.7"/>`);
+    }
+  } else if (D.floor === 'planks') {
+    // arène de la Grange : grand damier de planches au centre
+    const cx = ROOM_W / 2, cy = y0 + 640, n = 5, w = 64, h = 40;
+    for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
+      if (Math.abs(i) + Math.abs(j) > n + 1) continue;
+      const px = cx + (i - j) * w * 0.5, py = cy + (i + j) * h * 0.5;
+      o.push(`<path d="M${f1(px)},${f1(py - h / 2)} L${f1(px + w / 2)},${f1(py)} L${f1(px)},${f1(py + h / 2)} L${f1(px - w / 2)},${f1(py)} Z" fill="${(i + j) % 2 ? '#c8945a' : '#a8743e'}" stroke="#6a4420" stroke-width="1.6"/>`);
+    }
+  }
+  // carrés de blé et de tournesols
+  for (let k = 0; k < D.wheat; k++) {
+    const x = x0 + 40 + r() * (x1 - x0 - 80), y = y0 + 150 + r() * (y1 - y0 - 250);
+    if (D.floor === 'planks' && Math.abs(x - ROOM_W / 2) < 230 && Math.abs(y - (y0 + 640)) < 180) continue;
+    const w = 50 + r() * 40, h = 30 + r() * 20;
+    o.push(`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="${f1(w)}" ry="${f1(h)}" fill="#d8b040" opacity="0.8"/>`);
+    for (let j = 0; j < 26; j++) {
+      const sx = x + (r() - 0.5) * w * 1.7, sy = y + (r() - 0.5) * h * 1.5, t = 14 + r() * 8;
+      o.push(`<path d="M${f1(sx)},${f1(sy)} q1,${f1(-t * 0.5)} 2,${f1(-t)}" stroke="#a8781a" stroke-width="2" fill="none"/><ellipse cx="${f1(sx + 2)}" cy="${f1(sy - t)}" rx="2.6" ry="5" fill="#f0cc4a" stroke="#a8781a" stroke-width="0.8"/>`);
+    }
+  }
+  return o.join('\n');
+}
+
+/** Étangs à la place des trous de vide (eau, berge de terre, reflets) ; eaux sales dans les Souterrains. */
+function pondsSvg(D: Land, shape: RoomShape, r: () => number): string {
+  const o: string[] = [];
+  const P = 0.62;
+  shape.holes.forEach((h, i) => {
+    const ry = h.r * P;
+    const stadium = (g = 0) => `M${f1(h.x - h.hx)},${f1(h.y - ry - g)} L${f1(h.x + h.hx)},${f1(h.y - ry - g)} A${f1(h.r + g)},${f1(ry + g)} 0 0 1 ${f1(h.x + h.hx)},${f1(h.y + ry + g)} L${f1(h.x - h.hx)},${f1(h.y + ry + g)} A${f1(h.r + g)},${f1(ry + g)} 0 0 1 ${f1(h.x - h.hx)},${f1(h.y - ry - g)} Z`;
+    o.push(`<clipPath id="pond${i}"><path d="${stadium()}"/></clipPath>`);
+    o.push(`<path d="${stadium(10)}" fill="${D.border === 'wall' ? '#3a3c32' : '#a8783e'}"/>`);
+    o.push(`<path d="${stadium()}" fill="url(#waterG)"/>`);
+    o.push(`<g clip-path="url(#pond${i})">`);
+    o.push(`<path d="${stadium()}" fill="none" stroke="#000" stroke-width="22" opacity="0.18" transform="translate(0,${f1(-ry * 0.25)})"/>`);
+    for (let k = 0; k < 8; k++) {
+      const x = h.x - h.hx - h.r * 0.6 + r() * (2 * h.hx + h.r * 1.2), y = h.y - ry * 0.4 + r() * ry * 1.1, w = 10 + r() * 22;
+      o.push(`<path d="M${f1(x - w)},${f1(y)} q${f1(w)},-5 ${f1(w * 2)},0" fill="none" stroke="${D.water[0]}" stroke-width="2.4" opacity="0.8"/>`);
+    }
+    if (D.border !== 'wall') for (let k = 0; k < 2; k++) {
+      const x = h.x + (r() - 0.5) * (h.hx + h.r), y = h.y + (r() - 0.3) * ry * 0.8;
+      o.push(`<ellipse cx="${f1(x)}" cy="${f1(y)}" rx="13" ry="7" fill="#5aa83a" stroke="#2a5a1a" stroke-width="1.4"/><path d="M${f1(x)},${f1(y)} l10,-4" stroke="url(#waterG)" stroke-width="3"/>`);
+    }
+    o.push(`</g>`);
+    o.push(`<path d="${stadium()}" fill="none" stroke="${D.border === 'wall' ? '#24251e' : '#6a4a20'}" stroke-width="4"/>`);
+    if (D.border !== 'wall') for (let k = 0; k < 10; k++) {
+      const a = r() * Math.PI * 2, x = h.x + Math.cos(a) * (h.hx + h.r + 4), y = h.y + Math.sin(a) * (ry + 4);
+      o.push(`<path d="M${f1(x - 4)},${f1(y)} q1,-12 -2,-18 M${f1(x)},${f1(y)} q1,-14 3,-20 M${f1(x + 4)},${f1(y)} q-1,-10 3,-15" fill="none" stroke="#3a7a22" stroke-width="2.4" stroke-linecap="round"/>`);
+    }
+  });
+  // passerelles de planches
+  for (const b of shape.bands) {
+    const x0 = b.gapX - b.gapHalf - 6, x1 = b.gapX + b.gapHalf + 6, y0 = b.y - b.half - 14, y1 = b.y + b.half + 14;
+    for (let y = y0; y < y1; y += 15) o.push(`<rect x="${f1(x0 + (r() - 0.5) * 3)}" y="${f1(y)}" width="${f1(x1 - x0)}" height="12" rx="2" fill="${shade('#b8824a', (r() - 0.5) * 0.2)}" stroke="#4a2e14" stroke-width="1.8"/>`);
+    for (const x of [x0 - 3, x1 + 3]) o.push(`<rect x="${f1(x - 4)}" y="${f1(y0 - 6)}" width="8" height="${f1(y1 - y0 + 12)}" rx="3" fill="#8a5a2e" stroke="#3a220c" stroke-width="2"/>`);
+  }
+  return o.join('\n');
+}
+
+function landRoom(D: Land, shape: RoomShape | undefined, r: () => number): string {
+  const back: [number, number][] = [];
+  for (let x = 10; x <= ROOM_W - 10; x += 34) if (Math.abs(x - ROOM_W / 2) > 120) back.push([x, FLOOR_TOP - 8 + (r() - 0.5) * 8]);
+  const side = (x: number) => {
+    const pts: [number, number][] = [];
+    for (let y = FLOOR_TOP; y <= ROOM_H + 40; y += 40) pts.push([x + (r() - 0.5) * 14, y]);
+    return pts;
+  };
+  const W = Math.max(60, EDGE * 1.25);
+  return [
+    landBackdrop(D, r),
+    ground(r),
+    landBorder(D, side(EDGE - W * 0.3), r, W),
+    landBorder(D, side(ROOM_W - EDGE + W * 0.3), r, W),
+    landBorder(D, back, r, 56),
+    shape ? pondsSvg(D, shape, r) : '',
+    exitArch(),
+  ].join('\n');
+}
+
 export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs', shape?: RoomShape): string {
   L = LOOKS[theme];
   EDGE = EDGE0 + (shape?.margin ?? 0);
@@ -278,7 +479,9 @@ export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs
     <linearGradient id="voidG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L.void[0]}"/><stop offset="0.25" stop-color="${L.void[1]}"/><stop offset="0.6" stop-color="${L.void[2]}"/><stop offset="1" stop-color="${L.void[3]}"/></linearGradient>
     <linearGradient id="grassG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L.grass[0]}"/><stop offset="0.5" stop-color="${L.grass[1]}"/><stop offset="1" stop-color="${L.grass[2]}"/></linearGradient>
     <linearGradient id="cliffG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${(L.cliff ?? ['#b89a5e'])[0]}"/><stop offset="0.5" stop-color="${(L.cliff ?? ['', '#8a7046'])[1]}"/><stop offset="1" stop-color="${(L.cliff ?? ['', '', '#4a3a30'])[2]}"/></linearGradient>
-    <linearGradient id="archStone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf0cc"/><stop offset="1" stop-color="#d6c08a"/></linearGradient>
+    <linearGradient id="archStone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${L.land?.arch[0] ?? '#fbf0cc'}"/><stop offset="1" stop-color="${L.land?.arch[1] ?? '#d6c08a'}"/></linearGradient>
+    <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L.land?.sky[0] ?? '#000'}"/><stop offset="1" stop-color="${L.land?.sky[1] ?? '#000'}"/></linearGradient>
+    <linearGradient id="waterG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L.land?.water[2] ?? '#000'}"/><stop offset="0.5" stop-color="${L.land?.water[1] ?? '#000'}"/><stop offset="1" stop-color="${L.land?.water[0] ?? '#000'}"/></linearGradient>
     <radialGradient id="archLight" cx="0.5" cy="0.62" r="0.75"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#d8fbff"/><stop offset="1" stop-color="#58b8c8"/></radialGradient>`;
   // bords de l'île : falaise au fond (sous l'arche) et sur les côtés
   const back: [number, number][] = [];
@@ -288,7 +491,7 @@ export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs
     left.push([EDGE + (r() - 0.5) * 26, y]);
     right.push([ROOM_W - EDGE + (r() - 0.5) * 26, y]);
   }
-  const body = [
+  const body = L.land ? landRoom(L.land, shape, r) : [
     voidSky(r),
     cliffRim(left, 40, 'left'), cliffRim(right, 40, 'right'),
     ground(r),

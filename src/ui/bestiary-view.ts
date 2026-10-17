@@ -52,7 +52,7 @@ export function bestiaryView(b: Bestiary | undefined): BeastCard[] {
     const extras = [
       d.charge ? 'charge en ligne' : '',
       d.summons ? `invoque ${d.summons.id === 'feuJoie' ? 'des Feux de Joie' : 'des alliés'}` : '',
-      d.boss ? 'accélère ses alliés, invoque' : '',
+      d.boss ? [d.boss.crackEvery ? 'accélère ses alliés' : '', 'invoque', d.boss.heal ? 'se soigne' : ''].filter(Boolean).join(', ') : '',
       d.selfHeal ? 'se soigne une fois' : '',
       d.behavior === 'stealth' ? 'devient invisible' : '',
     ].filter(Boolean).join(', ');

@@ -8,10 +8,11 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { CATS, CRITTER_FOOT, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, wispSvg, type CritterKind } from './art/champs-chibi';
+import { CATS, CRITTER_FOOT, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
+import { autumnTree, barn, cityHouse, crates, fence, haystack, marketStall, pipe, sunflowers } from './art/astrubProps';
 import { boneHands, chest, darkBlock, deadTree, fountain, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
@@ -32,7 +33,7 @@ import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-
 import { bestiaryView } from './ui/bestiary-view';
 import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
-import { CHAMPS, isUnlocked, ZONES } from './game/data/areas';
+import { CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
 import { breakItem, fuse, RARITIES } from './game/forge';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
@@ -52,6 +53,21 @@ const SHOW_CAMP = !DEMO && !new URLSearchParams(location.search).has('salle');
 const START_ROOM = Math.max(0, Math.min(TOTAL_ROOMS - 1, (Number(new URLSearchParams(location.search).get('salle')) || 1) - 1));
 const CHAR_SCALE = 0.8;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+/** Aura bleu azur des archimonstres : halo plein, bien visible même sur un sol clair. */
+function auraTexture(size = 128): Texture {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d')!;
+  const grd = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  grd.addColorStop(0, 'rgba(150,225,255,0.75)');
+  grd.addColorStop(0.55, 'rgba(30,144,255,0.6)');
+  grd.addColorStop(0.8, 'rgba(30,144,255,0.25)');
+  grd.addColorStop(1, 'rgba(30,144,255,0)');
+  g.fillStyle = grd;
+  g.fillRect(0, 0, size, size);
+  return new Texture({ source: new ImageSource({ resource: c }) });
+}
 
 function glowTexture(size = 128): Texture {
   const c = document.createElement('canvas');
@@ -83,10 +99,11 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
 const PROP_ART: Record<PropKind, () => PropArt> = {
   column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers,
   redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar, chest: () => chest(), fountain,
+  autumnTree, fence, barn, haystack, house: cityHouse, stall: marketStall, crates, sunflowers, pipe,
 };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
-interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
+interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number; aura?: Sprite[] }
 interface Floater { t: Text; life: number; vy: number; x: number; y: number }
 interface Fx { g: Graphics; life: number; max: number; draw: (g: Graphics, k: number) => void }
 interface Particle { s: Sprite; vx: number; vy: number; life: number; max: number; a0: number; grav: number }
@@ -115,18 +132,28 @@ async function main() {
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
-  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol', 'palichon', 'orageux', 'nuageux', 'bouftor', 'chakrobat', 'tigrimas', 'ronronchon',
-    'plikplok', 'gloot', 'splatch', 'aminite', 'feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
+  const CRITTERS = Object.keys(CRITTER_SVG) as CritterKind[];
   // résolution de la texture selon la plus grande taille d'affichage du monstre (élites agrandies)
   const artScale = (k: MonsterArt) => Math.max(1, ...Object.values(MONSTERS).filter((d) => d.art === k).map((d) => d.scale ?? 1));
-  const critterTex = await Promise.all(CRITTERS.map((k) => Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))))));
   const chaferTex = {
     debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], eclaireur: chaferFlat[4], kardorim: chaferFlat[5], kardorib: chaferFlat[6],
-    ...Object.fromEntries(CRITTERS.map((k, i) => [k, critterTex[i]])),
   } as Record<MonsterArt, Texture[]>;
+  /** Dessins des monstres d'une carte, préparés à l'entrée (pas tous au démarrage : il y en a beaucoup). */
+  const loadArea = async (A: AreaDef) => {
+    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => w.pool)].filter(Boolean) as string[]);
+    for (const id of [...ids]) {
+      const d = MONSTERS[id], sm = d.boss?.summon;
+      for (const x of [d.summons?.id, ...(Array.isArray(sm) ? sm : [sm])]) if (x) ids.add(x);
+    }
+    const kinds = [...new Set([...ids].map((id) => MONSTERS[id].art))].filter((k): k is CritterKind => isCritter(k) && !chaferTex[k]);
+    await Promise.all(kinds.map(async (k) => {
+      chaferTex[k] = await Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))));
+    }));
+  };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' ? 'tofu' : SHEEP.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly' : FLAMES.includes(k) ? 'flame' : k === 'aminite' ? 'shroom' : 'plant';
+    k === 'tofu' || k === 'tofuMalade' ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
+      : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
     (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
@@ -135,6 +162,7 @@ async function main() {
     }),
   );
   const glow = glowTexture();
+  const auraTex = auraTexture();
   // salles spéciales et pièges de carte
   const [herdTex, herdTex2, wispTex, handsTex, chestOpenTex] = await Promise.all([
     svgTexture(CRITTER_SVG.palichon(), CR * 0.7), svgTexture(CRITTER_SVG.orageux(), CR * 0.7), svgTexture(wispSvg(), RES),
@@ -328,6 +356,7 @@ async function main() {
   async function buildRoom(index: number) {
     // 1) la partie lente d'abord (la boucle d'affichage continue de tourner pendant ce temps)
     const theme = game.area.theme;
+    await loadArea(game.area);
     // les cartes d'Incarnam partagent la même île (herbe, falaises, ciel du vide) : seule la palette et le décor changent
     const champs = theme !== 'crypt';
     const newBg = await svgTexture(theme !== 'crypt' ? champsRoomSvg(2000 + index * 23, theme, game.shape) : cryptRoomSvg(1000 + index * 17), RES);
@@ -511,10 +540,45 @@ async function main() {
     const hpBar = new Graphics();
     const height = (isCritter(kind) ? 128 : 150) * CHAR_SCALE * (m.def.scale ?? 1);
     hpBar.position.set(0, -height);
-    c.addChild(shadowOf(m.def.radius * 1.2), rig.root, hpBar);
+    c.addChild(shadowOf(m.def.radius * 1.2));
+    // archimonstre : aura bleu azur (choix d'Enzo), étincelles et nom au-dessus de la tête
+    let aura: Sprite[] | undefined;
+    if (m.def.archi) {
+      aura = [0, 1].map((i) => {
+        const s = new Sprite(i ? glow : auraTex);
+        s.anchor.set(0.5);
+        // halo bleu azur (mélange normal), cœur lumineux (additif)
+        if (i) {
+          s.tint = 0x9fe4ff;
+          s.blendMode = 'add';
+        }
+        s.position.set(0, -height * 0.42);
+        c.addChild(s);
+        return s;
+      });
+      for (let i = 0; i < 6; i++) {
+        const s = new Sprite(glow);
+        s.anchor.set(0.5);
+        s.tint = 0x6fd0ff;
+        s.blendMode = 'add';
+        c.addChild(s);
+        aura.push(s);
+      }
+    }
+    c.addChild(rig.root, hpBar);
+    if (m.def.archi) {
+      const t = new Text({
+        text: m.def.name,
+        style: { fontFamily: 'Lilita One', fontSize: 20, fill: '#bfeeff', letterSpacing: 0.5, stroke: { color: '#0a2a4a', width: 5, join: 'round' } },
+      });
+      t.anchor.set(0.5, 1);
+      t.resolution = RES * 1.2;
+      t.position.set(0, -height - 8);
+      c.addChild(t);
+    }
     actors.addChild(c);
     return {
-      rig, c, hpBar, height,
+      rig, c, hpBar, height, aura,
       anim: { t: 0, moving: false, walkPh: Math.random() * 6, windup: null, strike: null, hurt: 0, spawn: 0, dead: null, hidden: false, baseAlpha: 1, seed: m.uid },
     };
   }
@@ -659,6 +723,9 @@ async function main() {
       case 'wanderers':
         later(0.8, () => hud.toast(ev.name, 1500));
         break;
+      case 'archi':
+        later(0.4, () => hud.toast(`Archimonstre : ${ev.name} !`, 1800));
+        break;
       case 'monsterHeal':
         hud.toast(`${ev.spell ?? 'Reconstitution Céleste'} !`, 1200);
         numberAt(ev.x + 22, ev.y - 120 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
@@ -711,7 +778,7 @@ async function main() {
       case 'roomStart':
         if (game.boss) {
           hud.setBoss(game.boss.def.name, game.boss.hp, game.boss.maxHp, resLine(game.boss.stats.resPct));
-          later(1.0, () => hud.toast('Kardorim !', 1400));
+          later(1.0, () => hud.toast(`${game.boss!.def.name} !`, 1400));
         } else if (game.elite) {
           hud.setBoss(game.elite.def.name, game.elite.hp, game.elite.maxHp, resLine(game.elite.stats.resPct));
           later(1.0, () => hud.toast('Mini-boss !', 1400));
@@ -1083,6 +1150,7 @@ async function main() {
     ground.clear();
     for (const m of game.monsters) {
       let v = monsterViews.get(m.uid);
+      if (!v && !chaferTex[m.def.art]) continue; // dessins de la carte encore en préparation
       if (!v) monsterViews.set(m.uid, (v = makeMonsterView(m))); // renforts arrivés en cours de salle
       v.c.position.set(m.x, m.y);
       v.c.zIndex = m.state === 'dead' ? m.y - 60 : m.y; // les tas d'os passent derrière
@@ -1106,6 +1174,20 @@ async function main() {
           .roundRect(-w / 2, 0, (w * Math.max(0, m.hp)) / m.maxHp, 5, 2.5).fill({ color: m.def.behavior === 'brute' ? 0xff8a2a : 0xe8343c });
       }
       if (m.state === 'windup') drawTelegraph(m, Math.min(1, m.t / m.atk.windup));
+      if (v.aura) {
+        const on = m.state !== 'dead', p = 0.5 + 0.5 * Math.sin(time * 3 + m.uid);
+        const [halo, core, ...sparks] = v.aura;
+        halo.scale.set((1.15 + p * 0.15) * (m.def.scale ?? 1), (1.35 + p * 0.15) * (m.def.scale ?? 1));
+        halo.alpha = on ? 0.7 + p * 0.3 : 0;
+        core.scale.set(0.9 * (m.def.scale ?? 1));
+        core.alpha = on ? 0.35 + p * 0.2 : 0;
+        sparks.forEach((s, i) => {
+          const k = (time * 0.6 + i / sparks.length) % 1, a = i * 2.1 + m.uid;
+          s.position.set(Math.cos(a) * 30 * (m.def.scale ?? 1), -10 - k * v.height * 1.1);
+          s.scale.set(0.05 + 0.03 * Math.sin(k * Math.PI));
+          s.alpha = on ? Math.sin(k * Math.PI) : 0;
+        });
+      }
     }
 
     // Grille de sortie
