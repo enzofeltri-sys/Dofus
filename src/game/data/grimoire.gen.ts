@@ -1,4 +1,4 @@
-// Généré depuis DofusDB (sorts du Sacrieur, Dofus 3) : ne pas modifier à la main.
+// Généré par tools/gen_grimoire.py depuis DofusDB (sorts du Sacrieur, Dofus 3) : ne pas modifier à la main.
 import type { SpellId } from './spells';
 
 /** Les 22 sorts du Sacrieur : niveau de déblocage réel, coût en PA et description DofusDB ; `id` = sort présent dans le jeu. */
@@ -13,10 +13,10 @@ export const GRIMOIRE: { dofusId: number; name: string; level: number; pa: numbe
   { dofusId: 12746, name: "Ravage", level: 20, pa: 3, text: "Rapproche le lanceur vers la cible et occasionne des dommages Terre aux ennemis.", id: "ravage" },
   { dofusId: 12733, name: "Assaut", level: 25, pa: 2, text: "Échange de position avec la cible et occasionne des dommages Air aux ennemis.", id: "assaut" },
   { dofusId: 12736, name: "Transposition", level: 30, pa: 3, text: "Échange de position avec la cible. La portée maximale du sort est augmentée de 4 si le lanceur est en Souffrance 6 ou plus.", id: "transposition" },
-  { dofusId: 12745, name: "Condensation", level: 35, pa: 3, text: "Occasionne des dommages Eau aux ennemis et attire les cibles vers le lanceur en zone.", id: null },
-  { dofusId: 12756, name: "Hostilité", level: 40, pa: 2, text: "Occasionne des dommages Feu aux ennemis et repousse la cible.", id: null },
-  { dofusId: 12761, name: "Couronne d'Épines", level: 45, pa: 2, text: "Applique l'état Pesanteur sur les cibles en zone, un bouclier et l'état Couronne d'Épines sur le lanceur : • Renvoie les dommages subis en mêlée aux ennemis à son contact. Applique un bouclier supplémentaire sur le lanceur pour chaque ennemi dans la zone d'effet s'il est en Souffrance 6 ou plus.", id: null },
-  { dofusId: 12738, name: "Transfusion", level: 50, pa: 2, text: "Occasionne des dommages Neutre selon la vie restante du lanceur aux ennemis et transfère une partie de sa vie aux alliés en zone.", id: null },
+  { dofusId: 12745, name: "Condensation", level: 35, pa: 3, text: "Occasionne des dommages Eau aux ennemis et attire les cibles vers le lanceur en zone.", id: "condensation" },
+  { dofusId: 12756, name: "Hostilité", level: 40, pa: 2, text: "Occasionne des dommages Feu aux ennemis et repousse la cible.", id: "hostilite" },
+  { dofusId: 12761, name: "Couronne d'Épines", level: 45, pa: 2, text: "Applique l'état Pesanteur sur les cibles en zone, un bouclier et l'état Couronne d'Épines sur le lanceur : • Renvoie les dommages subis en mêlée aux ennemis à son contact. Applique un bouclier supplémentaire sur le lanceur pour chaque ennemi dans la zone d'effet s'il est en Souffrance 6 ou plus.", id: "couronne" },
+  { dofusId: 12738, name: "Transfusion", level: 50, pa: 2, text: "Occasionne des dommages Neutre selon la vie restante du lanceur aux ennemis et transfère une partie de sa vie aux alliés en zone.", id: "transfusion" },
   { dofusId: 12757, name: "Dissolution", level: 55, pa: 4, text: "Vole de la vie dans l'élément Eau et retire de la Fuite en zone. N'affecte pas le lanceur.", id: null },
   { dofusId: 12753, name: "Désolation", level: 60, pa: 4, text: "Vole de la vie dans l'élément Air et retire des PM en zone.", id: null },
   { dofusId: 12739, name: "Sacrifice", level: 65, pa: 2, text: "Intercepte les dommages subis par les alliés en zone. Détruit également les Épées du lanceur dans la zone pour lui transférer une partie de leur vie restante.", id: null },

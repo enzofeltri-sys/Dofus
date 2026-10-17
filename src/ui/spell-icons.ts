@@ -60,6 +60,23 @@ export const SPELL_ICONS: Record<SpellId, string> = {
     `<circle cx="14" cy="16" r="5" fill="#a77ad8" ${S}/><path d="M8 30c0-5 3-8 6-8s6 3 6 8Z" fill="#a77ad8" ${S}/>` +
     `<circle cx="34" cy="20" r="5" fill="#e3a838" ${S}/><path d="M28 34c0-5 3-8 6-8s6 3 6 8Z" fill="#e3a838" ${S}/>` +
     `<path d="M18 9c6-4 12-3 16 3M30 38c-6 4-12 3-16-3" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 3"/>`),
+  // Condensation (Eau) : tourbillon qui ramène les gouttes au centre
+  condensation: badge('#c9ede6', '#22a196',
+    `<path d="M24 24m-13 0a13 13 0 1 0 26 0a13 13 0 1 0-26 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-dasharray="5 4"/>` +
+    `<path d="M24 24c0-5 6-6 7-2s-3 7-8 6-7-7-3-11" fill="none" stroke="#22a196" stroke-width="3.4" stroke-linecap="round"/>` +
+    `<path d="M9 12l5 4M39 12l-5 4M9 38l5-4M39 38l-5-4" stroke="${INK}" stroke-width="2.6" stroke-linecap="round"/>`),
+  // Hostilité (Feu) : poing de flamme qui repousse
+  hostilite: badge('#fbd6c6', '#e8664a',
+    `<path d="M10 24h16" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M10 24h16" stroke="#f08a4a" stroke-width="3.4" stroke-linecap="round"/>` +
+    `<path d="M26 14l12 10-12 10Z" fill="#f08a4a" ${S}/><path d="M38 14v20M42 18v12" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`),
+  // Couronne d'Épines : couronne de ronces
+  couronne: badge('#e8dcc4', '#6a4a2a',
+    `<path d="M10 30l4-14 6 8 4-12 4 12 6-8 4 14Z" fill="#8a6a3a" ${S}/><path d="M10 30h28v6H10Z" fill="#6a4a2a" ${S}/>` +
+    `<path d="M14 16l-3-3M24 12V8M34 16l3-3" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>` + DROP(24, 40, 0.5)),
+  // Transfusion (Neutre) : cœur qui éclate en onde
+  transfusion: badge('#ece4d4', '#8a7a5a',
+    `<circle cx="24" cy="25" r="16" fill="none" stroke="#b8a68a" stroke-width="2.4"/><circle cx="24" cy="25" r="11" fill="none" stroke="#b8a68a" stroke-width="2"/>` +
+    `<path d="M24 32c-6-4-9-7-9-10a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c0 3-3 6-9 10Z" fill="#c8303c" ${S}/>`),
 };
 
 /** Icônes des passifs (pastille dorée : un passif est permanent pendant le donjon). */

@@ -846,6 +846,50 @@ async function main() {
           addFx(0.45, (g, k) => {
             g.clear().ellipse(hx, ev.y, 70 * (1.2 - k), 70 * (1.2 - k) * PERSP).stroke({ width: 8 * k, color: 0xc8303c, alpha: k });
           });
+        } else if (sp.kind.type === 'zone') {
+          // Condensation : tourbillon d'eau qui se resserre sur le groupe
+          const r = sp.kind.radius;
+          addFx(0.5, (g, k) => {
+            g.clear().ellipse(ev.tx, ev.ty, r * (0.3 + 0.9 * k), r * (0.3 + 0.9 * k) * PERSP).fill({ color: col, alpha: 0.18 * k })
+              .stroke({ width: 7 * k, color: col, alpha: k });
+          });
+          for (let i = 0; i < 16; i++) emit(ev.tx + rand(-r, r), ev.ty - 20 + rand(-r, r) * PERSP, col, { vx: (hx - ev.tx) * 0.8, vy: (ev.y - ev.ty) * 0.8 - 40, life: 0.4, size: 0.08 });
+        } else if (sp.kind.type === 'push') {
+          // Hostilité : onde de feu qui part du Sacrieur vers la cible
+          addFx(0.3, (g, k) => {
+            const x = tx + (hx - tx) * k, y = ty + (hy - ty) * k;
+            g.clear().moveTo(hx, hy).lineTo(x, y).stroke({ width: 16 * k, color: col, alpha: 0.4 * k })
+              .circle(x, y, 18 + 20 * (1 - k)).stroke({ width: 5 * k, color: 0xffe0a0, alpha: k });
+          });
+          for (let i = 0; i < 12; i++) emit(tx, ty, col, { vx: (tx - hx) * 0.9 + rand(-60, 60), vy: (ty - hy) * 0.9 + rand(-80, 0), life: 0.35, size: 0.09 });
+          shake = Math.max(shake, 4);
+        } else if (sp.kind.type === 'thorns') {
+          // Couronne d'Épines : couronne de pointes rouges autour du Sacrieur
+          addFx(0.6, (g, k) => {
+            g.clear();
+            const r = 62 + 14 * (1 - k);
+            for (let i = 0; i < 12; i++) {
+              const a = (i / 12) * Math.PI * 2 + (1 - k) * 0.8;
+              const [cx, cy] = [hx + Math.cos(a) * r, ev.y - 30 + Math.sin(a) * r * PERSP];
+              const [px, py] = [hx + Math.cos(a) * (r + 22), ev.y - 30 + Math.sin(a) * (r + 22) * PERSP];
+              g.moveTo(cx - Math.sin(a) * 7, cy + Math.cos(a) * 7 * PERSP).lineTo(px, py).lineTo(cx + Math.sin(a) * 7, cy - Math.cos(a) * 7 * PERSP);
+            }
+            g.fill({ color: 0xa8222e, alpha: k }).ellipse(hx, ev.y - 30, r, r * PERSP).stroke({ width: 4 * k, color: 0x8ddccf, alpha: k });
+          });
+          later(0.05, () => numberAt(game.hero.x, game.hero.y - 160 * CHAR_SCALE, `Bouclier ${game.hero.shield}`, '#8ddccf'));
+        } else if (sp.kind.type === 'nova') {
+          // Transfusion : onde de sang qui s'élargit autour du Sacrieur
+          const r = sp.kind.radius;
+          addFx(0.45, (g, k) => {
+            const rr = r * (1.05 - k);
+            g.clear().ellipse(hx, ev.y, rr, rr * PERSP).stroke({ width: 12 * k, color: 0xc8303c, alpha: k })
+              .ellipse(hx, ev.y, rr * 0.8, rr * 0.8 * PERSP).stroke({ width: 4 * k, color: 0xffd6d6, alpha: k });
+          });
+          for (let i = 0; i < 18; i++) {
+            const a = rand(0, Math.PI * 2);
+            emit(hx, ev.y - 30, 0xd8303c, { vx: Math.cos(a) * 320, vy: Math.sin(a) * 320 * PERSP - 40, life: 0.4, size: 0.08 });
+          }
+          shake = Math.max(shake, 3);
         }
         break;
       }

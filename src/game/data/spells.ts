@@ -24,7 +24,8 @@ export const setSpellPower = (v: number) => (SPELL_POWER = v);
 /** Délai minimal entre deux sorts (temps de l'animation de lancer). */
 export const CAST_DELAY = 0.35;
 
-export type SpellId = 'supplice' | 'hemorragie' | 'absorption' | 'stase' | 'attirance' | 'mutilation' | 'epeeVorace' | 'ravage' | 'assaut' | 'transposition';
+export type SpellId = 'supplice' | 'hemorragie' | 'absorption' | 'stase' | 'attirance' | 'mutilation' | 'epeeVorace' | 'ravage' | 'assaut' | 'transposition'
+  | 'condensation' | 'hostilite' | 'couronne' | 'transfusion';
 
 export type SpellKind =
   /** Vol de vie sur une cible ; `debuff` = effet secondaire du sort Dofus. */
@@ -38,7 +39,15 @@ export type SpellKind =
   /** Bond vers la cible (Ravage) puis dommages. */
   | { type: 'dash'; roll: DamageRoll; cells: number }
   /** Échange de position avec la cible (Assaut : quand on est encerclé, avec dommages ; Transposition : pour fuir, PV bas). */
-  | { type: 'swap'; roll?: DamageRoll; when: 'surrounded' | 'danger' };
+  | { type: 'swap'; roll?: DamageRoll; when: 'surrounded' | 'danger' }
+  /** Dommages en zone autour de la cible, puis attire les touchés vers le lanceur (Condensation). */
+  | { type: 'zone'; roll: DamageRoll; radius: number; pullCells: number }
+  /** Dommages puis repousse la cible ; contre un obstacle : dommages de poussée (Hostilité). */
+  | { type: 'push'; roll: DamageRoll; cells: number }
+  /** Bouclier et renvoi des dommages de mêlée pendant un tour (Couronne d'Épines). */
+  | { type: 'thorns'; shieldPct: number; perEnemyPct: number }
+  /** Dommages Neutre en zone autour du lanceur, selon sa vie restante (Transfusion). */
+  | { type: 'nova'; hpPct: number; radius: number };
 
 export interface SpellDef {
   id: SpellId;
@@ -125,6 +134,32 @@ export const SPELLS: Record<SpellId, SpellDef> = {
     id: 'transposition', name: 'Transposition', element: null, level: 30, pa: 3, range: [2 * CELL, 7 * CELL], cooldown: 3 * TURN,
     kind: { type: 'swap', when: 'danger' },
     text: 'Sous 50 % de PV et au contact d’ennemis : échange ta place avec l’ennemi le plus éloigné (7 cases, +4 en Souffrance 6).',
+  },
+  // Condensation (12745) : 3 PA, 0 à 5 cases, 2/tour ; Eau 13-16 en cercle de 2 cases autour de la cible, attire de 2 cases.
+  condensation: {
+    id: 'condensation', name: 'Condensation', element: 'eau', level: 35, pa: 3, range: [0, 5 * CELL], cooldown: TURN / 2,
+    kind: { type: 'zone', roll: hit('eau', 13, 16, 17), radius: 2 * CELL, pullCells: 2 },
+    text: 'Dommages Eau sur un groupe (2 cases autour de la cible, jusqu’à 5 cases) et l’attire de 2 cases vers toi.',
+  },
+  // Hostilité (12756) : 2 PA, 1 à 6 cases, 3/tour ; Feu 9-11, repousse de 2 cases.
+  hostilite: {
+    id: 'hostilite', name: 'Hostilité', element: 'feu', level: 40, pa: 2, range: [0, 6 * CELL], cooldown: TURN / 3,
+    kind: { type: 'push', roll: hit('feu', 9, 11, 13), cells: 2 },
+    text: 'Dommages Feu (jusqu’à 6 cases) et repousse la cible de 2 cases ; contre un obstacle, dommages de poussée.',
+  },
+  // Couronne d'Épines (12761) : 2 PA, sur soi, tous les 3 tours ; bouclier et renvoi des dommages de mêlée (1 tour) ;
+  // Souffrance 6+ : bouclier en plus par ennemi proche. (« Pesanteur » sur les ennemis : sans équivalent utile en temps réel.)
+  couronne: {
+    id: 'couronne', name: 'Couronne d’Épines', element: null, level: 45, pa: 2, range: [0, 0], cooldown: 3 * TURN,
+    kind: { type: 'thorns', shieldPct: 8, perEnemyPct: 3 },
+    text: `Au contact d’ennemis : bouclier de 8 % de tes PV et renvoi des dommages de mêlée pendant ${TURN} s (toutes les 12 s). Souffrance 6+ : +3 % par ennemi proche.`,
+  },
+  // Transfusion (12738) : 2 PA, sur soi, 1/tour ; dommages Neutre (8 % de la vie du lanceur) en cercle de 3 cases.
+  // (Le transfert de vie aux alliés ne sert qu'à l'Épée Vorace, qui n'a pas de PV : laissé de côté.)
+  transfusion: {
+    id: 'transfusion', name: 'Transfusion', element: 'neutre', level: 50, pa: 2, range: [0, 3 * CELL], cooldown: TURN,
+    kind: { type: 'nova', hpPct: 8, radius: 3 * CELL },
+    text: 'Explosion Neutre autour de toi (3 cases), selon ta vie restante : plus tu as de PV, plus elle fait mal.',
   },
 };
 

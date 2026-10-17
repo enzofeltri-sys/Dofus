@@ -208,6 +208,8 @@ export interface Hero {
   /** Bouclier (Coagulation) : PV absorbés et durée. */
   shield: number;
   shieldT: number;
+  /** Couronne d'Épines : renvoie les dommages de mêlée tant que > 0. */
+  thornsT: number;
   /** PV max perdus par érosion dans la salle (rendus à la salle suivante). */
   eroded: number;
   /** Ralenti par le tacle d'un monstre au contact (0 = libre, pour l'affichage). */
@@ -768,6 +770,7 @@ export class World {
     h.castCd = Math.max(0, h.castCd - STEP);
     for (const sl of this.run.slots) if (sl) sl.cd = Math.max(0, sl.cd - STEP);
     h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
+    h.thornsT = Math.max(0, h.thornsT - STEP);
     // bouclier de Coagulation
     if (h.shieldT > 0) {
       h.shieldT -= STEP;
@@ -869,6 +872,57 @@ export class World {
       m.knock.x = m.knock.y = 0;
       this.events.push({ type: 'swap', uid: m.uid, ax, ay, bx: h.x, by: h.y });
       if (k.roll) this.spellHit(m, k.roll, sl, true, false);
+      return true;
+    }
+    if (k.type === 'zone') {
+      // vise le monstre qui a le plus de voisins (le groupe), dans la portée
+      const cands = this.targets(sp.range[0], sp.range[1] + this.heroStats().portee * CELL);
+      if (!cands.length) return false;
+      const around = (c: Monster) => cands.filter((o) => flatDist(o.x, o.y, c.x, c.y) <= k.radius);
+      const center = cands.reduce((a, b) => (around(b).length > around(a).length ? b : a));
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: center.x, ty: center.y, uid: center.uid });
+      for (const m of around(center)) {
+        this.spellHit(m, k.roll, sl, false, false);
+        if (m.state === 'dead') continue;
+        const dx = h.x - m.x, dy = (h.y - m.y) / PERSP, d = Math.hypot(dx, dy) || 1;
+        const move = Math.min(k.pullCells * CELL, Math.max(0, d - h.def.radius - m.def.radius - 10));
+        [m.x, m.y] = this.pushOut(m.x + (dx / d) * move, m.y + (dy / d) * move * PERSP, m.def.radius);
+      }
+      return true;
+    }
+    if (k.type === 'push') {
+      const m = this.targets(sp.range[0], sp.range[1] + this.heroStats().portee * CELL)[0];
+      if (!m) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
+      this.spellHit(m, k.roll, sl, false, false);
+      if (m.state === 'dead') return true;
+      const dx = m.x - h.x, dy = (m.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
+      const want = k.cells * CELL;
+      const [nx, ny] = this.pushOut(m.x + (dx / d) * want, m.y + (dy / d) * want * PERSP, m.def.radius);
+      const moved = flatDist(nx, ny, m.x, m.y);
+      m.x = nx;
+      m.y = ny;
+      // bloqué par un mur ou un obstacle : dommages de poussée pour les cases non parcourues
+      const lost = Math.round((want - moved) / CELL);
+      if (lost >= 1) this.damageMonster(m, pushDamage(h.def.level, this.heroStats(), m.stats, lost), false, undefined, true);
+      return true;
+    }
+    if (k.type === 'thorns') {
+      const near = this.targets(0, MELEE + 10).length;
+      if (!near) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: h.x, ty: h.y });
+      const pct = k.shieldPct + (h.souffrance >= SOUFFRANCE.pullBonusAt ? k.perEnemyPct * near : 0);
+      h.shield = Math.max(h.shield, Math.round((h.maxHp * pct) / 100));
+      h.shieldT = Math.max(h.shieldT, TURN);
+      h.thornsT = TURN;
+      return true;
+    }
+    if (k.type === 'nova') {
+      const hit = this.targets(0, k.radius);
+      if (!hit.length) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: h.x, ty: h.y });
+      const v = Math.max(1, Math.round((h.hp * k.hpPct) / 100));
+      for (const m of hit) this.spellHit(m, { min: v, max: v, critBonus: Math.round(v * 0.2), critBase: 15, element: 'neutre' }, sl, false, false);
       return true;
     }
     const ranged = sp.range[1] > MELEE;
@@ -1258,6 +1312,8 @@ export class World {
     h.hp = Math.min(h.hp, h.maxHp);
     // renvoi de dommages : sur les attaques de mêlée
     if (melee && mine.renvoi > 0 && m.state !== 'dead') this.damageMonster(m, mine.renvoi, false);
+    // Couronne d'Épines : les dommages de mêlée reviennent à l'attaquant
+    if (melee && h.thornsT > 0 && dmg > 0 && m.state !== 'dead') this.damageMonster(m, dmg, false);
     // Épines : une partie des dégâts revient à l'attaquant
     const thorns = Math.floor(dmg * this.passive('epines'));
     if (thorns > 0 && m.state !== 'dead') this.damageMonster(m, thorns, false);
@@ -1494,7 +1550,7 @@ export class World {
 }
 
 function freshCombat() {
-  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1, rootT: 0 };
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, thornsT: 0, eroded: 0, tackled: 1, rootT: 0 };
 }
 
 /** Charges de Souffrance : 1 par tranche de 10 % de PV perdus, sur les PV max avant érosion. */

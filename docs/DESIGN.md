@@ -97,6 +97,12 @@ Chaque type d'arme a sa vitesse et sa forme d'attaque. Les stats viennent du jet
   - **Ravage** (20) : bond sur un ennemi à 3-6 cases (jusqu'à 5 cases de déplacement) puis Terre 17-20 ; 2 fois par tour.
   - **Assaut** (25) : échange de place avec un ennemi au contact et Air 9-11, **seulement quand on est encerclé** (2 monstres au contact), pour ne pas faire perdre au joueur le contrôle de sa position ; 3 fois par tour.
   - **Transposition** (30) : sous 50 % de PV et au contact d'ennemis, échange de place avec l'ennemi le plus éloigné (2-7 cases, +4 en Souffrance 6) ; tous les 3 tours.
+- **Sorts 35-50 (validés par Enzo)**, mêmes règles ; au **niveau 50, 5e case de sort** :
+  - **Condensation** (35) : vise le groupe le plus serré à 5 cases ou moins, Eau 13-16 sur tous les monstres à 2 cases du centre, puis les attire de 2 cases vers le Sacrieur ; 2 fois par tour.
+  - **Hostilité** (40) : Feu 9-11 et repousse de 2 cases ; contre un mur ou un obstacle, dommages de poussée (formule Dofus) pour les cases non parcourues ; 3 fois par tour.
+  - **Couronne d'Épines** (45) : seulement au contact d'un ennemi ; bouclier de 8 % des PV max (+3 % par ennemi au contact en Souffrance 6) et, pendant 1 tour, les dommages de mêlée reçus sont renvoyés à l'attaquant ; tous les 3 tours.
+  - **Transfusion** (50) : dommages Neutre égaux à 8 % des PV actuels du Sacrieur sur tous les ennemis à 3 cases ou moins (dans Dofus, le sort soigne les alliés : sans alliés ici, seule la partie dommages est gardée) ; 1 fois par tour.
+  - Simulation (Donjon des Bouftous, niveau 40, Panoplie du Bouftou, 8 joueurs) : 5/8 vainqueurs avec les sorts 35-50, 7/8 sans, écarts dans le bruit de la simulation (un joueur de plus ou de moins selon les tirages) ; aucun des 4 sorts retiré seul ne change le résultat.
 - **Traduction en temps réel** : 1 tour Dofus = **4 s** (6 PA rechargés par tour) ; « N lancers par tour » → au plus un lancer toutes les 4/N s ;
   « tous les N tours » → toutes les 4N s ; 1 case ≈ 60 px au sol ; vol de vie = 50 % des dégâts infligés ;
   **dégâts des sorts ×0,5** (on lance bien plus de sorts qu'en tour par tour, en plus de l'arme ; réglé après test d'Enzo).
