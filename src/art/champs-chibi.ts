@@ -36,11 +36,11 @@ export const JELLIES: CritterKind[] = ['plikplok', 'gloot', 'splatch', 'larveBle
 export const PIOUS: CritterKind[] = ['piouViolet', 'piouRouge', 'piouVert', 'piouBleu', 'piouRose', 'piouJaune'];
 export const SPIDERS: CritterKind[] = ['arakneMalade', 'araknose', 'arakmute', 'arakneEgouts'];
 /** Quadrupèdes d'Astrub (corps de mouton : Bouftous, Prespic, Sanglier, Écurouille). */
-export const BEASTS: CritterKind[] = ['bouftou', 'bouftonBlanc', 'bouftonNoir', 'bouftouNoir', 'chefBouftou', 'bouftouRoyal', 'prespic', 'sanglier', 'ecurouille'];
+export const BEASTS: CritterKind[] = ['bouftou', 'bouftonBlanc', 'bouftonNoir', 'bouftouNoir', 'chefBouftou', 'bouftouRoyal', 'prespic', 'sanglier', 'ecurouille', 'milimulou'];
 export const DOAS: CritterKind[] = ['martoa', 'sherpoa', 'douzdoa', 'pikdoa'];
 export const PICHONS: CritterKind[] = ['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'];
 /** Bipèdes (jambes, corps, bras, tête : pièces des plantes). */
-export const BIPEDS: CritterKind[] = ['milimulou', 'milirat', 'ramane', 'scelerat', 'mobEponge'];
+export const BIPEDS: CritterKind[] = ['milirat', 'ramane', 'scelerat', 'mobEponge'];
 export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
@@ -76,7 +76,8 @@ export const CRITTER_PIVOTS = {
   ecurouille: { tail: [92, 130], legB: [88, 136], body: [68, 140], legF: [56, 140], head: [58, 104], horn: [62, 76] },
   ...Object.fromEntries(['martoa', 'sherpoa', 'douzdoa', 'pikdoa'].map((k) => [k, { legB: [80, 124], legF: [62, 126], body: [70, 146], head: [70, 104] }])),
   arakneEgouts: SPIDER_PIVOTS,
-  ...Object.fromEntries(['milimulou', 'milirat', 'ramane', 'scelerat', 'mobEponge'].map((k) => [k, { legB: [80, 118], legF: [62, 118], stem: [70, 142], leafB: [92, 84], leafF: [52, 86], head: [68, 82] }])),
+  milimulou: { tail: [110, 112], legB: [96, 122], body: [80, 132], legF: [64, 96], head: [56, 86], horn: [58, 74] },
+  ...Object.fromEntries(['milirat', 'ramane', 'scelerat', 'mobEponge'].map((k) => [k, { legB: [80, 118], legF: [62, 118], stem: [70, 142], leafB: [92, 84], leafF: [52, 86], head: [68, 82] }])),
   ...Object.fromEntries(['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'].map((k) => [k, { wingB: [94, 98], legB: [102, 106], legF: [68, 122], body: [72, 132], crest: [74, 84], wingF: [74, 112] }])),
 } as Record<CritterKind, Partial<Record<CritterPart, [number, number]>>>;
 
@@ -850,20 +851,28 @@ function forestBeastSvg(kind: CritterKind, part?: CritterPart): string {
   begin();
   const P: Parts = {};
   if (kind === 'prespic') {
-    const B = '#8a5a34';
-    push(P, 'tail', blob('M112,116 L130,110 L116,124 Z', '#f07a1a', { w: 1.4 }));
-    const leg = (x: number, y: number) => tube(`M${x},${y} L${x - 1},${y + 8}`, 7, B) + blob(ellipse(x - 2, y + 10, 6, 3.5), '#3a2414', { w: 1.2, rim: false });
-    push(P, 'legB', leg(98, 134), leg(112, 132));
-    push(P, 'legF', leg(62, 136), leg(76, 138));
-    push(P, 'body', blob(spiky(86, 108, 36, 30, 13, 0.42, Math.PI * 0.9, Math.PI * 2.15), '#f07a1a', { ink: '#7a2a08', hl: [0.4, 0.2] }),
-      blob(spiky(86, 108, 30, 24, 11, 0.3, Math.PI * 0.95, Math.PI * 2.1), '#ffaa3a', { ink: '#a8480a', w: 1.2, rim: false }),
-      blob(ellipse(84, 118, 32, 22), B), blob(ellipse(80, 126, 22, 10), '#c8946a', { w: 1.2, rim: false }));
-    push(P, 'head', blob('M64,96 Q40,92 22,114 Q26,124 40,126 Q58,128 70,118 Z', '#e8c89a'),
-      blob(ellipse(22, 114, 5, 4), '#2a1a10', { w: 1.2, rim: false }),
-      `<path d="M38,104 Q50,98 62,104 L60,114 Q48,110 38,114 Z" fill="#5a3a20" opacity="0.85"/>`,
-      eyeChibi(48, 110, 7, 8, '#3a2010', { lid: 1, skin: '#5a3a20', look: [-0.4, 0.1] }),
-      `<path d="M28,122 Q34,124 40,121" fill="none" stroke="#5a3a20" stroke-width="1.8" stroke-linecap="round"/>`);
-    push(P, 'horn', blob(spiky(62, 92, 14, 10, 5, 0.6, Math.PI * 1.05, Math.PI * 1.95), '#f07a1a', { ink: '#7a2a08', w: 1.4 }));
+    // petit corps beige, masque brun de raton, énorme crinière de flammes orange rabattue vers l'arrière
+    const B = '#d8c8a0', D = '#5a3a24', O = '#f08a1a', ink = '#8a3a08';
+    const flame = (x: number, y: number, l: number, a: number, c: string) => {
+      const tx = x + Math.cos(a) * l, ty = y + Math.sin(a) * l, nx = -Math.sin(a) * l * 0.28, ny = Math.cos(a) * l * 0.28;
+      return blob(`M${f(x - nx)},${f(y - ny)} Q${f(x + (tx - x) * 0.5 - nx * 0.6)},${f(y + (ty - y) * 0.5 - ny * 0.6 - 4)} ${f(tx)},${f(ty)} Q${f(x + (tx - x) * 0.45 + nx * 0.4)},${f(y + (ty - y) * 0.45 + ny * 0.4)} ${f(x + nx)},${f(y + ny)} Z`, c, { ink, w: 1.5 });
+    };
+    push(P, 'tail', flame(100, 122, 24, -0.2, O), flame(98, 128, 20, 0.35, '#e8701a'));
+    const leg = (x: number, y: number) => blob(ellipse(x, y, 9, 11), D) + blob(ellipse(x - 3, y + 9, 9, 4.5), shade(D, -0.2), { w: 1.2, rim: false });
+    push(P, 'legB', leg(90, 136));
+    push(P, 'legF', leg(62, 138));
+    push(P, 'body', blob(ellipse(76, 116, 28, 26), B, { hl: [0.35, 0.25] }), blob(ellipse(66, 124, 13, 15), '#efe4c8', { w: 1.2, rim: false }),
+      blob('M52,116 Q40,124 44,136 Q52,138 58,128 Z', D, { w: 1.4 }));
+    push(P, 'head', blob(ellipse(50, 100, 24, 20), B),
+      blob('M28,98 Q40,90 56,94 Q66,96 70,104 Q58,110 46,106 Q34,108 28,98 Z', D, { w: 1.2, rim: false }),
+      eyeChibi(44, 100, 6.5, 7.5, '#3a2010', { lid: 1, skin: D, look: [-0.45, 0.1] }), eyeChibi(60, 101, 5.5, 7, '#3a2010', { lid: 1, skin: D, look: [-0.45, 0.1] }),
+      blob(ellipse(27, 104, 5, 4), '#141010', { w: 1, rim: false }),
+      `<path d="M32,112 Q38,116 44,112" fill="none" stroke="${D}" stroke-width="1.8" stroke-linecap="round"/>`);
+    // crinière : trois rangées de flammes, du front jusqu'au dos
+    const rows: [number, number, number, number, string][] = [
+      [96, 104, 34, -0.15, '#e8701a'], [92, 92, 36, -0.4, '#e8701a'], [84, 82, 38, -0.7, O], [72, 76, 36, -1.0, O], [60, 76, 32, -1.3, O],
+      [86, 96, 28, -0.3, '#ffa83a'], [76, 86, 28, -0.75, '#ffa83a'], [64, 82, 24, -1.1, '#ffb84a'], [50, 82, 22, -1.5, O], [42, 86, 18, -1.9, '#ffa83a']];
+    push(P, 'horn', ...rows.map(([x, y, l, a, c]) => flame(x, y, l, a, c)));
   } else if (kind === 'sanglier') {
     const B = '#6a4a32';
     push(P, 'tail', tube('M116,104 Q128,100 124,112 Q120,120 128,122', 3, B));
@@ -878,6 +887,23 @@ function forestBeastSvg(kind: CritterKind, part?: CritterPart): string {
       eyeChibi(42, 106, 6, 7, '#a81a10', { lid: 1, skin: shade(B, 0.08), look: [-0.4, 0.1] }),
       blob('M56,92 Q66,80 70,92 Q64,96 56,92 Z', shade(B, -0.1)));
     push(P, 'horn', blob('M30,124 Q22,118 24,104 Q30,114 36,120 Z', '#fbf4e0', { ink: '#6a5a40', w: 1.4 }), blob('M40,128 Q34,124 36,112 Q42,120 46,124 Z', '#fbf4e0', { ink: '#6a5a40', w: 1.4 }));
+  } else if (kind === 'milimulou') {
+    // loup-garou voûté : fourrure brune en mèches, longs bras griffus, crâne d'os pour visage, deux cornes
+    const B = '#8a4a24', C = '#e8d8b0', ink = '#3a1a08';
+    const tufts = (cx: number, cy: number, rx: number, ry: number, n: number, c: string) => blob(spiky(cx, cy, rx, ry, n, 0.32), c, { ink, hl: [0.35, 0.2] });
+    push(P, 'tail', tufts(118, 112, 14, 18, 7, B));
+    push(P, 'legB', blob('M96,118 Q112,124 108,140 L100,140 Q98,130 90,128 Z', B, { ink }), blob(ellipse(104, 145, 11, 5), C, { ink, w: 1.4 }),
+      `<path d="M95,147 l-3,4 M101,149 l-1,4 M107,148 l1,4" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/>`);
+    push(P, 'body', tufts(84, 98, 34, 30, 11, B), tufts(92, 82, 20, 16, 7, shade(B, 0.12)), blob(ellipse(72, 112, 16, 13), '#c8844a', { ink, w: 1.2, rim: false }));
+    push(P, 'legF', blob('M64,92 Q42,100 40,128 L50,130 Q54,110 70,104 Z', B, { ink }), blob(ellipse(44, 136, 10, 7), C, { ink, w: 1.4 }),
+      `<path d="M36,138 l-4,6 M42,141 l-1,7 M49,141 l2,6" stroke="${C}" stroke-width="3" stroke-linecap="round"/><path d="M36,138 l-4,6 M42,141 l-1,7 M49,141 l2,6" stroke="${ink}" stroke-width="1" stroke-linecap="round"/>`,
+      blob('M78,124 Q72,136 76,146 L86,146 Q88,134 92,126 Z', B, { ink }), blob(ellipse(80, 148, 10, 4.5), C, { ink, w: 1.4 }));
+    push(P, 'head', tufts(50, 84, 20, 16, 8, B),
+      blob('M50,74 Q34,72 22,82 Q18,92 26,98 Q36,102 50,98 Q60,92 58,80 Z', C, { ink: '#5a4a30' }),
+      `<ellipse cx="42" cy="82" rx="5" ry="5.5" fill="#2a1a10"/><circle cx="41" cy="81" r="1.6" fill="#f8d84a"/>`,
+      blob(ellipse(20, 86, 4, 3.5), '#2a1a10', { w: 1, rim: false }),
+      `<path d="M22,94 L26,100 L29,94 L32,100 L35,94 L38,100 L41,94" fill="#fff" stroke="#5a4a30" stroke-width="1.2"/>`);
+    push(P, 'horn', blob('M54,72 Q50,46 58,28 Q62,50 62,72 Z', C, { ink: '#5a4a30', w: 1.4 }), blob('M62,74 Q66,52 80,40 Q74,58 70,76 Z', shade(C, -0.08), { ink: '#5a4a30', w: 1.4 }));
   } else {
     // Écurouille : assise, énorme queue enroulée, grandes oreilles
     const O = '#f08a2a';
@@ -935,34 +961,37 @@ function bipedSvg(kind: CritterKind, part?: CritterPart): string {
     push(P, 'legB', tube('M78,116 Q82,130 82,144', 7, col), blob(ellipse(78, 147, fw, 4.5), foot, { w: 1.4, rim: false }));
     push(P, 'legF', tube('M62,116 Q58,130 58,144', 7, col), blob(ellipse(54, 148, fw, 4.5), foot, { w: 1.4, rim: false }));
   };
-  if (kind === 'milimulou') {
-    const B = '#8a4a24';
-    legs(B, '#e8dcc0', 10);
-    push(P, 'stem', blob(spiky(72, 96, 30, 30, 12, 0.18, Math.PI * 0.6, Math.PI * 2.4), B, { hl: [0.4, 0.25] }), blob(ellipse(66, 104, 16, 18), '#c8844a', { w: 1.2, rim: false }));
-    const arm = (d: string, cx: number, cy: number) => tube(d, 9, B) + `<path d="M${cx - 6},${cy} l-3,7 M${cx},${cy + 2} l0,8 M${cx + 6},${cy} l3,7" stroke="#f4ecd8" stroke-width="2.6" stroke-linecap="round"/>`;
-    push(P, 'leafB', arm('M92,84 Q108,92 108,112', 108, 114));
-    push(P, 'leafF', arm('M50,86 Q36,98 38,118', 38, 120));
-    push(P, 'head', blob(spiky(66, 62, 22, 20, 9, 0.25), B), blob('M50,52 Q66,44 80,54 Q82,70 72,80 L54,80 Q46,68 50,52 Z', '#f4ecd8', { ink: '#5a4a3a' }),
-      `<ellipse cx="58" cy="62" rx="5" ry="6" fill="#2a1a10"/><ellipse cx="73" cy="62" rx="5" ry="6" fill="#2a1a10"/><circle cx="57" cy="61" r="1.8" fill="#f8d84a"/><circle cx="72" cy="61" r="1.8" fill="#f8d84a"/>`,
-      `<path d="M56,76 L58,82 L61,76 L64,82 L67,76 L70,82 L72,76" fill="#fff" stroke="#5a4a3a" stroke-width="1.2"/>`,
-      blob('M50,50 Q40,36 44,24 Q50,36 56,46 Z', '#f4ecd8', { ink: '#5a4a3a', w: 1.2 }), blob('M80,50 Q92,38 90,26 Q82,36 76,46 Z', '#f4ecd8', { ink: '#5a4a3a', w: 1.2 }));
-  } else if (kind === 'milirat' || kind === 'ramane') {
-    const G = kind === 'milirat' ? '#8a8478' : '#7a6a62';
-    legs(G, '#d8a8a0', 8);
-    push(P, 'leafB', tube('M90,116 Q120,120 126,104 Q130,92 122,86', 3, '#e0a0a0'));
-    push(P, 'stem', blob(ellipse(72, 100, 22, 26), G), blob(ellipse(66, 106, 12, 16), '#e8e0d0', { w: 1.2, rim: false }));
-    if (kind === 'milirat') push(P, 'stem', ...[86, 98, 110].map((y) => blob(`M50,${y - 5} Q72,${y - 9} 94,${y - 5} L94,${y + 4} Q72,${y} 50,${y + 4} Z`, '#c86a2a', { ink: '#5a2a0a', w: 1.4, rim: false })));
-    push(P, 'head', blob('M80,66 Q74,48 56,52 Q36,56 26,70 Q36,80 58,80 Q78,80 80,66 Z', G), blob(ellipse(26, 70, 4, 3.5), '#2a1a1a', { w: 1, rim: false }),
-      `<circle cx="46" cy="64" r="4.2" fill="#101010"/><circle cx="44.6" cy="62.8" r="1.4" fill="#fff"/>`,
-      `<path d="M30,74 l-10,2 M30,72 l-10,-3" stroke="#5a4a40" stroke-width="1.2"/>`);
-    if (kind === 'milirat') {
-      push(P, 'head', blob('M50,58 Q56,30 76,36 Q86,44 84,64 Q70,56 50,58 Z', '#5a5a52', { ink: '#1a1a16' }), blob('M70,40 L74,8 L86,40 Z', '#5a5a52', { ink: '#1a1a16', w: 1.4 }), blob('M60,42 L56,14 L70,38 Z', '#6a6a60', { ink: '#1a1a16', w: 1.4 }));
-      push(P, 'leafF', tube('M54,90 Q44,100 44,110', 6, G), tube('M70,96 L14,126', 3.4, '#8a5a2a'), blob('M18,124 L2,134 L14,118 Z', '#d0d4d8', { ink: '#3a3e44', w: 1.4 }));
+  if (kind === 'milirat' || kind === 'ramane') {
+    // rats des Égouts, voûtés et grosse tête : Milirat (capuche à grandes oreilles, armure orange, lance),
+    // Ramane (crête violette, crâne de bête sur la tête, bâton à spirale)
+    const mil = kind === 'milirat';
+    const G = mil ? '#7a7a62' : '#6a5a50', Belly = mil ? '#c8c0a0' : '#ece0c8', ink = '#2a2418';
+    push(P, 'legB', tube('M80,124 Q86,136 84,146', 7, G, ink), blob(ellipse(82, 148, 9, 4.5), mil ? '#5a4a3a' : '#8a2ab8', { ink, w: 1.4, rim: false }));
+    push(P, 'legF', tube('M62,124 Q58,136 58,146', 7, G, ink), blob(ellipse(54, 148, 9, 4.5), mil ? '#5a4a3a' : '#8a2ab8', { ink, w: 1.4, rim: false }));
+    push(P, 'leafB', tube('M92,124 Q118,130 122,114 Q124,104 116,100', 3.2, mil ? '#8a6a5a' : '#8a2ab8', ink));
+    push(P, 'stem', blob(ellipse(74, 112, 22, 20), G, { ink }), blob(ellipse(66, 118, 12, 12), Belly, { w: 1.2, rim: false }));
+    if (mil) push(P, 'stem', blob('M54,98 Q74,90 94,100 L96,114 Q74,106 52,114 Z', '#d0702a', { ink: '#5a2a0a' }), blob('M56,112 Q74,106 94,114 L92,124 Q74,118 58,126 Z', '#b85a20', { ink: '#5a2a0a' }),
+      blob(ellipse(88, 100, 10, 8), '#d0702a', { ink: '#5a2a0a', w: 1.4 }));
+    // tête : grosse, voûtée vers l'avant
+    push(P, 'head', blob('M74,80 Q76,58 56,54 Q36,54 30,70 Q24,82 36,90 Q52,96 66,92 Q74,88 74,80 Z', G, { ink }),
+      blob('M36,72 Q22,74 16,82 Q24,88 36,86 Z', shade(G, 0.1), { ink, w: 1.4 }), blob(ellipse(16, 82, 3.5, 3), '#1a1010', { w: 1, rim: false }));
+    if (mil) {
+      // capuche à grandes oreilles pointues, visage pâle masqué
+      push(P, 'head', blob('M38,72 Q46,62 58,64 Q64,74 58,84 Q46,90 38,84 Z', '#efe6d0', { ink, w: 1.4 }),
+        `<path d="M40,70 Q50,66 60,70 L60,76 Q50,72 40,76 Z" fill="#1a1a14"/><circle cx="50" cy="73" r="2.6" fill="#e8c81a"/>`,
+        blob('M34,70 Q38,46 62,44 Q84,46 82,72 Q74,62 56,60 Q42,60 34,70 Z', '#8a8a6a', { ink }),
+        blob('M50,48 L30,6 L64,44 Z', '#8a8a6a', { ink, w: 1.6 }), blob('M68,48 L80,8 L82,52 Z', '#3a3a2a', { ink, w: 1.6 }), blob('M50,46 L36,18 L58,44 Z', '#c8b8a0', { ink, w: 1, rim: false }));
+      push(P, 'leafF', tube('M56,104 Q46,112 44,118', 6, G, ink), blob(circle(44, 120, 5), '#5a4a3a', { ink, w: 1.2 }),
+        tube('M96,108 L18,134', 3.4, '#8a5a2a', ink), blob('M22,130 L0,142 L16,124 Z', '#d0d4d8', { ink: '#3a3e44', w: 1.4 }));
     } else {
-      push(P, 'head', blob(spiky(66, 50, 16, 10, 7, 0.9, Math.PI * 1.05, Math.PI * 1.95), '#8a2ab8', { ink: '#3a0a5a', w: 1.4 }),
-        blob('M54,46 Q66,34 82,42 Q86,54 76,56 Q66,50 54,52 Z', '#f0e8d0', { ink: '#5a4a3a', w: 1.4 }), `<circle cx="70" cy="46" r="2.4" fill="#2a1a10"/>`);
-      push(P, 'leafF', tube('M54,90 Q46,98 40,104', 6, G), tube('M38,146 L42,30', 4, '#8a5a2a'), blob(circle(42, 26, 10), '#9a6a3a', { ink: '#4a2a10' }),
-        `<path d="M42,26 m-5,0 a5,5 0 1,1 10,0 a3,3 0 1,1 -6,0" fill="none" stroke="#4a2a10" stroke-width="1.8"/>`);
+      push(P, 'head', blob(spiky(64, 50, 22, 14, 7, 1.0, Math.PI * 0.95, Math.PI * 2.1), '#8a2ab8', { ink: '#3a0a5a', w: 1.4 }),
+        eyeChibi(46, 74, 7, 8, '#c8b81a', { look: [-0.4, 0.1] }),
+        // crâne de bête posé sur la tête : orbites, cornes
+        blob('M44,62 Q46,44 64,42 Q80,44 80,58 Q76,70 62,70 Q52,70 44,62 Z', '#f0e4a8', { ink: '#5a4a20' }),
+        `<ellipse cx="58" cy="54" rx="4.5" ry="5" fill="#2a1a10"/><ellipse cx="70" cy="54" rx="4" ry="5" fill="#2a1a10"/><path d="M60,64 l2,4 l2,-4 l2,4" stroke="#5a4a20" stroke-width="1.2" fill="none"/>`,
+        blob('M46,52 Q36,40 40,30 Q46,40 52,46 Z', '#f0e4a8', { ink: '#5a4a20', w: 1.2 }), blob('M78,50 Q90,40 88,30 Q82,40 76,46 Z', '#f0e4a8', { ink: '#5a4a20', w: 1.2 }));
+      push(P, 'leafF', tube('M56,104 Q48,108 42,108', 6, G, ink), tube('M40,148 L44,34', 4, '#8a5a2a', ink), blob(circle(44, 28, 11), '#9a6a3a', { ink: '#4a2a10' }),
+        `<path d="M44,28 m-6,0 a6,6 0 1,1 12,0 a3.5,3.5 0 1,1 -7,0" fill="none" stroke="#4a2a10" stroke-width="1.8"/>`, blob(circle(42, 108, 5), G, { ink, w: 1.2 }));
     }
   } else if (kind === 'scelerat') {
     // Scélérat Strubien : capuche, grosses lunettes vertes, ailes de cuir, queue rayée
@@ -1045,7 +1074,7 @@ export const CRITTER_SVG = {
   tofuMalade: (p) => tofuMaladeSvg(p),
   arakneMalade: (p) => spiderSvg('arakneMalade', p), araknose: (p) => spiderSvg('araknose', p), arakmute: (p) => spiderSvg('arakmute', p), arakneEgouts: (p) => spiderSvg('arakneEgouts', p),
   ...(Object.fromEntries(Object.keys(BOUFTOU).map((k) => [k, (p?: CritterPart) => bouftouSvg(k as CritterKind, p)])) as Record<string, (p?: CritterPart) => string>),
-  prespic: (p) => forestBeastSvg('prespic', p), sanglier: (p) => forestBeastSvg('sanglier', p), ecurouille: (p) => forestBeastSvg('ecurouille', p),
+  prespic: (p) => forestBeastSvg('prespic', p), sanglier: (p) => forestBeastSvg('sanglier', p), ecurouille: (p) => forestBeastSvg('ecurouille', p), milimulou: (p) => forestBeastSvg('milimulou', p),
   ...(Object.fromEntries(DOAS.map((k) => [k, (p?: CritterPart) => doaSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(BIPEDS.map((k) => [k, (p?: CritterPart) => bipedSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(PICHONS.map((k) => [k, (p?: CritterPart) => pichonSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
