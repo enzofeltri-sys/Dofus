@@ -18,16 +18,18 @@ import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
 import { applyRun, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
+import { entryCost, FREE_KEYS_PER_DAY, payEntry } from './game/keys';
 import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
 import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
 import { elementName, resLine, sheetView } from './ui/sheet-view';
 import { equip, gearStats, isWorn, toggleMark, unequip } from './game/inventory';
 import { catalogDetail, equipmentDetail, invView, resourceDetail } from './ui/inv-view';
-import { fmtLine, item, type SlotId } from './game/data/items';
+import { fmtLine, item, statLabel, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
-import { breakView, craftView, forgeRows, fusionView } from './ui/craft-view';
+import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
+import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
 import { CHAMPS, isUnlocked, ZONES } from './game/data/areas';
 import { breakItem, fuse, RARITIES } from './game/forge';
@@ -189,7 +191,21 @@ async function main() {
     },
     current: () => {
       const a = areaOf();
-      return { kind: a.kind, name: a.name, level: a.level, sub: a.sub };
+      const c = entryCost(save, a);
+      const keyName = (id: number | null) => (id ? item(id).name : 'clé');
+      const key = c.kind === 'open' ? undefined
+        : c.kind === 'first' ? { text: 'Tentatives libres tant que le donjon n’est pas vaincu', ok: true }
+        : c.kind === 'free' ? { text: `Clés gratuites aujourd’hui : ${c.left}/${FREE_KEYS_PER_DAY}`, ok: true }
+        : c.kind === 'item' ? { text: `Plus de clé gratuite : 1 ${keyName(c.itemId)} (${c.left} en stock)`, ok: true }
+        : { text: `Plus de clé : reviens demain ou fabrique une ${keyName(c.itemId)} (Atelier)`, ok: false };
+      return { kind: a.kind, name: a.name, level: a.level, sub: a.sub, key };
+    },
+    enter() {
+      const paid = payEntry(save, areaOf());
+      if (!paid) return false;
+      save = paid;
+      storeSave(save);
+      return true;
     },
     fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length - seenOpen),
     seen() {
@@ -853,6 +869,21 @@ async function main() {
       const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
       const bonus = res.item.bonus ? ` · ${fmtLine(...res.item.bonus)}` : '';
       return `${item(res.item.id).name} devient ${RARITIES[res.item.rarity ?? 0]} !${bonus} · +${res.xp} XP${up}`;
+    },
+    fm: (uid: number) => fmView(workshop(), uid),
+    fmApply(uid: number, runeId: number) {
+      const res = applyRune(workshop(), uid, runeId, Math.random);
+      if (!res.outcome || !res.path) return { text: 'Impossible', outcome: null };
+      setWorkshop(res.workshop);
+      const lost = res.lost.map(([p, n]) => fmtLine(p, -n)).join(', ');
+      const parts = [
+        res.outcome === 'ec' ? `${statLabel(res.path)} ne monte pas` : fmtLine(res.path, res.gain),
+        lost ? `perdu : ${lost}` : '',
+        res.fromPuits ? `puits −${res.fromPuits}` : '',
+        res.toPuits ? `puits +${res.toPuits}` : '',
+      ].filter(Boolean);
+      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
+      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')}${up}`, outcome: res.outcome };
     },
     breakInfo: (uid: number) => breakView(workshop(), uid),
     breakIt(uid: number) {

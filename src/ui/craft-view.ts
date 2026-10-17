@@ -6,6 +6,7 @@ import {
 } from '../game/forge';
 import { instance, isWorn, itemLines } from '../game/inventory';
 import { itemIconImg } from './item-icons';
+import { fmCheck, fmLines, ownedRunes, puitsMax } from '../game/fm';
 
 /** Atelier de l'Artisan tel qu'affiché au camp. */
 export interface CraftView {
@@ -162,5 +163,60 @@ export function breakView(w: Workshop, uid: number): BreakView | null {
     runes: [...breakPreview(it)].map(([id, [min, max]]) => ({ icon: itemIconImg(id), name: item(id).name, min, max }))
       .sort((a, b) => a.name.localeCompare(b.name, 'fr')),
     why: br.ok ? '' : br.reason,
+  };
+}
+
+/* ---------- Forgemagie ---------- */
+
+export interface FmRuneBtn {
+  id: number;
+  icon: string;
+  name: string;
+  value: number;
+  count: number;
+  ok: boolean;
+  /** « 50 / 30 / 20 % » (critique / neutre / échec) ou la raison du refus. */
+  odds: string;
+}
+export interface FmView {
+  uid: number;
+  icon: string;
+  name: string;
+  sub: string;
+  rarity: number;
+  puits: number;
+  puitsMax: number;
+  lines: { text: string; range: string; kind: 'base' | 'exo' | 'bonus'; over: boolean; runes: FmRuneBtn[] }[];
+  /** Runes possédées pour une nouvelle ligne (exo). */
+  exo: { label: string; runes: FmRuneBtn[] }[];
+  exoWhy: string;
+}
+
+const pct = (x: number) => `${Math.round(x * 100)}`;
+const runeBtn = (w: Workshop, uid: number, id: number, value: number, count: number): FmRuneBtn => {
+  const c = fmCheck(w, uid, id);
+  return {
+    id, icon: itemIconImg(id), name: item(id).name, value, count, ok: c.ok,
+    odds: c.ok ? `${pct(c.odds[0])} / ${pct(c.odds[1])} / ${pct(1 - c.odds[0] - c.odds[1])} %` : c.reason,
+  };
+};
+
+export function fmView(w: Workshop, uid: number): FmView | null {
+  const it = instance(w.inventory, uid);
+  if (!it) return null;
+  const d = item(it.id), r = it.rarity ?? 0;
+  const owned = ownedRunes(w);
+  const lines = fmLines(it);
+  const onItem = new Set(lines.map((l) => l.path));
+  return {
+    uid, icon: itemIconImg(it.id), name: d.name, sub: `${RARITIES[r]} · ${d.type} · niveau ${d.level}`, rarity: r,
+    puits: it.puits ?? 0, puitsMax: puitsMax(d.level, r),
+    lines: lines.map((l) => ({
+      text: fmtLine(l.path, l.value), kind: l.kind, over: l.kind === 'base' && l.value > l.max,
+      range: l.kind === 'bonus' ? 'ligne de rareté' : l.kind === 'exo' ? `exo · ${l.cap} au plus` : l.max <= 0 ? 'malus' : `jet max ${l.max} · overmax ${l.cap}`,
+      runes: l.kind === 'bonus' || l.max < 0 ? [] : (owned.get(l.path) ?? []).map(([id, v, n]) => runeBtn(w, uid, id, v, n)),
+    })),
+    exo: [...owned].filter(([p]) => !onItem.has(p)).map(([p, rs]) => ({ label: statLabel(p), runes: rs.map(([id, v, n]) => runeBtn(w, uid, id, v, n)) })),
+    exoWhy: it.exo ? 'Une seule ligne exo par objet.' : '',
   };
 }

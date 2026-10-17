@@ -200,6 +200,7 @@ export const RUNE_STAT = new Map<number, [StatPath, number]>(RUNE_DATA.map(([id,
 function breakLines(it: ItemInstance): [StatPath, number][] {
   const lines: [StatPath, number][] = item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);
   if (it.bonus) lines.push(it.bonus);
+  if (it.exo) lines.push(it.exo);
   return lines.filter(([p, v]) => v > 0 && RUNES_BY_STAT.has(p) && statWeight(p) > 0);
 }
 

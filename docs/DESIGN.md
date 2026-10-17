@@ -272,6 +272,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
   3. **Forêt** : Chakrobat (4-8), Tigrimas (5-9) ; élite Ronronchon (6-10).
   4. **Cimetière** : Chafers (+ Chafer Éclaireur 6-10) ; élite Chafer Piquier ou Sergent.
   - **Donjon** : Crypte de Kardorim. (Lac, Mine et Route des âmes : cartes en plus ou expéditions plus tard.)
+- **Fait (9c)** : au camp, la carte « Entrer » d'un donjon affiche les clés (gratuites du jour, ou Clef en stock) ; la clé est dépensée en entrant. Clef de la Crypte de Kardorim : vraie recette (3 × 16524 des Chafers + 5 × 1984 des chats de la Forêt ; métier Bricoleur dans Dofus, Artisan ici) ; elle ne tombe sur aucun monstre dans Dofus.
 - **Clés** : 3 clés génériques gratuites par jour, valables sur tout donjon déjà débloqué ; 1 clé = 1 entrée, perdue en cas de défaite ; clés en plus par drop ou par craft (clés **propres à un donjon**, vraies recettes de Dofus, ex. Clef de la Crypte de Kardorim, avec les ressources de la zone). **Tant qu'un donjon n'a jamais été vaincu, les tentatives sont gratuites** (validé : pas de blocage de la progression).
 - **Difficulté** : jamais adaptée au joueur (§7.6) ; une zone trop haute reste très difficile, une zone trop basse devient du farm.
 
@@ -345,6 +346,11 @@ Casser un objet → **runes** (Fo, Ine, Vi, PA…).
 ### 9.4 Forgemagie (personnalise **sous** le plafond)
 - Vraies règles Dofus : runes, **puits**, réussite / échec neutre / échec critique, **exos**.
 - **Plus l'objet est rare, plus son puits est grand.**
+- **Fait (8b, chiffres à valider par Enzo — Ankama ne publie pas ses formules)** : onglet Forgemagie de l'Atelier, une rune à la fois.
+  - Succès critique : la stat monte, rien n'est perdu. Succès neutre : la stat monte, d'autres lignes perdent autant de poids que la rune. Échec critique : rien ne monte, des lignes perdent ce poids… qui va dans le **puits**. Le puits paie les pertes suivantes avant les lignes. La ligne de rareté (Légendaire, Mythique) n'est jamais touchée.
+  - Chances (critique / neutre / échec) : sous le jet max 50 / 30 / 20 % ; overmax 15 / 25 / 60 % ; exo 10 / 15 / 75 % ; exo Portée 2 / 2 / 96 % ; exo PA ou PM 1 / 1 / 98 % (à tout niveau, +1 au plus).
+  - Puits maximum (poids) : (20 + 2 × niveau) × (1 + 50 % par rang). Overmax d'une ligne (poids) : (5 + niveau / 5) × (1 + 25 % par rang), au moins 1 point. Une seule ligne exo par objet, plafonnée comme l'overmax.
+  - Chaque rune rapporte un peu d'XP d'Artisan ; briser un objet forgemagé rend aussi les runes de son exo.
 
 ### 9.5 Le dilemme
 Un objet en double : **le briser** (runes de forgemagie) **ou le garder pour une fusion**.
@@ -367,7 +373,7 @@ Chaque étape est validée par Enzo avant de passer à la suivante.
 7. 🔶 **Artisan** (à valider en jeu) : atelier au camp, 105 vraies recettes, ressources intermédiaires, XP et niveaux de métier sauvegardés (§9.1).
 8. 🔶 **Raretés, fusion, brisage** (livraison 8a, à valider en jeu) ; **forgemagie** (livraison 8b).
 9. 🔶 **Zones, cartes de farm, arbre des donjons** (§8.3) : **9a fait** (à valider en jeu) — onglet Donjons (arbre d'Incarnam), cartes de 5 salles, carte des Champs (Tofu Chimérique, Pissenlit Miroitant, Rose Vaporeuse, élite Tournesol Nébuleux : vraies fiches et tables de drop DofusDB, dessins validés), décor de prairie d'Incarnam, sorts posés à distance (Pissenlit, Tournesol), départ niveau 1 à mains nues (sauvegarde v5 : tout le monde repart de zéro, couleurs gardées). Simulation : un niveau 1 à mains nues atteint la salle 3-4 dès la 1re partie et termine les Champs vers la 3e partie. ; **9b fait** (à valider en jeu) — Pâturages (Boufton Pâlichon, Boufton Orageux, Bouftou Nuageux, élite Bouftor Éthéré avec sa charge « Fureur du Bouftou »), Forêt (Chakrobat, Tigrimas, élite Ronronchon), Cimetière (Chafers Débutant, Furtif, Éclaireur, Piquier, élite Chafer Piquier d'élite — création) : vraies fiches, sorts (× 0,25) et tables de drop DofusDB, dessins validés ; décors d'après les vraies cartes (dallage et buissons rouges, cornes d'ivoire et pétales, tombes, arbres morts, lanternes et brume). Les Champs ouvrent les 3 cartes, la Crypte demande les 4. Pas encore repris : l'Invocation de Feu de Joie du Ronronchon, le soin du Tigrimas. Simulation (joueur moyen, sans équipement) : Pâturages ≈ 5 parties au niveau 4, Forêt 1-2 parties ; le Cimetière (vrais Chafers) est impossible à mains nues mais gagné dès la 1re-2e partie au niveau 7 avec l'Épée de Boisaille (fabriquée : Pétales des Champs + Peaux de Gloot). ; 9c clés.
-10. Forgemagie (8b), puis expédition hors ligne, Boss Rush (§8.3 bis).
+10. ✅ 9c clés et 8b forgemagie (à valider en jeu) ; ensuite expédition hors ligne, Boss Rush (§8.3 bis).
 11. Donjons suivants par tranches de niveaux, finitions, installation sur l'appareil.
 
 Fait en plus (retours d'Enzo) : onglets du camp en bas (Caractéristiques + Apparence, Équipements = Inventaire + Artisanat, place pour Grimoire, Donjons…) ; recherche/filtres/Encyclopédie/favoris/verrou (§8.5) ; vraies armes de Dofus 3 (24 armes niveau 1 à 12, toutes fabricables ; cadence = 1,9 × 4 / PA, dommages × 0,56 ; icône officielle tenue en main ; mains nues 1 à 5 Neutre, valeur non confirmée par une source) ; drop d'équipement réduit (monstres ×0,02, région ÷10, boss moitié du taux réel) ; Souffrance +5 % de dégâts finaux par charge, halo visible.

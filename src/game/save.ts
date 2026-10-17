@@ -10,6 +10,7 @@ import { isEquipment, ITEMS } from './data/items';
 import { addItem, averageRolls, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
 import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
+import type { KeyState } from './keys';
 
 export interface SaveData {
   v: 5;
@@ -37,6 +38,8 @@ export interface SaveData {
   done: string[];
   /** Carte ou donjon choisi au camp. */
   area: string;
+  /** Clés gratuites du jour (donjons déjà vaincus). */
+  keys?: KeyState;
 }
 
 /** Ce qu'une partie rapporte. */

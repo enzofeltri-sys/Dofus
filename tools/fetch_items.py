@@ -206,6 +206,17 @@ def useful(rid, depth=0):
     return depth < 4 and any(rid in [i for i, _ in r['ingredients']] and useful(r['id'], depth + 1) for r in recipes.values())
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
+# 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
+DUNGEON_KEYS = {'crypte': 8545}
+for kid in DUNGEON_KEYS.values():
+    d = get(f'/items/{kid}')
+    items[kid] = {'id': kid, 'name': d['name']['fr'], 'level': d['level'], 'type': d['type']['name']['fr'],
+                  'slot': None, 'icon': d['iconId'], 'set': None, 'effects': []}
+    r = get(f'/recipes?resultId={kid}')['data'][0]
+    for ing in r['ingredientIds']:
+        add_item(ing)
+    recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': list(zip(r['ingredientIds'], r.get('quantities', [])))}
+
 # les objets des panoplies rencontrées (pour afficher la panoplie complète)
 for s in list(sets.values()):
     for iid in s['items']:
@@ -298,6 +309,9 @@ out = ['/** Recettes réelles (Dofus 3) fabricables avec ce que le jeu permet d\
 for r in sorted(recipes.values(), key=lambda x: (x['level'], x['id'])):
     out.append(f"  {{ id: {r['id']}, level: {r['level']}, ingredients: {json.dumps([list(x) for x in r['ingredients']])} }},")
 out.append('];')
+out.append('')
+out.append('/** Clés de donjon réelles (étape 9c) : donjon → objet clé (fabricable). */')
+out.append('export const DUNGEON_KEYS: Record<string, number> = ' + json.dumps(DUNGEON_KEYS) + ';')
 out.append('')
 out.append('/** Runes de forgemagie réelles : rune, stat, valeur apportée. */')
 out.append('export const RUNE_DATA: [number, string, number][] = [')

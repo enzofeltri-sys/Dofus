@@ -15,6 +15,9 @@ export interface ItemInstance {
   rarity?: number;
   /** Ligne bonus (Légendaire et Mythique). */
   bonus?: [StatPath, number];
+  /** Forgemagie : ligne exo (une seule par objet) et puits (poids en réserve). */
+  exo?: [StatPath, number];
+  puits?: number;
   /** Favori : en tête des listes. */
   fav?: boolean;
   /** Verrouillé : protégé de la fusion et du brisage (étape 8). */
@@ -51,6 +54,7 @@ export function toggleMark(inv: Inventory, uid: number, mark: 'fav' | 'lock'): I
 export const itemLines = (it: ItemInstance): [StatPath, number][] => {
   const lines: [StatPath, number][] = item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);
   if (it.bonus) lines.push(it.bonus);
+  if (it.exo) lines.push(it.exo);
   return lines;
 };
 

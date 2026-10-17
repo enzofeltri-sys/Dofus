@@ -6,7 +6,7 @@ import type { SheetView } from './sheet-view';
 import type { InvView, ItemDetail, Mark } from './inv-view';
 import { activeCount, applyFilters, emptyFilters, focusStat, focusValue, STAT_OPTIONS, type Filters, type SortKey } from '../game/search';
 import { item, SETS, type ItemSlot } from '../game/data/items';
-import type { BreakView, CraftView, ForgeRow, FusionView } from './craft-view';
+import type { BreakView, CraftView, FmRuneBtn, FmView, ForgeRow, FusionView } from './craft-view';
 import type { AtlasView } from './atlas-view';
 import { RARITIES } from '../game/forge';
 
@@ -83,7 +83,7 @@ export class Hud {
         <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
-          <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub">5 salles</span></div>
+          <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub">5 salles</span><span class="dj-key" hidden></span></div>
           <button type="button" class="gr-btn enter">Entrer</button>
         </div>
       </div>
@@ -379,6 +379,11 @@ export class Hud {
       el.querySelector('.dj-kind')!.textContent = `${c.kind === 'map' ? 'Carte de farm' : 'Donjon'} · niveau ${c.level}`;
       el.querySelector('.dj-name')!.textContent = c.name;
       el.querySelector('.dj-sub')!.textContent = c.sub;
+      const k = el.querySelector<HTMLElement>('.dj-key')!;
+      k.hidden = !c.key;
+      k.textContent = c.key?.text ?? '';
+      k.classList.toggle('none', c.key?.ok === false);
+      el.querySelector<HTMLButtonElement>('.enter')!.disabled = c.key?.ok === false;
     };
     const badge = (b: HTMLElement | null, n: number) => {
       if (!b) return;
@@ -437,6 +442,11 @@ export class Hud {
     nav.hidden = false;
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.enter')!.onclick = () => {
+        // donjon : la clé est dépensée en entrant
+        if (zones && !zones.enter()) {
+          refresh();
+          return;
+        }
         if (current) this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         el.hidden = true;
         nav.hidden = true;
@@ -713,8 +723,21 @@ export class Hud {
     };
     const renderFm = (): number => {
       head();
-      list.innerHTML = '<p class="inv-empty">Forgemagie : prochaine livraison (runes sur les objets, puits, overmax, exo).<br>Tu peux déjà récolter des runes avec le Brisage.</p>';
-      return 0;
+      const f = this.filters('fm');
+      const all = h.forge();
+      const rows = applyFilters(all, f);
+      const focus = focusStat(f);
+      const intro = '<p class="at-intro">Pose des runes sur un objet. Succès critique : la stat monte. Succès neutre : elle monte, mais d’autres lignes perdent du poids. Échec critique : rien ne monte, des lignes perdent du poids qui va dans le <b>puits</b> (il protège des pertes suivantes ; plus l’objet est rare, plus il est grand). Overmax possible un peu au-delà du jet max ; une seule ligne exo (PA, PM, Portée : très rare).</p>';
+      list.innerHTML = intro + (rows.length ? rows.map((r) => {
+        const fv = focusValue(r.facets, focus);
+        return `
+        <div class="at-row fm" data-uid="${r.uid}">
+          <div class="at-ico r${r.rarity}">${r.icon}</div>
+          <div class="at-main"><b class="rar-${r.rarity}">${r.name}${fv !== null ? ` <span class="fv gr-num">${fv > 0 ? '+' : ''}${fv}</span>` : ''}</b><small>${r.sub}${r.worn ? ' · porté' : ''}</small></div>
+          <div class="at-btns"><button type="button" class="gr-btn magic sm fm-go">Forger</button></div>
+        </div>`;
+      }).join('') : `<p class="inv-empty">${all.length ? 'Aucun objet ne correspond.' : 'Aucun équipement.'}</p>`);
+      return rows.length;
     };
     const forgeCfg = (fuse: boolean): BarCfg => ({
       placeholder: 'Nom, rareté, stat, niveau…', slot: true, stat: true, set: true, rarity: true,
@@ -722,7 +745,7 @@ export class Hud {
       sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['rarity', 'Rareté'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
     });
     const bar = () => {
-      fbox.hidden = this.atMode === 3;
+      fbox.hidden = false;
       if (this.atMode === 0) {
         this.filterBar(fbox, 'craft', {
           placeholder: 'Nom, ingrédient, stat, niveau…', slot: true, stat: true, set: true,
@@ -732,7 +755,7 @@ export class Hud {
         }, renderCraft, init);
       } else if (this.atMode === 1) this.filterBar(fbox, 'fuse', forgeCfg(true), renderForge(true));
       else if (this.atMode === 2) this.filterBar(fbox, 'break', forgeCfg(false), renderForge(false));
-      else renderFm();
+      else this.filterBar(fbox, 'fm', { ...forgeCfg(false), toggles: [['fav', 'Favoris'], ['worn', 'Portés']] }, renderFm);
     };
 
     /* fenêtres de fusion et de brisage (confirmation) */
@@ -809,9 +832,51 @@ export class Hud {
       };
     };
 
+    /* fenêtre de forgemagie : une rune à la fois, le résultat s'affiche en haut */
+    const openFm = (uid: number) => {
+      let last: { text: string; outcome: string | null } | null = null;
+      const btn = (b: FmRuneBtn) => `<button type="button" class="fm-rune ${b.ok ? '' : 'off'}" data-rune="${b.id}" ${b.ok ? '' : 'disabled'} title="${b.name}">${b.icon}<span><b>+${b.value}</b> <i class="gr-num">×${b.count}</i></span><small>${b.odds}</small></button>`;
+      const draw = () => {
+        const v = h.fm(uid);
+        if (!v) return closeModal();
+        modal.querySelector('.det-card')!.innerHTML = `
+          <div class="det-head"><span class="det-ico r${v.rarity}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.rarity}">${v.name}</h3><span class="det-sub">${v.sub}</span></div></div>
+          ${last ? `<div class="fm-last ${last.outcome ?? ''}">${last.text}</div>` : ''}
+          <div class="fm-puits"><span class="gr-label">Puits</span><span class="track"><span class="fill" style="--v:${Math.min(100, (100 * v.puits) / v.puitsMax)}%"></span></span><b class="gr-num">${v.puits}/${v.puitsMax}</b></div>
+          <div class="fm-lines">${v.lines.map((l) => `
+            <div class="fm-line ${l.kind} ${l.over ? 'over' : ''}"><div><b>${l.text}</b><small>${l.range}</small></div>
+              <div class="fm-runes">${l.runes.length ? l.runes.map(btn).join('') : l.kind === 'bonus' ? '' : '<em>Pas de rune</em>'}</div></div>`).join('')}</div>
+          <div class="det-src"><span class="gr-label">Nouvelle ligne (exo)</span></div>
+          ${v.exoWhy ? `<p class="det-note">${v.exoWhy}</p>` : ''}
+          <div class="fm-lines">${v.exo.length ? v.exo.map((x) => `<div class="fm-line exo"><div><b>${x.label}</b></div><div class="fm-runes">${x.runes.map(btn).join('')}</div></div>`).join('') : '<p class="det-note">Aucune autre rune en stock (le Brisage en donne).</p>'}</div>
+          <p class="det-note">Chances : succès critique / succès neutre / échec critique.</p>
+          <div class="det-btns"><button type="button" class="gr-btn ghost sm md-close">Fermer</button></div>`;
+      };
+      draw();
+      modal.hidden = false;
+      modal.onclick = (e) => {
+        const t = e.target as HTMLElement;
+        if (t === modal || t.closest('.md-close')) {
+          closeModal();
+          bar();
+          return;
+        }
+        const r = t.closest<HTMLElement>('[data-rune]');
+        if (r && !r.hasAttribute('disabled')) {
+          last = h.fmApply(uid, Number(r.dataset.rune));
+          draw();
+        }
+      };
+    };
+
     el.onclick = (e) => {
       const t = e.target as HTMLElement;
       if (t.closest('.at-modal')) return;
+      const fmRow = t.closest<HTMLElement>('.at-row.fm');
+      if (fmRow) {
+        openFm(Number(fmRow.dataset.uid));
+        return;
+      }
       const tab = t.closest<HTMLElement>('.at-tabs .gr-tab');
       if (tab) {
         this.atMode = Number(tab.dataset.t);
@@ -1155,7 +1220,9 @@ export interface InvHooks {
 export interface ZoneHooks {
   view(): AtlasView;
   choose(id: string): void;
-  current(): { kind: 'map' | 'dungeon'; name: string; level: number; sub: string };
+  current(): { kind: 'map' | 'dungeon'; name: string; level: number; sub: string; key?: { text: string; ok: boolean } };
+  /** Entrée dans l'étape choisie (dépense une clé pour un donjon déjà vaincu) ; false s'il n'y a pas de clé. */
+  enter(): boolean;
   /** Étapes nouvellement débloquées (pastille). */
   fresh(): number;
   seen(): void;
@@ -1220,4 +1287,7 @@ export interface CraftHooks {
   breakInfo(uid: number): BreakView | null;
   /** Brise ; renvoie le message à afficher. */
   breakIt(uid: number): string;
+  /** Forgemagie : vue d'un objet, et pose d'une rune (résultat à afficher). */
+  fm(uid: number): FmView | null;
+  fmApply(uid: number, runeId: number): { text: string; outcome: 'sc' | 'sn' | 'ec' | null };
 }

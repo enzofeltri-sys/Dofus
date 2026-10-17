@@ -354,6 +354,7 @@ export const RECIPE_DATA: { id: number; level: number; ingredients: [number, num
   { id: 8536, level: 1, ingredients: [[16522, 2], [421, 2]] },
   { id: 8537, level: 1, ingredients: [[16518, 2], [289, 2]] },
   { id: 8538, level: 1, ingredients: [[16512, 2], [1782, 2]] },
+  { id: 8545, level: 1, ingredients: [[16524, 3], [1984, 5]] },
   { id: 9961, level: 1, ingredients: [[16513, 3], [303, 3]] },
   { id: 15240, level: 1, ingredients: [[16513, 3], [310, 3]] },
   { id: 15241, level: 1, ingredients: [[16524, 3], [16518, 3]] },
@@ -464,6 +465,9 @@ export const RECIPE_DATA: { id: number; level: number; ingredients: [number, num
   { id: 16501, level: 12, ingredients: [[16524, 3], [16525, 4]] },
   { id: 16502, level: 12, ingredients: [[16523, 3], [16525, 4]] },
 ];
+
+/** Clés de donjon réelles (étape 9c) : donjon → objet clé (fabricable). */
+export const DUNGEON_KEYS: Record<string, number> = {"crypte": 8545};
 
 /** Runes de forgemagie réelles : rune, stat, valeur apportée. */
 export const RUNE_DATA: [number, string, number][] = [
