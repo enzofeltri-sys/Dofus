@@ -3,7 +3,7 @@ import { beastBonuses, claimable, PARCHO_CAP, TIERS, tierReward, tierState } fro
 import { startingHero } from './data/hero';
 import { MONSTERS } from './data/monsters';
 import { AREAS } from './data/areas';
-import { claimTier, emptySave } from './save';
+import { claimTier, emptySave, type SaveData } from './save';
 import { World } from './world';
 
 describe('Paliers du bestiaire (validés par Enzo)', () => {
@@ -14,7 +14,7 @@ describe('Paliers du bestiaire (validés par Enzo)', () => {
   });
 
   it('récompenses dans l’ordre : butin, runes de son élément, parchemin (+1, plafond 100), archimonstre ×2', () => {
-    let s = { ...emptySave(), bestiary: { bouftou: { seen: 1200, slain: 1200 } } };
+    let s: SaveData = { ...emptySave(), bestiary: { bouftou: { seen: 1200, slain: 1200 } } };
     expect(claimable(s.bestiary)).toBe(4);
     s = claimTier(s, 'bouftou')!;
     expect(beastBonuses(s.bestiary).bouftou.drop).toBeCloseTo(0.05);
