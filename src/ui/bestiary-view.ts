@@ -1,7 +1,7 @@
 import { CRITTER_SVG, type CritterKind } from '../art/champs-chibi';
 import { chaferChibiSvg, kardoribChibiSvg, kardorimChibiSvg } from '../art/monsters-chibi';
 import type { ChaferKind } from '../art/chafer';
-import { allBeasts, BEAST_KINDS, beastKind, beastSheet, placesOf, type BeastKind, type Bestiary } from '../game/bestiary';
+import { allBeasts, BEAST_KINDS, beastKind, beastSheet, placesOf, tierReward, tierState, type BeastKind, type Bestiary } from '../game/bestiary';
 import { item } from '../game/data/items';
 import type { MonsterDef } from '../game/data/monsters';
 import { itemIconImg } from './item-icons';
@@ -38,6 +38,10 @@ export interface BeastCard {
   /** Fiche (seulement pour un monstre connu). */
   sheet: { label: string; value: string }[];
   drops: { icon: string; name: string; pct: string }[];
+  /** Paliers : victoires demandées, récompense, état. */
+  tiers: { goal: number; text: string; state: 'claimed' | 'ready' | 'locked' }[];
+  /** Dernier palier récupéré (étoile dorée). */
+  star: boolean;
 }
 
 const pct = (x: number) => (x >= 0.1 ? `${Math.round(x * 100)} %` : x >= 0.01 ? `${(x * 100).toFixed(1)} %` : `${(x * 100).toFixed(2)} %`);
@@ -68,6 +72,11 @@ export function bestiaryView(b: Bestiary | undefined): BeastCard[] {
         { label: 'XP', value: s.xp[0] === s.xp[1] ? `${s.xp[0]}` : `${s.xp[0]} à ${s.xp[1]}` },
       ] : [],
       drops: known ? s.drops.map(([id, c]) => ({ icon: itemIconImg(id), name: item(id).name, pct: pct(c) })) : [],
+      tiers: (() => {
+        const t = tierState(d, rec);
+        return t.goals.map((goal, i) => ({ goal, text: tierReward(d, i).text, state: i < t.claimed ? 'claimed' as const : i < t.reached ? 'ready' as const : 'locked' as const }));
+      })(),
+      star: tierState(d, rec).claimed === tierState(d, rec).goals.length,
     };
   });
 }

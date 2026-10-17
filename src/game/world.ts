@@ -304,6 +304,8 @@ export class World {
   /** Horloge du combat (s) et dernier lancer de chaque case (tour de rôle des sorts). */
   time = 0;
   lastCast: number[] = [];
+  /** Paliers du bestiaire récupérés : bonus de butin et chance d'archimonstre, par monstre. */
+  beastBonus: Record<string, { drop: number; archi: number }> = {};
   private swordUid = 1;
   /** Gardien du coffre, position du coffre (ouvert ou non), fontaine et soin déjà rendu. */
   guard: Monster | null = null;
@@ -603,7 +605,7 @@ export class World {
   private maybeArchi(def: MonsterDef): MonsterDef {
     const id = ARCHI_OF[def.id];
     if (!id || !(this.area.archis?.includes(id) || this.detour?.archis?.includes(id))) return def;
-    return this.rnd() < ARCHI_CHANCE ? MONSTERS[id] : def;
+    return this.rnd() < ARCHI_CHANCE * (this.beastBonus[def.id]?.archi ?? 1) ? MONSTERS[id] : def;
   }
 
   private makeMonster(def: MonsterDef, grade: number, x: number, y: number): Monster {
@@ -1115,7 +1117,7 @@ export class World {
     // butin : les invocations ne lâchent rien ; celui du boss n'est gagné qu'en cas de victoire
     if (m.summoner === null) {
       const boss = m === this.boss;
-      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) }, this.lootRnd);
+      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)) }, this.lootRnd);
       const bag = boss ? this.stats.bossLoot : this.stats.loot;
       for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
       if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });

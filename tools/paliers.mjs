@@ -1,0 +1,34 @@
+// Paliers du bestiaire : fiche d'un monstre avec ses paliers, bouton Récupérer, parchemin dans la fiche de personnage.
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
+await p.goto('http://localhost:5173/');
+await p.evaluate(async () => {
+  const pr = await import('/src/game/progression.ts');
+  const inv = await import('/src/game/inventory.ts');
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 9, wins: 9, bestRoom: 9, bestWinTime: 200, xp: 0, resources: {}, profile: { ...pr.defaultProfile(), xp: pr.XP_TABLE[25] }, inventory: inv.starterInventory(), done: ['champs', 'paturages', 'foret', 'cimetiere', 'crypte', 'cite', 'souterrains', 'champsAstrub', 'prairies', 'grange'], area: 'cite', bestiary: { bouftou: { seen: 260, slain: 230, claimed: 1 }, piouRouge: { seen: 12, slain: 11 } } }));
+});
+await p.reload();
+await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
+await p.waitForSelector('.camp:not([hidden])', { timeout: 20000 });
+console.log('pastille Bestiaire :', await p.textContent('.nav-tab[data-sec="bestiaire"] .badge'));
+await p.click('.nav-tab[data-sec="bestiaire"]');
+await p.waitForTimeout(400);
+await p.click('.bs-card[data-id="bouftou"]');
+await p.waitForTimeout(300);
+await p.evaluate(() => document.querySelector('.bs-detail').scrollIntoView({ block: 'center' }));
+await p.screenshot({ path: 'shots/paliers_avant.png' });
+await p.click('.bs-detail .claim');
+await p.waitForTimeout(200);
+await p.click('.bs-detail .claim');
+await p.waitForTimeout(300);
+await p.evaluate(() => document.querySelector('.bs-detail').scrollIntoView({ block: 'center' }));
+await p.screenshot({ path: 'shots/paliers_apres.png' });
+console.log('sauvegarde :', await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('dofus-enzo-save')); return JSON.stringify({ claimed: s.bestiary.bouftou.claimed, runes: s.resources[1522], parcho: s.profile.parcho }); }));
+await p.click('.nav-tab[data-sec="perso"]');
+await p.waitForTimeout(400);
+console.log('Intelligence :', await p.evaluate(() => [...document.querySelectorAll('.sh-carac')].find((e) => e.textContent.includes('Intelligence'))?.querySelector('small').textContent));
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();

@@ -18,7 +18,7 @@ import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, L
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
-import { applyRun, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
+import { applyRun, claimTier, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
 import { entryCost, FREE_KEYS_PER_DAY, payEntry } from './game/keys';
 import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
@@ -31,6 +31,7 @@ import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/i
 import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
 import { bestiaryView } from './ui/bestiary-view';
+import { beastBonuses, claimable } from './game/bestiary';
 import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
 import { AREAS, CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
@@ -255,6 +256,7 @@ async function main() {
   const knownBeasts = () => Object.values(save.bestiary ?? {}).filter((r) => r.seen > 0).length;
   let beastsShown = knownBeasts();
   const game = new World(Math.floor(Math.random() * 1e6), heroFromSave(), areaOf());
+  game.beastBonus = beastBonuses(save.bestiary);
   // icônes des objets (butin qui vole vers le Sacrieur)
   await Assets.load(allItemIconUrls()).catch(() => {});
   hud.setLevel(game.hero.def.level);
@@ -1092,7 +1094,14 @@ async function main() {
     },
   }, zoneHooks, {
     get: () => bestiaryView(save.bestiary),
-    fresh: () => Math.max(0, knownBeasts() - beastsShown),
+    fresh: () => Math.max(0, knownBeasts() - beastsShown) + claimable(save.bestiary),
+    claim(id: string) {
+      const next = claimTier(save, id);
+      if (!next) return false;
+      save = next;
+      storeSave(save);
+      return true;
+    },
     seen() {
       beastsShown = knownBeasts();
     },
@@ -1147,6 +1156,7 @@ async function main() {
     if (SHOW_CAMP) await openCamp();
     await transition(() => {
       game.restart(heroFromSave(), areaOf());
+      game.beastBonus = beastBonuses(save.bestiary);
       hud.setLevel(game.hero.def.level);
       cardsTaken.length = 0;
       return buildRoom(0);
@@ -1232,6 +1242,7 @@ async function main() {
       // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
       const before = game.area;
       game.restart(heroFromSave(), areaOf());
+      game.beastBonus = beastBonuses(save.bestiary);
       hud.setLevel(game.hero.def.level);
       hud.setSlots(slotViews());
       // autre carte choisie au camp : décor, titre et monstres de la nouvelle carte

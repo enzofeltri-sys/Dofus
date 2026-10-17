@@ -433,7 +433,7 @@ export class Hud {
     look?: { get(): SacriColors; set(c: SacriColors): void },
     work?: CraftHooks,
     zones?: ZoneHooks,
-    beasts?: { get(): BeastCard[]; fresh(): number; seen(): void },
+    beasts?: { get(): BeastCard[]; fresh(): number; seen(): void; claim?(id: string): boolean },
     spells?: { get(): GrimoireRow[]; fav(id: SpellId): void },
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
@@ -555,7 +555,7 @@ export class Hud {
       el.querySelector('.sh-caracs')!.innerHTML = v.caracs.map((c) => `
         <div class="sh-carac" data-id="${c.id}">
           <span class="ico">${c.icon}</span>
-          <span class="nm">${c.name}<small>${c.gear ? `${c.invested} + ${c.gear} équipement` : `${c.invested} investis`} · ${c.cost} pt${c.cost > 1 ? 's' : ''} pour +1</small></span>
+          <span class="nm">${c.name}<small>${c.gear || c.parcho ? `${c.invested}${c.parcho ? ` + ${c.parcho} parcho` : ''}${c.gear ? ` + ${c.gear} équipement` : ''}` : `${c.invested} investis`} · ${c.cost} pt${c.cost > 1 ? 's' : ''} pour +1</small></span>
           <b class="gr-num">${c.total}</b>
           <button type="button" class="add gr-num" data-n="1" ${c.canAdd ? '' : 'disabled'}>+1</button>
           <button type="button" class="add gr-num" data-n="10" ${c.canAdd ? '' : 'disabled'}>+10</button>
@@ -1121,7 +1121,7 @@ export class Hud {
     });
   }
 
-  bestiary(h: { get(): BeastCard[]; seen(): void }): Promise<void> {
+  bestiary(h: { get(): BeastCard[]; seen(): void; claim?(id: string): boolean }): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.bestiary')!;
     const render = () => {
       const all = h.get();
@@ -1137,8 +1137,9 @@ export class Hud {
       el.querySelector('.bs-grid')!.innerHTML = list.length ? list.map((c) => `
         <button type="button" class="bs-card ${c.kind} ${c.known ? '' : 'unknown'} ${this.bsOpen === c.id ? 'open' : ''}" data-id="${c.id}">
           <img src="${c.art}" alt="" draggable="false">
-          <b>${c.known ? c.name : '???'}</b>
+          <b>${c.known ? c.name : '???'}${c.star ? ' <span class="bs-star">★</span>' : ''}</b>
           <small>${c.kindLabel} · ${c.levels}</small>
+          ${c.tiers.some((t) => t.state === 'ready') ? '<span class="bs-ready">!</span>' : ''}
           ${c.known ? `<i class="gr-num">${c.slain} vaincu${c.slain > 1 ? 's' : ''}</i>` : ''}
         </button>
         ${this.bsOpen === c.id ? `<div class="bs-detail gr-panel">
@@ -1146,7 +1147,10 @@ export class Hud {
           <p class="bs-where">${c.places.join(' · ')}</p>
           ${c.known ? `<div class="bs-sheet">${c.sheet.map((s) => `<div><span class="gr-label">${s.label}</span><span>${s.value}</span></div>`).join('')}</div>
           <div class="bs-drops">${c.drops.map((d) => `<span title="${d.name}">${d.icon}<i class="gr-num">${d.pct}</i></span>`).join('') || '<em>Aucun butin</em>'}</div>
-          <p class="det-note">Vu ${c.seen} fois · vaincu ${c.slain} fois · chances de butin par monstre vaincu (sans Prospection).</p>`
+          <div class="bs-tiers"><span class="gr-label">Paliers</span>${c.tiers.map((t, i) => `<div class="bs-tier ${t.state}">
+            <b class="gr-num">${Math.min(c.slain, t.goal)}/${t.goal}</b><span>${t.text}</span>
+            ${t.state === 'claimed' ? '<i>✓</i>' : t.state === 'ready' && c.tiers.findIndex((x) => x.state === 'ready') === i ? `<button type="button" class="gr-btn sm claim" data-claim="${c.id}">Récupérer</button>` : ''}</div>`).join('')}</div>
+          <p class="det-note">Vu ${c.seen} fois · vaincu ${c.slain} fois · chances de butin par monstre vaincu (sans Prospection ni paliers).</p>`
             : '<p class="det-note">Pas encore croisé : sa fiche se remplit à la première rencontre.</p>'}
         </div>` : ''}`).join('') : '<p class="inv-empty">Aucun monstre dans cette catégorie pour l’instant.</p>';
     };
@@ -1155,6 +1159,12 @@ export class Hud {
       const k = t.closest<HTMLElement>('[data-k]');
       if (k) {
         this.bsKind = k.dataset.k as BeastKind | 'all';
+        render();
+        return;
+      }
+      const cl = t.closest<HTMLElement>('[data-claim]');
+      if (cl) {
+        if (h.claim?.(cl.dataset.claim!)) this.toast('Palier récupéré !', 1200);
         render();
         return;
       }

@@ -15,6 +15,8 @@ export const CARACS: CaracId[] = ['vitalite', 'sagesse', 'force', 'intelligence'
 export interface Profile {
   xp: number;
   carac: Record<CaracId, number>;
+  /** Points de parchemins (paliers du bestiaire), gardés pour toujours, en plus des points investis. */
+  parcho?: Partial<Record<CaracId, number>>;
 }
 
 /* ---------- Courbe d'XP ---------- */

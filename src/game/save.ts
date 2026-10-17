@@ -13,7 +13,8 @@ import { addNew, rollRarity, type RaritySource } from './forge';
 import { AREAS } from './data/areas';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import type { KeyState } from './keys';
-import { mergeBestiary, type Bestiary } from './bestiary';
+import { mergeBestiary, PARCHO_CAP, tierReward, tierState, type Bestiary } from './bestiary';
+import { MONSTERS } from './data/monsters';
 
 export interface SaveData {
   v: 5;
@@ -169,4 +170,21 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
     fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss'));
   }
   return { save: out, fresh };
+}
+
+/** Récupère le prochain palier atteint d'un monstre du bestiaire (runes dans les ressources, parchemin dans les caractéristiques). Null s'il n'y en a pas. */
+export function claimTier(d: SaveData, id: string): SaveData | null {
+  const def = MONSTERS[id], rec = d.bestiary?.[id];
+  if (!def || !rec) return null;
+  const st = tierState(def, rec);
+  if (st.claimed >= st.reached) return null;
+  const r = tierReward(def, st.claimed);
+  const out: SaveData = { ...d, bestiary: { ...d.bestiary, [id]: { ...rec, claimed: st.claimed + 1 } } };
+  if (r.runes) out.resources = { ...d.resources, [r.runes.id]: (d.resources[r.runes.id] ?? 0) + r.runes.n };
+  if (r.parcho) {
+    const p = { ...d.profile.parcho };
+    p[r.parcho.carac] = Math.min(PARCHO_CAP, (p[r.parcho.carac] ?? 0) + r.parcho.n);
+    out.profile = { ...d.profile, parcho: p };
+  }
+  return out;
 }

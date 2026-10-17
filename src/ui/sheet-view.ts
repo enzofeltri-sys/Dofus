@@ -9,7 +9,7 @@ export interface SheetView {
   xpInto: number;
   xpNeed: number;
   free: number;
-  caracs: { id: CaracId; name: string; icon: string; total: number; invested: number; gear: number; cost: number; canAdd: boolean }[];
+  caracs: { id: CaracId; name: string; icon: string; total: number; invested: number; gear: number; parcho: number; cost: number; canAdd: boolean }[];
   tabs: { title: string; rows: [string, string][] }[];
 }
 
@@ -31,7 +31,8 @@ export function sheetView(profile: Profile, hero: HeroDef): SheetView {
   const free = pointsFree(profile);
   const caracs = CARACS.map((id) => {
     const invested = profile.carac[id], total = s[id], cost = pointCost(id, invested);
-    return { id, name: CARAC_NAME[id], icon: CARAC_ICON[id], total, invested, gear: total - invested, cost, canAdd: cost <= free };
+    const parcho = profile.parcho?.[id] ?? 0;
+    return { id, name: CARAC_NAME[id], icon: CARAC_ICON[id], total, invested, gear: total - invested - parcho, parcho, cost, canAdd: cost <= free };
   });
   const elementRows = (rec: Record<Element, number>, f: (v: number) => string): [string, string][] => ELEMENTS.map((el) => [EL_NAME[el], f(rec[el])]);
   return {

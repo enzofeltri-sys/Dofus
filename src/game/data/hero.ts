@@ -81,6 +81,6 @@ export const speedForPm = (pm: number) => 250 + pm * 30;
 /** Sacrieur construit depuis son profil (par défaut : niveau 10, tous ses points en Force) et son équipement (par défaut : celui de départ). */
 export function startingHero(profile: Profile = defaultProfile(), gear: Partial<Stats> = gearStats(starterInventory()), weaponId: number | null = null): HeroDef {
   const level = levelForXp(profile.xp);
-  const stats = addStats(baseStats(SACRIEUR_BASE), profile.carac, gear);
+  const stats = addStats(baseStats(SACRIEUR_BASE), profile.carac, profile.parcho ?? {}, gear);
   return { level, stats, hp: maxHp(level, stats.vitalite), speed: speedForPm(stats.pm), radius: 22, weapon: weaponDef(weaponId), gear };
 }

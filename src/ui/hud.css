@@ -959,3 +959,16 @@ details.sh-test:not([open]) { padding-top: 6px; padding-bottom: 6px; }
 .pm-xp { --c: #bfe3a0; }
 .pm-card .quit[data-armed="1"] { background: var(--coral); color: #fff; box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink); }
 .pm-note { margin: 0; font-size: var(--t-sm); font-weight: 700; color: var(--coral-dark); min-height: 0; }
+
+/* ---------- Paliers du bestiaire ---------- */
+.bs-card { position: relative; }
+.bs-star { color: var(--gold); text-shadow: 0 1px 0 var(--ink); }
+.bs-ready { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; font: 800 13px/20px var(--f-body); color: var(--ink); background: var(--gold); box-shadow: inset 0 0 0 2px var(--ink); animation: pulse-badge 1.4s ease-in-out infinite; }
+.bs-tiers { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.bs-tier { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px; background: rgba(220,195,140,.3); font-size: var(--t-sm); }
+.bs-tier b { min-width: 58px; }
+.bs-tier span { flex: 1; }
+.bs-tier.claimed { background: rgba(130,190,90,.28); }
+.bs-tier.claimed i { font-style: normal; color: var(--leaf-dark); font-weight: 800; }
+.bs-tier.locked { opacity: .6; }
+.bs-tier .claim { --c: var(--gold); padding: 4px 10px; }
