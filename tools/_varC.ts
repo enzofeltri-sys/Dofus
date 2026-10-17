@@ -1,0 +1,11 @@
+import { CONTACT, SPELL_TURNS } from '../src/game/world';
+const v = process.argv.find((a) => a.startsWith('var='))!.slice(4);
+if (v === 'sansDegats') CONTACT.share = 0;
+if (v.includes('quart')) CONTACT.share = 0.25;
+if (v.includes('dixieme')) CONTACT.share = 0.1;
+if (v.includes('lent')) CONTACT.every = 1.5;
+if (v === 'deuxSec') CONTACT.every = 2;
+if (v.includes('mou')) CONTACT.solid = false;
+if (v.includes('ordre')) SPELL_TURNS.on = false;
+if (v.includes('zero')) CONTACT.share = 0;
+await import('./career');

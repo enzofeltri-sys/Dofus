@@ -32,8 +32,10 @@ export const INITIATIVE_DELAY = 0.8;
 export const TACKLE_REACH = 16;
 export const TACKLE_MIN = 0.4;
 /** Poussée : fenêtre après un coup d'épée (s) et recul minimal pour compter comme une poussée. */
-export const PUSH_WINDOW = 0.3;
-export const PUSH_MIN_KNOCK = 12;
+/** Contact (validé par Enzo : « petits dégâts ») : un monstre touché fait 10 % d'un de ses coups, au plus 1 fois toutes les 1,5 s, et repousse le héros. */
+export const CONTACT = { every: 1.5, share: 0.1, recoil: 22, solid: true };
+/** Sorts chacun leur tour (validé par Enzo) : parmi les sorts prêts, le moins récemment lancé part en premier. */
+export const SPELL_TURNS = { on: true };
 /** Une attaque de monstre déclenchée à moins de cette distance est une attaque de mêlée. */
 export const MONSTER_MELEE = 160;
 const WEAPON_HIT: HitContext = { melee: true, source: 'arme' };
@@ -141,6 +143,8 @@ export interface Monster {
   /** Sort de soutien (délai) et bénédiction reçue (durée restante). */
   supportT: number;
   blessT: number;
+  /** Délai avant le prochain coup de contact. */
+  contactT: number;
   /** Coups multi-éléments déjà portés (alternance de Picoti). */
   multiHits: number;
   /** Boss : délais avant la prochaine accélération / invocation. */
@@ -162,8 +166,6 @@ export interface Monster {
   markT: number;
   weakT: number;
   critDownT: number;
-  /** Fenêtre après un coup d'épée : heurter un obstacle pendant le recul inflige des dommages de poussée. */
-  pushT: number;
 }
 
 /** Sort placé dans une case pendant le donjon (avec ses améliorations de run). */
@@ -228,7 +230,7 @@ export interface Hero {
 
 export type WorldEvent =
   | { type: 'swing'; dir: Vec; ranged: boolean; x: number; y: number }
-  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean; poison?: boolean }
+  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean; poison?: boolean; contact?: boolean }
   | { type: 'telegraph'; uid: number }
   | { type: 'strike'; uid: number }
   | { type: 'death'; uid: number; x: number; y: number }
@@ -299,6 +301,9 @@ export class World {
   detour: WanderGroup | null = null;
   /** Épées Vorace invoquées (alliées : les monstres ne les visent pas). */
   swords: Sword[] = [];
+  /** Horloge du combat (s) et dernier lancer de chaque case (tour de rôle des sorts). */
+  time = 0;
+  lastCast: number[] = [];
   private swordUid = 1;
   /** Gardien du coffre, position du coffre (ouvert ou non), fontaine et soin déjà rendu. */
   guard: Monster | null = null;
@@ -609,14 +614,15 @@ export class World {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
-      hasteT: 0, supportT: def.support ? def.support.every * 0.5 : 0, blessT: 0, multiHits: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
-      markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
+      hasteT: 0, supportT: def.support ? def.support.every * 0.5 : 0, blessT: 0, contactT: 0, multiHits: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
+      markT: 0, weakT: 0, critDownT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
     };
   }
 
   /* ------------------------------------------------------------------ */
 
   step(input: Vec) {
+    this.time += STEP;
     if (this.hitstop > 0) {
       this.hitstop = Math.max(0, this.hitstop - STEP);
       return;
@@ -797,7 +803,11 @@ export class World {
       }
     }
     if (this.phase !== 'fight' || h.castCd > 0) return;
-    this.run.slots.some((sl, i) => {
+    // tour de rôle : parmi les sorts prêts, celui lancé il y a le plus longtemps passe en premier
+    const order = this.run.slots.map((_, i) => i);
+    if (SPELL_TURNS.on) order.sort((a, b) => (this.lastCast[a] ?? -1) - (this.lastCast[b] ?? -1) || a - b);
+    order.some((i) => {
+      const sl = this.run.slots[i];
       if (!sl || sl.cd > 0) return false;
       const sp = SPELLS[sl.id];
       if (h.pa < sp.pa) return false;
@@ -806,6 +816,7 @@ export class World {
       if (h.poisonT > 0) this.poisonHero(sp.pa);
       sl.cd = sp.cooldown * (1 - sl.cdBonus);
       h.castCd = CAST_DELAY;
+      this.lastCast[i] = this.time;
       return true;
     });
   }
@@ -1079,7 +1090,7 @@ export class World {
       const kb = w.ranged ? 14 : 34;
       m.knock.x += (dx / (d || 1)) * kb;
       m.knock.y += (dy / (d || 1)) * kb;
-      m.pushT = PUSH_WINDOW;
+      // recul de l'arme : sensation seulement (validé par Enzo : pas de dommages de poussée sans vraie poussée)
       const el = w.lines[0].element;
       this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit, element: el, eff: resEffect(m.stats, el) });
       this.hitstop = Math.max(this.hitstop, crit ? 0.075 : 0.035);
@@ -1193,22 +1204,13 @@ export class World {
     const h = this.hero;
     let a = m.atk;
 
-    // recul ; heurter un mur ou un obstacle juste après un coup d'épée = dommages de poussée
-    const kn = Math.hypot(m.knock.x, m.knock.y);
-    if (kn > 0.5) {
+    // recul après un coup (sensation seulement : les dommages de poussée viennent des vraies poussées)
+    if (Math.hypot(m.knock.x, m.knock.y) > 0.5) {
       const rx = m.x + m.knock.x * STEP * 8, ry = m.y + m.knock.y * PERSP * STEP * 8;
-      const [nx, ny] = this.pushOut(Math.max(this.bounds.x0, Math.min(this.bounds.x1, rx)), Math.max(this.bounds.y0, Math.min(this.bounds.y1, ry)), m.def.radius);
-      if (m.pushT > 0 && kn > PUSH_MIN_KNOCK && Math.hypot(nx - rx, (ny - ry) / PERSP) > 0.5) {
-        m.pushT = 0;
-        m.knock.x = m.knock.y = 0;
-        this.damageMonster(m, pushDamage(this.hero.def.level, this.heroStats(), m.stats, 1), false, undefined, true);
-        if ((m.state as MonsterState) === 'dead') return;
-      }
-      [m.x, m.y] = [nx, ny];
+      [m.x, m.y] = this.pushOut(Math.max(this.bounds.x0, Math.min(this.bounds.x1, rx)), Math.max(this.bounds.y0, Math.min(this.bounds.y1, ry)), m.def.radius);
     }
     m.knock.x *= 1 - STEP * 9;
     m.knock.y *= 1 - STEP * 9;
-    m.pushT = Math.max(0, m.pushT - STEP);
 
     if (m.state === 'spawn') {
       if (m.t >= SPAWN_TIME) { m.state = 'chase'; m.t = 0; }
@@ -1223,6 +1225,7 @@ export class World {
     if (m.def.summons && h.alive) this.stepSummon(m, m.def.summons);
     if (m.def.support && h.alive) this.stepSupport(m, m.def.support);
     m.blessT = Math.max(0, m.blessT - STEP);
+    m.contactT = Math.max(0, m.contactT - STEP);
 
     // Chafer Furtif : alterne visible / invisible
     if (m.def.behavior === 'stealth') {
@@ -1613,6 +1616,24 @@ export class World {
   }
 
   /** Les monstres ne se superposent pas, ni au héros. */
+  /** Coup de contact : moitié d'un coup du monstre (au plus 1 fois par seconde et par monstre), le héros recule un peu. */
+  private contactHurt(m: Monster, ux: number, uy: number) {
+    const h = this.hero;
+    m.contactT = CONTACT.every;
+    const hit = resolveHit(m.def.attack.roll, m.stats, this.heroStats(), this.rnd, { melee: true, source: 'sort' });
+    const dmg = Math.max(1, Math.round(hit.damage * CONTACT.share));
+    const absorbed = Math.min(h.shield, dmg);
+    h.shield -= absorbed;
+    h.hp = Math.max(0, h.hp - (dmg - absorbed));
+    this.stats.taken += dmg - absorbed;
+    h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
+    [h.x, h.y] = this.pushOut(h.x + ux * CONTACT.recoil, h.y + uy * CONTACT.recoil * PERSP, h.def.radius);
+    h.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, h.x));
+    h.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, h.y));
+    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: false, contact: true });
+    this.checkHeroDeath();
+  }
+
   private separate() {
     const alive = this.monsters.filter((m) => m.state !== 'dead');
     for (let i = 0; i < alive.length; i++) {
@@ -1626,10 +1647,15 @@ export class World {
           b.x -= (dx / d) * push; b.y -= (dy / d) * push * PERSP;
         }
       }
+      // les monstres sont solides : c'est le héros qui est repoussé ; le toucher fait mal (coup de contact)
       const h = this.hero;
-      if (h.alive) {
-        const dx = a.x - h.x, dy = (a.y - h.y) / PERSP, d = Math.hypot(dx, dy), min = a.def.radius + h.def.radius;
-        if (d < min && d > 0.001) { a.x = h.x + (dx / d) * min; a.y = h.y + (dy / d) * min * PERSP; }
+      if (h.alive && a.state !== 'spawn') {
+        const dx = h.x - a.x, dy = (h.y - a.y) / PERSP, d = Math.hypot(dx, dy) || 0.001, min = a.def.radius + h.def.radius;
+        if (d < min) {
+          if (CONTACT.solid) [h.x, h.y] = this.pushOut(a.x + (dx / d) * min, a.y + (dy / d) * min * PERSP, h.def.radius);
+          else { a.x = h.x - (dx / d) * min; a.y = h.y - (dy / d) * min * PERSP; }
+          if (a.contactT <= 0 && a.atk.roll.max > 0) this.contactHurt(a, dx / d, dy / d);
+        }
       }
     }
   }

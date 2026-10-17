@@ -79,6 +79,15 @@ describe('Sorts du Sacrieur, niveaux 35 à 50', () => {
     expect(1e5 - low.monsters[0].hp).toBeLessThan(lostFull);
   });
 
+  it('tour de rôle (validé par Enzo) : un sort prêt lancé il y a longtemps passe avant la 1re case', () => {
+    const w = arena(['absorption', 'supplice', 'stase'], [[0, -70], [40, -60]]);
+    w.hero.def = { ...w.hero.def, hp: 1e5 };
+    const n = new Map<string, number>();
+    for (const e of run(w, 20)) if (e.type === 'cast') n.set(e.spell, (n.get(e.spell) ?? 0) + 1);
+    // 6 PA par tour et 3 sorts à 3 PA : environ 10 lancers en 20 s, partagés entre les trois
+    for (const id of ['absorption', 'supplice', 'stase']) expect(n.get(id) ?? 0, id).toBeGreaterThanOrEqual(3);
+  });
+
   it('Niveau 50 : les 14 sorts et une 5e case', () => {
     expect(spellsForLevel(34).length).toBe(10);
     expect(spellsForLevel(50).length).toBe(14);

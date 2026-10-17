@@ -241,14 +241,33 @@ describe('Mécaniques de Dofus en temps réel', () => {
     expect(w.tackleFactor()).toBe(1);
   });
 
-  it('poussée : un monstre frappé contre un mur subit des dommages de poussée', () => {
+  it('poussée (validé par Enzo) : le recul de l’arme contre un mur ne fait pas de dommages de poussée', () => {
     const { w, m } = lone();
     Object.assign(m, { hp: 1e5, maxHp: 1e5 });
     w.hero.x = w.bounds.x1 - 90;
     m.x = w.bounds.x1;
     m.y = w.hero.y;
     const ev = run(w, 1.5);
-    expect(ev.some((e) => e.type === 'hit' && e.push)).toBe(true);
+    expect(ev.some((e) => e.type === 'hit' && e.target === 'monster' && !e.push)).toBe(true);
+    expect(ev.some((e) => e.type === 'hit' && e.push)).toBe(false);
+  });
+
+  it('contact (validé par Enzo) : les monstres sont solides et leur contact fait mal, au plus 1 fois toutes les 1,5 s', () => {
+    const { w, m } = lone();
+    Object.assign(m, { hp: 1e5, maxHp: 1e5, cd: 1e9 });
+    m.def = { ...m.def, speed: 0 };
+    m.x = w.hero.x - 120;
+    m.y = w.hero.y;
+    const hp0 = w.hero.hp;
+    let contacts = 0;
+    for (let i = 0; i < 2 / STEP; i++) {
+      w.step({ x: -1, y: 0 }); // le héros fonce dans le monstre
+      for (const e of w.drain()) if (e.type === 'hit' && e.contact) contacts++;
+      expect(Math.abs(w.hero.x - m.x)).toBeGreaterThanOrEqual(m.def.radius + w.hero.def.radius - 1);
+    }
+    expect(contacts).toBeGreaterThanOrEqual(1);
+    expect(contacts).toBeLessThanOrEqual(3);
+    expect(w.hero.hp).toBeLessThan(hp0);
   });
 
   it('initiative : le camp le plus rapide agit en premier', () => {
