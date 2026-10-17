@@ -93,7 +93,8 @@ export interface MonsterDef {
 }
 
 export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol'
-  | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon';
+  | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon'
+  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet';
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s). */

@@ -14,16 +14,26 @@ export const CRITTER_W = 140;
 export const CRITTER_H = 160;
 export const CRITTER_FOOT: [number, number] = [70, 152];
 
-export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon';
+export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon'
+  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
 export const CAT_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'wisp'] as const;
-export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number] | (typeof CAT_PARTS)[number];
+/** Gelées du Lac et Feux de la Route des âmes : flaque (ou halo), corps, visage. */
+export const JELLY_PARTS = ['back', 'body', 'face'] as const;
+/** Aminite (Mine) : pieds, corps, chapeau. */
+export const SHROOM_PARTS = ['legB', 'legF', 'body', 'head'] as const;
+export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number] | (typeof CAT_PARTS)[number] | (typeof JELLY_PARTS)[number];
 export const SHEEP: CritterKind[] = ['palichon', 'orageux', 'nuageux', 'bouftor'];
 export const CATS: CritterKind[] = ['chakrobat', 'tigrimas', 'ronronchon'];
+export const JELLIES: CritterKind[] = ['plikplok', 'gloot', 'splatch'];
+export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
-  (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS : PLANT_PARTS);
+  (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
+    : JELLIES.includes(k) || FLAMES.includes(k) ? JELLY_PARTS : k === 'aminite' ? SHROOM_PARTS : PLANT_PARTS);
+const JELLY_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { back: [70, 144], body: [70, 146], face: [70, 146] };
+const FLAME_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { back: [70, 150], body: [70, 120], face: [70, 120] };
 const SHEEP_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [116, 98], legB: [104, 136], body: [80, 132], legF: [66, 138], head: [60, 110], horn: [60, 94] };
 
 /** Pivots (rotation des morceaux) : hanches, base de la tige, attache de la tête… */
@@ -36,6 +46,9 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   chakrobat: { tail: [86, 126], legB: [80, 78], body: [70, 148], legF: [64, 140], head: [66, 70], wisp: [58, 82] },
   tigrimas: { tail: [106, 84], legB: [102, 110], body: [70, 150], legF: [80, 112], head: [68, 88], wisp: [70, 138] },
   ronronchon: { tail: [118, 108], legB: [104, 146], body: [80, 150], legF: [60, 146], head: [58, 104], wisp: [24, 92] },
+  plikplok: JELLY_PIVOTS, gloot: JELLY_PIVOTS, splatch: JELLY_PIVOTS,
+  feuVif: FLAME_PIVOTS, feuJoie: FLAME_PIVOTS, feuFurieux: FLAME_PIVOTS, feuFollet: FLAME_PIVOTS,
+  aminite: { legB: [78, 140], legF: [62, 140], body: [70, 146], head: [70, 92] },
 };
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -423,8 +436,116 @@ function catSvg(kind: CritterKind, part?: CritterPart): string {
   return assemble(kind, P, part);
 }
 
+/* ---------------------------------------------------------------------------------------- */
+/* Lac d'Incarnam : gelées bleues translucides (Plikplok, Petit Gloot, Grand Splatch)         */
+/* ---------------------------------------------------------------------------------------- */
+
+const JELLY = '#3fb0d8';
+const JELLY_INK = '#1a5a7a';
+
+/** Corps de gelée : dégradé bleu, transparence, gros reflet et petit reflet rose pâle. */
+function jellyBody(d: string, hl: [number, number, number, number]): string {
+  const g = uid('jg');
+  const [hx, hy, hrx, hry] = hl;
+  return `<radialGradient id="${g}" cx="0.38" cy="0.3" r="0.85"><stop offset="0" stop-color="#bff0ff"/><stop offset="0.45" stop-color="${JELLY}"/><stop offset="1" stop-color="#1f7aa8"/></radialGradient>` +
+    `<path d="${d}" fill="url(#${g})" fill-opacity="0.92" stroke="${JELLY_INK}" stroke-width="${LW}" stroke-linejoin="round"/>` +
+    `<ellipse cx="${hx}" cy="${hy}" rx="${hrx}" ry="${hry}" fill="#ffffff" opacity="0.55" transform="rotate(-20 ${hx} ${hy})"/>` +
+    `<ellipse cx="${hx + hrx * 0.4}" cy="${hy - hry * 0.4}" rx="${hrx * 0.35}" ry="${hry * 0.35}" fill="#ffe4f0" opacity="0.8"/>`;
+}
+/** Flaque et gouttelettes autour de la gelée. */
+const puddle = (rx: number, drops: [number, number, number][]) =>
+  `<ellipse cx="70" cy="144" rx="${rx}" ry="${rx * 0.2}" fill="${JELLY}" opacity="0.35" stroke="${JELLY_INK}" stroke-width="1" stroke-opacity="0.4"/>` +
+  drops.map(([x, y, r]) => blob(ellipse(x, y, r, r * 0.7), JELLY, { ink: JELLY_INK, w: 1.2, rim: false })).join('');
+const jellyEye = (cx: number, cy: number, r: number, look = -0.3) =>
+  `<circle cx="${cx}" cy="${cy}" r="${r + 2.5}" fill="${JELLY_INK}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fdfdf8"/>` +
+  `<circle cx="${cx + look * r}" cy="${cy + r * 0.1}" r="${r * 0.42}" fill="#101418"/><circle cx="${cx + look * r - r * 0.18}" cy="${cy - r * 0.12}" r="${r * 0.14}" fill="#fff"/>`;
+
+function jellySvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  if (kind === 'plikplok') {
+    // dôme mou qui éclabousse : grands yeux, bouche ouverte aux dents de lapin
+    push(P, 'back', puddle(56, [[16, 140, 6], [124, 136, 7], [112, 148, 5], [26, 150, 4]]));
+    push(P, 'body', jellyBody('M28,142 C22,104 44,74 72,74 C102,74 122,102 116,142 Q72,152 28,142 Z', [52, 92, 13, 8]));
+    push(P, 'face', jellyEye(54, 106, 10), jellyEye(80, 104, 9),
+      `<path d="M50,122 Q66,140 84,122 Q66,128 50,122 Z" fill="#8a1e2a" stroke="${JELLY_INK}" stroke-width="1.4"/>`,
+      `<path d="M60,123.5 h6 v6 h-6 Z M67,124 h6 v5.5 h-6 Z" fill="#fff" stroke="${JELLY_INK}" stroke-width="0.8"/>`);
+  } else if (kind === 'gloot') {
+    // boule de gel penchée, deux yeux énormes cerclés
+    push(P, 'back', puddle(50, [[22, 146, 4]]));
+    push(P, 'body', jellyBody('M26,134 C18,104 40,80 74,80 C106,80 124,100 118,128 C114,146 92,148 70,148 C44,148 30,146 26,134 Z', [48, 96, 14, 8]));
+    push(P, 'face', jellyEye(56, 112, 15, -0.2), jellyEye(92, 104, 11.5, -0.2));
+  } else {
+    // grande goutte dressée, l'air grognon
+    push(P, 'back', puddle(54, [[18, 144, 7], [120, 140, 8], [108, 152, 5], [34, 152, 4], [52, 118, 3]]));
+    push(P, 'body', jellyBody('M36,144 C32,112 30,74 46,52 C58,36 88,36 100,52 C114,74 112,112 108,144 Q72,152 36,144 Z', [56, 58, 9, 13]));
+    push(P, 'face',
+      `<path d="M50,86 q7,-6 14,0 M76,84 q7,-6 14,0" fill="none" stroke="${JELLY_INK}" stroke-width="2.6" stroke-linecap="round"/>`,
+      `<path d="M48,78 L62,82 M92,76 L78,80" stroke="${JELLY_INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<path d="M60,104 Q70,98 80,104" fill="none" stroke="${JELLY_INK}" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<ellipse cx="48" cy="94" rx="6" ry="3" fill="#8fd8f8" opacity="0.8"/><ellipse cx="92" cy="92" rx="6" ry="3" fill="#8fd8f8" opacity="0.8"/>`);
+  }
+  return assemble(kind, P, part);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Route des âmes : Feux (flammes lumineuses à cœur blanc et petits yeux)                     */
+/* ---------------------------------------------------------------------------------------- */
+
+const FLAME_COL: Record<string, string> = { feuVif: '#3fe0a0', feuJoie: '#b8f05a', feuFurieux: '#38c8d0', feuFollet: '#a8eef8' };
+
+function flameSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const col = FLAME_COL[kind];
+  const ink = shade(col, -0.45);
+  const g = uid('fg');
+  // forme : goutte à pointe recourbée (Vif, Joie), flamme à trois langues (Furieux), goutte à pointe détachée (Follet)
+  const d = kind === 'feuFurieux'
+    ? 'M44,118 C40,96 46,78 54,70 C54,84 60,88 62,82 C62,62 72,48 80,34 C84,56 92,64 96,70 C98,64 100,60 104,56 C108,80 106,100 100,118 C94,136 80,142 72,142 C56,142 46,132 44,118 Z'
+    : 'M42,116 C42,96 56,82 66,68 C74,58 74,48 70,40 C88,50 92,64 90,78 C100,90 104,104 100,118 C96,136 82,144 70,144 C54,144 42,132 42,116 Z';
+  push(P, 'back', halo(uid('h'), 72, 112, 58, col), `<ellipse cx="72" cy="156" rx="22" ry="5" fill="#2a2a20" opacity="0.25"/>`);
+  push(P, 'body',
+    `<radialGradient id="${g}" cx="0.45" cy="0.7" r="0.8"><stop offset="0" stop-color="#ffffff"/><stop offset="0.35" stop-color="${shade(col, 0.55)}"/><stop offset="1" stop-color="${col}"/></radialGradient>`,
+    `<path d="${d}" fill="url(#${g})" stroke="${ink}" stroke-width="1.6" stroke-linejoin="round"/>`,
+    `<ellipse cx="70" cy="118" rx="20" ry="17" fill="#ffffff" opacity="0.85"/>`,
+    `<path d="M54,112 Q70,100 86,112" fill="none" stroke="${shade(col, 0.4)}" stroke-width="4" stroke-linecap="round" opacity="0.8"/>`,
+    kind === 'feuFollet' ? `<path d="M74,28 Q84,16 78,4 Q90,14 84,30 Q80,36 74,28 Z" fill="${col}" stroke="${ink}" stroke-width="1.2"/>` : '');
+  const eye = (cx: number, r: number) => `<ellipse cx="${cx}" cy="126" rx="${r}" ry="${r * 1.1}" fill="#fff" stroke="#1d3a40" stroke-width="1.6"/><circle cx="${cx - r * 0.3}" cy="127" r="${r * 0.45}" fill="#101418"/>`;
+  push(P, 'face', eye(62, 6.5), eye(80, 5.5),
+    kind === 'feuFurieux' ? `<path d="M54,116 L68,121 M88,114 L76,120" stroke="#1d3a40" stroke-width="2.6" stroke-linecap="round"/>` : '');
+  return assemble(kind, P, part);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* Mine d'Incarnam : Aminite (champignon au grand chapeau vert tacheté)                        */
+/* ---------------------------------------------------------------------------------------- */
+
+function aminiteSvg(part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const WHITE = '#eef8f8', CAP = '#4fd884';
+  push(P, 'legB', blob(ellipse(80, 144, 9, 5), WHITE, { ink: '#5a7a7a' }));
+  push(P, 'legF', blob(ellipse(60, 146, 10, 5.5), WHITE, { ink: '#5a7a7a' }));
+  push(P, 'body', halo(uid('h'), 70, 110, 52, '#e8fff0'),
+    blob('M48,118 C46,96 56,84 70,84 C86,84 96,98 94,118 C92,136 82,144 70,144 C56,144 50,134 48,118 Z', WHITE, { ink: '#5a7a7a' }),
+    blob(ellipse(84, 124, 5, 4), '#7fd8a8', { rim: false, w: 1 }), blob(ellipse(58, 132, 4, 3), '#7fd8a8', { rim: false, w: 1 }), blob(ellipse(88, 106, 3, 2.5), '#7fd8a8', { rim: false, w: 1 }),
+    eyeChibi(60, 100, 5.5, 6.5, '#2fae6a', { look: [-0.3, 0.2] }), eyeChibi(76, 100, 5, 6, '#2fae6a', { look: [-0.3, 0.2] }));
+  const cap = 'M12,78 C14,50 40,22 70,20 C100,22 126,50 128,78 C112,88 92,90 70,90 C48,90 28,88 12,78 Z';
+  push(P, 'head',
+    blob(cap, CAP, { ink: '#1f6a3a', hl: [0.4, 0.15] }),
+    `<path d="M70,22 L70,88 M48,26 Q40,56 34,86 M92,26 Q100,56 106,86 M28,42 Q22,62 20,82 M112,42 Q118,62 120,82" fill="none" stroke="#bff8d0" stroke-width="1.6" opacity="0.7"/>`,
+    `<path d="M14,78 Q40,92 70,92 Q100,92 126,78 L124,84 Q100,98 70,98 Q40,98 16,84 Z" fill="#2fb868" stroke="#1f6a3a" stroke-width="1.6"/>`,
+    ...[[44, 44, 9, 6], [96, 50, 8, 6], [70, 34, 6, 4], [30, 64, 6, 5], [108, 70, 6, 4]].map(([x, y, rx, ry]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#2f9a6a" opacity="0.8"/>`),
+    `<ellipse cx="60" cy="30" rx="16" ry="6" fill="#ffffff" opacity="0.55"/>`);
+  return assemble('aminite', P, part);
+}
+
 export const CRITTER_SVG: Record<CritterKind, (part?: CritterPart) => string> = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
+  plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
+  feuVif: (p) => flameSvg('feuVif', p), feuJoie: (p) => flameSvg('feuJoie', p), feuFurieux: (p) => flameSvg('feuFurieux', p), feuFollet: (p) => flameSvg('feuFollet', p),
+  aminite: (p) => aminiteSvg(p),
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
 };
