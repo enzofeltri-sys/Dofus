@@ -141,6 +141,8 @@ export interface Monster {
   /** Sort de soutien (délai) et bénédiction reçue (durée restante). */
   supportT: number;
   blessT: number;
+  /** Coups multi-éléments déjà portés (alternance de Picoti). */
+  multiHits: number;
   /** Boss : délais avant la prochaine accélération / invocation. */
   crackT: number;
   summonT: number;
@@ -607,7 +609,7 @@ export class World {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
-      hasteT: 0, supportT: def.support ? def.support.every * 0.5 : 0, blessT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
+      hasteT: 0, supportT: def.support ? def.support.every * 0.5 : 0, blessT: 0, multiHits: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
       markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
     };
   }
@@ -1345,9 +1347,17 @@ export class World {
       : m.stats;
     const melee = m.atk.trigger <= MONSTER_MELEE;
     const mine = this.heroStats();
-    const hit = resolveHit(m.atk.roll, st, mine, this.rnd, { melee, source: 'sort' });
-    // Picoti : un jet par élément, additionnés
-    if (m.atk.multi) for (const el of m.atk.multi.slice(1)) hit.damage += resolveHit({ ...m.atk.roll, element: el }, st, mine, this.rnd, { melee, source: 'sort' }).damage;
+    // Picoti : un jet par élément, additionnés ; avec `multiCycle`, 2 éléments puis 1… et les éléments tournent
+    let els: DamageRoll['element'][] = [m.atk.roll.element];
+    if (m.atk.multi) {
+      const L = m.atk.multi, cyc = m.atk.multiCycle;
+      const n = cyc ? cyc[m.multiHits % cyc.length] : L.length;
+      const start = cyc ? cyc.slice(0, m.multiHits % cyc.length).reduce((a, b) => a + b, 0) + Math.floor(m.multiHits / cyc.length) * cyc.reduce((a, b) => a + b, 0) : 0;
+      els = [...Array(n)].map((_, i) => L[(start + i) % L.length]);
+      m.multiHits++;
+    }
+    const hit = resolveHit({ ...m.atk.roll, element: els[0] }, st, mine, this.rnd, { melee, source: 'sort' });
+    for (const el of els.slice(1)) hit.damage += resolveHit({ ...m.atk.roll, element: el }, st, mine, this.rnd, { melee, source: 'sort' }).damage;
     // Graine Empoisonnée, Bénédiction : sorts sans dommages directs
     const dmg = m.atk.roll.max > 0 ? Math.round(hit.damage * (1 - this.passive('endurance'))) : 0;
     const absorbed = Math.min(h.shield, dmg);

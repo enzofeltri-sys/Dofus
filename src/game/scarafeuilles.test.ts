@@ -84,7 +84,24 @@ describe('Plaine et Donjon des Scarafeuilles, Bomberfu', () => {
     expect(w.monsters[1].hp).toBe(121);
   });
 
-  it('Scarabosse Doré : Picoti frappe dans 4 éléments et vole de la vie ; Naissance : 5 Immatures d’un coup, une seule fois', () => {
+  it('Picoti (choix d’Enzo) : 2 éléments puis 1, les éléments tournent', () => {
+    const w = new World(5, tough(), AREAS.scaraDonjon);
+    w.startRoom(AREAS.scaraDonjon.rooms - 1);
+    const boss = w.boss!;
+    const seen: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const hp0 = w.hero.hp;
+      (w as unknown as { hurtHero: (m: Monster) => void }).hurtHero(boss);
+      seen.push(hp0 - w.hero.hp);
+      w.hero.invulnT = 0;
+    }
+    expect(boss.multiHits).toBe(4);
+    // coups à 2 éléments nettement plus forts que ceux à 1 élément
+    expect(seen[0]).toBeGreaterThan(seen[1]);
+    expect(seen[2]).toBeGreaterThan(seen[3]);
+  });
+
+  it('Scarabosse Doré : Picoti frappe dans plusieurs éléments et vole de la vie ; Naissance : 5 Immatures d’un coup, une seule fois', () => {
     const w = new World(5, tough(), AREAS.scaraDonjon);
     w.startRoom(AREAS.scaraDonjon.rooms - 1);
     const boss = w.boss!;
