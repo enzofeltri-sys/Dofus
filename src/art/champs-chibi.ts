@@ -14,11 +14,14 @@ export const CRITTER_W = 140;
 export const CRITTER_H = 160;
 export const CRITTER_FOOT: [number, number] = [70, 152];
 
-export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol';
+export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
-export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number];
-export const partsOf = (k: CritterKind): readonly CritterPart[] => (k === 'tofu' ? TOFU_PARTS : PLANT_PARTS);
+export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
+export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number];
+export const SHEEP: CritterKind[] = ['palichon', 'orageux', 'nuageux', 'bouftor'];
+export const partsOf = (k: CritterKind): readonly CritterPart[] => (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : PLANT_PARTS);
+const SHEEP_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [116, 98], legB: [104, 136], body: [80, 132], legF: [66, 138], head: [60, 110], horn: [60, 94] };
 
 /** Pivots (rotation des morceaux) : hanches, base de la tige, attache de la tête… */
 export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [number, number]>>> = {
@@ -26,6 +29,7 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   pissenlit: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [72, 120], leafF: [68, 122], head: [70, 108] },
   rose: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 112], leafF: [66, 114], head: [70, 102] },
   tournesol: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 116], leafF: [66, 118], head: [70, 98] },
+  palichon: SHEEP_PIVOTS, orageux: SHEEP_PIVOTS, nuageux: SHEEP_PIVOTS, bouftor: SHEEP_PIVOTS,
 };
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -228,6 +232,85 @@ export function tournesolSvg(part?: CritterPart): string {
   return assemble('tournesol', P, part);
 }
 
+/* ---------------------------------------------------------------------------------------- */
+/* Pâturages d'Incarnam : Bouftous « chimériques » (moutons-nuages)                          */
+/* ---------------------------------------------------------------------------------------- */
+
+interface SheepStyle {
+  fleece: string;
+  face: string;
+  hoof: string;
+  iris: string;
+  ear: string;
+  nose?: string;
+  sleepy?: boolean;
+  horn: 'small' | 'ram';
+  hornCol: string;
+  crystals?: boolean;
+}
+const SHEEP_STYLE: Record<string, SheepStyle> = {
+  palichon: { fleece: '#f2f7f6', face: '#a9bcb4', hoof: '#8ff0b4', iris: '#6a7a3a', ear: '#93aaa2', horn: 'small', hornCol: '#8fa49c' },
+  orageux: { fleece: '#7f978b', face: '#1f2a25', hoof: '#eef8f4', iris: '#3a4a3a', ear: '#2a3630', horn: 'small', hornCol: '#f2f6f4' },
+  nuageux: { fleece: '#f4f8f8', face: '#cfe2dc', hoof: '#8ff0b4', iris: '#7a6a2a', ear: '#f6c6d2', nose: '#3fcf8f', sleepy: true, horn: 'small', hornCol: '#f6d0da' },
+  bouftor: { fleece: '#eef7fb', face: '#c4d8dc', hoof: '#8ff0b4', iris: '#2a5a7a', ear: '#a8c6d0', horn: 'ram', hornCol: '#5e6662', crystals: true },
+};
+
+/** Toison en nuage : boules qui se chevauchent, contour commun (on trace tous les contours, puis tous les remplissages). */
+function fleece(balls: [number, number, number][], col: string): string {
+  const g = uid('fl');
+  const ink = shade(col, -0.55);
+  return `<radialGradient id="${g}" cx="0.35" cy="0.25" r="1"><stop offset="0" stop-color="${shade(col, 0.5)}"/><stop offset="0.55" stop-color="${col}"/><stop offset="1" stop-color="${shade(col, -0.2)}"/></radialGradient>` +
+    balls.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + LW}" fill="${ink}"/>`).join('') +
+    balls.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${g})"/>`).join('') +
+    balls.slice(0, 4).map(([x, y, r]) => `<path d="M${x - r * 0.55},${y - r * 0.35} q${r * 0.35},${-r * 0.4} ${r * 0.8},${-r * 0.2}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.6"/>`).join('');
+}
+
+function sheepSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const S = SHEEP_STYLE[kind];
+  const P: Parts = {};
+  // pattes très courtes : seuls les sabots dépassent de la toison
+  const leg = (x: number, y0: number) => tube(`M${x},${y0} L${x - 1},${y0 + 5}`, 9, shade(S.fleece, -0.15)) + blob(ellipse(x - 1, y0 + 10, 10, 6.5), S.hoof);
+  // queue (cristal pour le Bouftor)
+  push(P, 'tail', S.crystals
+    ? blob('M114,96 L130,74 L124,92 L138,86 L126,100 Z', '#bfe6f6', { ink: '#5a8aa0' }) + tube('M112,100 Q122,96 126,88', 3, '#7aa4b4')
+    : blob(circle(118, 98, 9), S.fleece));
+  push(P, 'legB', leg(96, 136), leg(112, 134));
+  push(P, 'legF', leg(58, 138), leg(74, 140));
+  // corps : toison
+  const balls: [number, number, number][] = [[80, 98, 32], [102, 92, 22], [60, 92, 22], [84, 74, 22], [106, 110, 20], [62, 114, 20], [86, 118, 22], [70, 76, 16]];
+  push(P, 'body', halo(uid('h'), 82, 98, 62, '#e4f6ff'), fleece(balls, S.fleece));
+  if (S.crystals) {
+    for (const [x, y, a, l] of [[84, 54, -0.2, 18], [104, 70, 0.5, 16], [112, 96, 1.2, 15], [62, 60, -0.8, 14], [96, 126, 2.4, 12], [120, 114, 1.8, 13]] as const) {
+      const tx = x + Math.sin(a) * l, ty = y - Math.cos(a) * l;
+      push(P, 'body', blob(`M${x - 5},${y} L${f(tx)},${f(ty)} L${x + 5},${y + 2} Z`, '#c8ecfa', { ink: '#5a8aa0', w: 1.4 }));
+    }
+  }
+  push(P, 'body', spark(104, 70, 4), spark(66, 122, 3, 0.6));
+  // tête : visage, oreille, œil, museau
+  push(P, 'head',
+    blob(ellipse(46, 108, 20, 19), S.face),
+    fleece([[48, 88, 14], [62, 92, 12], [40, 96, 9]], S.fleece),
+    blob('M62,102 Q74,96 76,106 Q68,112 62,108 Z', S.ear),
+    eyeChibi(42, 108, 9.5, 11.5, S.iris, { look: [-0.4, 0.15], ...(S.sleepy ? { lid: -1, skin: S.face } : {}) }),
+    S.nose ? blob(ellipse(29, 117, 8, 6), S.nose) : `<ellipse cx="29" cy="117" rx="5" ry="3.5" fill="${shade(S.face, -0.5)}"/>`,
+    `<path d="M32,124 Q38,128 44,124" fill="none" stroke="${shade(S.face, -0.6)}" stroke-width="2" stroke-linecap="round"/>`,
+  );
+  // cornes
+  if (S.horn === 'ram') {
+    // grosses cornes de bélier en pierre gravée
+    // corne en spirale (pierre gravée) enroulée sur le côté de la tête
+    const spiral = 'M58,96 C52,78 68,64 82,72 C96,80 92,100 78,104 C68,106 64,96 70,90 C74,86 80,90 78,94';
+    push(P, 'horn', tube(spiral, 13, S.hornCol, '#1e2220'),
+      `<path d="M66,74 l5,4 M80,70 l1,6 M90,82 l-6,2 M88,98 l-5,-3" stroke="#c8d0cc" stroke-width="2" stroke-linecap="round"/>`);
+  } else {
+    push(P, 'horn', blob('M48,82 Q46,70 54,66 Q60,70 56,82 Z', S.hornCol));
+  }
+  return assemble(kind, P, part);
+}
+const f = (n: number) => n.toFixed(1);
+
 export const CRITTER_SVG: Record<CritterKind, (part?: CritterPart) => string> = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
+  palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
 };
