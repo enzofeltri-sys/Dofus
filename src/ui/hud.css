@@ -1,3 +1,5 @@
+/* pas de zoom au double tap sur toute l'interface (le défilement reste possible) */
+html, body, button, a, input, .gr-paper { touch-action: manipulation; }
 /* Interface de combat — charte « grimoire d'aventurier » (jetons et composants dans theme.css). */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
@@ -438,6 +440,8 @@ html, body {
 .inv-doll .bottom .inv-slot span { font-size: 8px; }
 .inv-slot.locked { opacity: .45; cursor: default; }
 .inv-sets { display: flex; flex-direction: column; gap: 4px; }
+.inv-sets[hidden] { display: none; }
+.inv-sets-btn { align-self: center; }
 .inv-set { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 5px 10px; border-radius: 10px; background: rgba(220,195,140,.35); }
 .inv-set b { font-weight: 800; }
 .inv-set span { color: var(--leaf-dark); }

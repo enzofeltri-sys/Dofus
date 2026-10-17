@@ -126,7 +126,8 @@ export class Hud {
           <div class="col right"></div>
           <div class="row bottom"></div>
         </div>
-        <div class="inv-sets"></div>
+        <button type="button" class="gr-btn ghost sm inv-sets-btn">Panoplies</button>
+        <div class="inv-sets" hidden></div>
         <div class="flt inv-flt"></div>
         <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button><button type="button" class="gr-tab" data-t="2">Encyclopédie</button></div>
         <div class="inv-grid"></div>
@@ -1044,6 +1045,12 @@ export class Hud {
     /** Objets portés qui correspondent à la recherche (allumés sur le Sacrieur). */
     let hit = new Set<number>();
     const listKey = () => (this.invTab === 0 ? 'eq' : this.invTab === 1 ? 'res' : this.catMode === 0 ? 'cat' : 'sets');
+    el.querySelector<HTMLButtonElement>('.inv-sets-btn')!.onclick = () => {
+      const box = el.querySelector<HTMLElement>('.inv-sets')!;
+      box.hidden = !box.hidden;
+      const b = el.querySelector<HTMLButtonElement>('.inv-sets-btn')!;
+      b.textContent = b.textContent!.replace(' ▲', '') + (box.hidden ? '' : ' ▲');
+    };
     const renderDoll = (v: InvView) => {
       const by = new Map(v.slots.map((s) => [s.slot, s]));
       el.querySelector('.inv-doll .left')!.innerHTML = (['chapeau', 'amulette', 'anneau1', 'anneau2'] as const).map((k) => slotHtml(by.get(k)!)).join('');
@@ -1051,6 +1058,10 @@ export class Hud {
       // bouclier à droite du 2e anneau, familier à gauche de l'arme (demandé par Enzo)
       el.querySelector('.inv-doll .pair')!.innerHTML = (['bouclier', 'familier'] as const).map((k) => slotHtml(by.get(k)!)).join('');
       el.querySelector('.inv-doll .bottom')!.innerHTML = (['dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      // panoplies et leurs bonus cachés derrière un bouton « Panoplies (n) » (demandé par Enzo)
+      const sb = el.querySelector<HTMLButtonElement>('.inv-sets-btn')!;
+      sb.hidden = !v.sets.length;
+      sb.textContent = `Panoplies (${v.sets.length})${el.querySelector('.inv-sets')!.hasAttribute('hidden') ? '' : ' ▲'}`;
       el.querySelector('.inv-sets')!.innerHTML = v.sets
         .map((st) => `<div class="inv-set"><b>${st.name}</b><span class="gr-num">${st.count}/${st.total}</span>${st.bonus.length ? `<small>${st.bonus.join(' · ')}</small>` : ''}</div>`)
         .join('');

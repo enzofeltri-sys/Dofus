@@ -21,7 +21,27 @@ function paperStains(): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><filter id="b"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="9"/><feColorMatrix values="0 0 0 0 .55  0 0 0 0 .38  0 0 0 0 .18  0 0 0 .9 -.35"/></filter><rect width="400" height="400" filter="url(#b)" opacity=".25"/></svg>`;
 }
 
+/**
+ * Écran verrouillé (demandé par Enzo) : pas de zoom au pincement ni au double tap, sur toutes les pages.
+ * Safari iOS ignore « user-scalable=no » : on bloque aussi ses gestes en JavaScript.
+ */
+export function lockZoom() {
+  const stop = (e: Event) => e.preventDefault();
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, stop, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  let last = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = e.timeStamp;
+    const t = e.target as HTMLElement | null;
+    // double tap trop rapide = zoom de Safari : on l'annule (sauf dans les champs de saisie)
+    if (now - last < 320 && !(t && t.closest('input, textarea, select'))) e.preventDefault();
+    last = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+}
+
 export function installTheme() {
+  lockZoom();
   const root = document.documentElement.style;
   root.setProperty('--paper-grain', uri(paperGrain()));
   root.setProperty('--paper-stains', uri(paperStains()));
