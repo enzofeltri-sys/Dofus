@@ -122,7 +122,7 @@ export class Hud {
         <div class="sh-head"><h2 class="gr-h2">Inventaire</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="inv-doll">
           <div class="col left"></div>
-          <div class="hero">${sacrieurSvg()}</div>
+          <div class="mid"><div class="hero">${sacrieurSvg()}</div><div class="row pair"></div></div>
           <div class="col right"></div>
           <div class="row bottom"></div>
         </div>
@@ -1048,7 +1048,9 @@ export class Hud {
       const by = new Map(v.slots.map((s) => [s.slot, s]));
       el.querySelector('.inv-doll .left')!.innerHTML = (['chapeau', 'amulette', 'anneau1', 'anneau2'] as const).map((k) => slotHtml(by.get(k)!)).join('');
       el.querySelector('.inv-doll .right')!.innerHTML = (['cape', 'ceinture', 'bottes', 'arme'] as const).map((k) => slotHtml(by.get(k)!)).join('');
-      el.querySelector('.inv-doll .bottom')!.innerHTML = (['bouclier', 'familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      // bouclier à droite du 2e anneau, familier à gauche de l'arme (demandé par Enzo)
+      el.querySelector('.inv-doll .pair')!.innerHTML = (['bouclier', 'familier'] as const).map((k) => slotHtml(by.get(k)!)).join('');
+      el.querySelector('.inv-doll .bottom')!.innerHTML = (['dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'] as const).map((k) => slotHtml(by.get(k)!)).join('');
       el.querySelector('.inv-sets')!.innerHTML = v.sets
         .map((st) => `<div class="inv-set"><b>${st.name}</b><span class="gr-num">${st.count}/${st.total}</span>${st.bonus.length ? `<small>${st.bonus.join(' · ')}</small>` : ''}</div>`)
         .join('');
