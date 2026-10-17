@@ -281,7 +281,7 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
   const balls: [number, number, number][] = [[80, 98, 32], [102, 92, 22], [60, 92, 22], [84, 74, 22], [106, 110, 20], [62, 114, 20], [86, 118, 22], [70, 76, 16]];
   push(P, 'body', halo(uid('h'), 82, 98, 62, '#e4f6ff'), fleece(balls, S.fleece));
   if (S.crystals) {
-    for (const [x, y, a, l] of [[84, 54, -0.2, 18], [104, 70, 0.5, 16], [112, 96, 1.2, 15], [62, 60, -0.8, 14], [96, 126, 2.4, 12], [120, 114, 1.8, 13]] as const) {
+    for (const [x, y, a, l] of [[96, 58, 0.2, 16], [114, 92, 1.2, 14], [110, 120, 2.2, 11]] as const) {
       const tx = x + Math.sin(a) * l, ty = y - Math.cos(a) * l;
       push(P, 'body', blob(`M${x - 5},${y} L${f(tx)},${f(ty)} L${x + 5},${y + 2} Z`, '#c8ecfa', { ink: '#5a8aa0', w: 1.4 }));
     }
@@ -300,9 +300,13 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
   if (S.horn === 'ram') {
     // grosses cornes de bélier en pierre gravée
     // corne en spirale (pierre gravée) enroulée sur le côté de la tête
-    const spiral = 'M58,96 C52,78 68,64 82,72 C96,80 92,100 78,104 C68,106 64,96 70,90 C74,86 80,90 78,94';
-    push(P, 'horn', tube(spiral, 13, S.hornCol, '#1e2220'),
-      `<path d="M66,74 l5,4 M80,70 l1,6 M90,82 l-6,2 M88,98 l-5,-3" stroke="#c8d0cc" stroke-width="2" stroke-linecap="round"/>`);
+    const spiral = 'M56,98 C44,70 70,48 92,60 C114,72 108,104 86,110 C70,114 64,98 72,90 C78,84 88,88 86,96';
+    const back = 'M66,90 C66,70 84,58 100,64 C110,68 112,80 106,86';
+    push(P, 'horn',
+      tube(back, 14, shade(S.hornCol, -0.25), '#1e2220'),
+      tube(spiral, 19, S.hornCol, '#1e2220'),
+      `<path d="M58,76 l7,5 M76,58 l2,8 M98,64 l-4,7 M106,88 l-8,0 M94,106 l-4,-6" stroke="#c8d0cc" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<path d="M62,70 Q72,56 88,56" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.35"/>`);
   } else {
     push(P, 'horn', blob('M48,82 Q46,70 54,66 Q60,70 56,82 Z', S.hornCol));
   }
