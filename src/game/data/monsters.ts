@@ -100,7 +100,9 @@ export interface MonsterDef {
 
 export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol'
   | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon'
-  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet';
+  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet'
+  | 'piouViolet' | 'piouRouge' | 'piouVert' | 'piouBleu' | 'piouRose' | 'piouJaune' | 'tofuMalade' | 'arakneMalade' | 'araknose' | 'arakmute'
+  | 'tournesolSauvage' | 'roseDemo' | 'pissenlitDiabo' | 'epouvanteur' | 'gardienne' | 'tournesolAffame' | 'larveBleue' | 'larveVerte' | 'larveOrange' | 'larveJaune';
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s). */

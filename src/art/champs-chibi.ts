@@ -15,7 +15,9 @@ export const CRITTER_H = 160;
 export const CRITTER_FOOT: [number, number] = [70, 152];
 
 export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon'
-  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet';
+  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet'
+  | 'piouViolet' | 'piouRouge' | 'piouVert' | 'piouBleu' | 'piouRose' | 'piouJaune' | 'tofuMalade' | 'arakneMalade' | 'araknose' | 'arakmute'
+  | 'tournesolSauvage' | 'roseDemo' | 'pissenlitDiabo' | 'epouvanteur' | 'gardienne' | 'tournesolAffame' | 'larveBleue' | 'larveVerte' | 'larveOrange' | 'larveJaune';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -27,17 +29,22 @@ export const SHROOM_PARTS = ['legB', 'legF', 'body', 'head'] as const;
 export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number] | (typeof CAT_PARTS)[number] | (typeof JELLY_PARTS)[number];
 export const SHEEP: CritterKind[] = ['palichon', 'orageux', 'nuageux', 'bouftor'];
 export const CATS: CritterKind[] = ['chakrobat', 'tigrimas', 'ronronchon'];
-export const JELLIES: CritterKind[] = ['plikplok', 'gloot', 'splatch'];
+export const JELLIES: CritterKind[] = ['plikplok', 'gloot', 'splatch', 'larveBleue', 'larveVerte', 'larveOrange', 'larveJaune'];
+export const PIOUS: CritterKind[] = ['piouViolet', 'piouRouge', 'piouVert', 'piouBleu', 'piouRose', 'piouJaune'];
+export const SPIDERS: CritterKind[] = ['arakneMalade', 'araknose', 'arakmute'];
 export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
-  (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
-    : JELLIES.includes(k) || FLAMES.includes(k) ? JELLY_PARTS : k === 'aminite' ? SHROOM_PARTS : PLANT_PARTS);
+  (k === 'tofu' || k === 'tofuMalade' ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
+    : JELLIES.includes(k) || FLAMES.includes(k) ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
+const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
+const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
+const PLANT_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [76, 112], leafF: [64, 114], head: [70, 96] };
 const JELLY_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { back: [70, 144], body: [70, 146], face: [70, 146] };
 const FLAME_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { back: [70, 150], body: [70, 120], face: [70, 120] };
 const SHEEP_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [116, 98], legB: [104, 136], body: [80, 132], legF: [66, 138], head: [60, 110], horn: [60, 94] };
 
 /** Pivots (rotation des morceaux) : hanches, base de la tige, attache de la tête… */
-export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [number, number]>>> = {
+export const CRITTER_PIVOTS = {
   tofu: { wingB: [104, 92], legB: [80, 128], legF: [62, 128], body: [72, 128], crest: [70, 62], wingF: [80, 114] },
   pissenlit: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [72, 120], leafF: [68, 122], head: [70, 108] },
   rose: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 112], leafF: [66, 114], head: [70, 102] },
@@ -49,7 +56,14 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   plikplok: JELLY_PIVOTS, gloot: JELLY_PIVOTS, splatch: JELLY_PIVOTS,
   feuVif: FLAME_PIVOTS, feuJoie: FLAME_PIVOTS, feuFurieux: FLAME_PIVOTS, feuFollet: FLAME_PIVOTS,
   aminite: { legB: [78, 140], legF: [62, 140], body: [70, 146], head: [70, 92] },
-};
+  ...Object.fromEntries(['piouViolet', 'piouRouge', 'piouVert', 'piouBleu', 'piouRose', 'piouJaune'].map((k) => [k, BIRD_PIVOTS])),
+  tofuMalade: { wingB: [104, 92], legB: [80, 128], legF: [62, 128], body: [72, 128], crest: [70, 62], wingF: [80, 114] },
+  ...Object.fromEntries(['arakneMalade', 'araknose', 'arakmute'].map((k) => [k, SPIDER_PIVOTS])),
+  ...Object.fromEntries(['larveBleue', 'larveVerte', 'larveOrange', 'larveJaune'].map((k) => [k, JELLY_PIVOTS])),
+  tournesolSauvage: PLANT_PIVOTS, roseDemo: PLANT_PIVOTS, pissenlitDiabo: PLANT_PIVOTS, gardienne: PLANT_PIVOTS,
+  epouvanteur: { legB: [70, 150], legF: [70, 150], stem: [70, 150], leafB: [86, 92], leafF: [54, 92], head: [70, 70] },
+  tournesolAffame: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [86, 104], leafF: [54, 104], head: [70, 80] },
+} as Record<CritterKind, Partial<Record<CritterPart, [number, number]>>>;
 
 type Parts = Partial<Record<CritterPart, string[]>>;
 const LW = 1.8;
@@ -541,14 +555,220 @@ function aminiteSvg(part?: CritterPart): string {
   return assemble('aminite', P, part);
 }
 
-export const CRITTER_SVG: Record<CritterKind, (part?: CritterPart) => string> = {
+/* ======================================================================================== */
+/* Astrub, branche A : Pious, Souterrains, Champs d'Astrub, Larves, Grange du Tournesol Affamé */
+/* ======================================================================================== */
+
+/** Pious : petit oiseau rond, bec orange ; la queue change selon la couleur (comme dans Dofus). */
+const PIOU: Record<string, { c: string; tail: 'peacock' | 'flame' | 'leaf' | 'club'; flower?: boolean }> = {
+  piouViolet: { c: '#c03aa0', tail: 'peacock' }, piouRouge: { c: '#d8342c', tail: 'flame' }, piouVert: { c: '#6ab82c', tail: 'leaf' },
+  piouBleu: { c: '#3a5ab0', tail: 'club' }, piouRose: { c: '#e88ad0', tail: 'leaf', flower: true }, piouJaune: { c: '#f0d23a', tail: 'leaf' },
+};
+
+function piouSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const { c, tail, flower } = PIOU[kind];
+  const ink = shade(c, -0.55);
+  // queue
+  if (tail === 'leaf') {
+    push(P, 'tail', blob('M92,116 C104,84 112,48 124,16 C134,40 130,78 104,118 Z', shade(c, -0.05), { ink }),
+      `<path d="M94,114 C108,82 116,50 124,20" fill="none" stroke="${shade(c, 0.4)}" stroke-width="2"/>`,
+      `<path d="M106,84 l12,-4 M110,68 l12,-6 M114,52 l10,-6 M102,100 l12,-2" stroke="${ink}" stroke-width="1.2" opacity="0.6"/>`);
+  } else if (tail === 'club') {
+    push(P, 'tail', tube('M94,114 Q104,70 112,34', 9, shade(c, -0.1), ink), blob(ellipse(114, 26, 12, 16), c, { ink }), `<ellipse cx="114" cy="24" rx="5" ry="7" fill="#9ab0e8" opacity="0.7"/>`);
+  } else if (tail === 'flame') {
+    push(P, 'tail', blob('M92,118 C96,80 92,50 100,14 C108,40 112,52 116,30 C122,60 124,84 106,120 Z', c, { ink }),
+      blob('M98,112 C100,86 100,64 106,44 C110,64 112,84 104,114 Z', '#ff8a5a', { ink, w: 1, rim: false }));
+  } else {
+    for (const [x2, y2] of [[100, 24], [114, 30], [126, 44], [132, 62], [88, 30]] as [number, number][]) {
+      push(P, 'tail', `<path d="M94,112 Q${(94 + x2) / 2 + 6},${(112 + y2) / 2} ${x2},${y2}" fill="none" stroke="#4a5a8a" stroke-width="2"/>`,
+        blob(ellipse(x2, y2, 7, 10), shade(c, -0.25), { ink }), `<ellipse cx="${x2}" cy="${y2}" rx="3.5" ry="5" fill="#d8b0f0"/><circle cx="${x2}" cy="${y2}" r="1.8" fill="#3a1a4a"/>`);
+    }
+  }
+  // pattes orange fines, doigts
+  const leg = (x: number) => tube(`M${x},128 L${x - 1},144`, 3.6, '#f0a030') + `<path d="M${x - 8},147 L${x - 1},144 L${x + 5},148 M${x - 1},144 L${x - 2},149" stroke="#a86010" stroke-width="2.6" stroke-linecap="round"/>`;
+  push(P, 'legB', leg(80));
+  push(P, 'legF', leg(62));
+  // corps rond, ventre plus clair, aile
+  push(P, 'body', blob(ellipse(74, 112, 27, 23), c, { ink }), blob(ellipse(64, 118, 14, 11), shade(c, 0.4), { ink, w: 1, rim: false }),
+    blob('M80,104 Q100,104 102,118 Q92,124 80,118 Z', shade(c, -0.15), { ink, w: 1.4 }));
+  // tête : ronde, joue, bec, œil rieur
+  push(P, 'head', blob(ellipse(60, 88, 21, 19), c, { ink }),
+    `<ellipse cx="54" cy="96" rx="6" ry="4" fill="${shade(c, 0.45)}" opacity="0.9"/>`,
+    blob('M42,88 L28,93 L42,98 Z', '#f0a030', { ink: '#8a5010', w: 1.4, rim: false }),
+    `<path d="M48,82 q4,-4 8,0" fill="none" stroke="#1d1a20" stroke-width="2.4" stroke-linecap="round"/>`,
+    eyeChibi(66, 82, 5, 6, '#1d1a20', { look: [-0.3, 0] }));
+  push(P, 'horn', ...[[-10, 0], [-3, -4], [4, -1]].map(([dx, dy]) => blob(`M${56 + dx},72 L${58 + dx},${58 + dy} L${62 + dx},70 Z`, c, { ink, w: 1.4, rim: false })),
+    flower ? blob(circle(72, 66, 6), '#e83a4a', { ink: '#7a1020', w: 1.2 }) + `<circle cx="72" cy="66" r="2.4" fill="#ffd84a"/>` : '');
+  return assemble(kind, P, part);
+}
+
+/** Tofu Malade : tofu beige ébouriffé, rapiécé, l'air hagard. */
+function tofuMaladeSvg(part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const C = '#d8c49a';
+  push(P, 'wingB', blob(ellipse(108, 92, 12, 9), C));
+  push(P, 'legB', tube('M80,126 Q83,138 84,146', 3.4, '#8a6a3a'), blob(ellipse(88, 148, 11, 6), '#9a5a2a'));
+  push(P, 'legF', tube('M62,126 Q60,138 58,146', 3.4, '#8a6a3a'), blob(ellipse(54, 148, 12, 6.5), '#9a5a2a'));
+  push(P, 'body', blob(circle(74, 98, 36), C, { hl: [0.3, 0.22] }),
+    blob(circle(100, 112, 9), '#b89a6a', { w: 1.2, rim: false }), blob(circle(46, 74, 7), '#b89a6a', { w: 1.2, rim: false }),
+    `<path d="M95,105 l10,14 M103,106 l-6,13" stroke="#7a5a2a" stroke-width="1.2"/>`,
+    eyeChibi(66, 94, 10, 12, '#4a3a20', { lid: -1, skin: C }), eyeChibi(46, 96, 11.5, 13.5, '#4a3a20', { lid: -1, skin: C }),
+    `<path d="M48,116 Q56,112 64,117" fill="none" stroke="#5a3a1a" stroke-width="2" stroke-linecap="round"/>`);
+  push(P, 'crest', `<path d="M58,64 L50,34 M64,62 L64,28 M70,62 L78,30 M76,64 L92,40 M54,66 L36,48 M66,62 L58,22" stroke="#c8a85a" stroke-width="2.4" stroke-linecap="round"/><path d="M60,62 L56,40 M72,62 L84,36" stroke="#8a6a2a" stroke-width="1.6"/>`);
+  push(P, 'wingF', blob(ellipse(84, 114, 11, 8), shade(C, -0.08)));
+  return assemble('tofuMalade', P, part);
+}
+
+/** Araknes des Souterrains : corps poilu anguleux, pattes épaisses ; Arakmuté : boule sombre couverte d'yeux. */
+function spiderSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const muted = kind === 'arakmute';
+  const C = kind === 'arakneMalade' ? '#7a9a8a' : kind === 'araknose' ? '#5aa030' : '#3e3e22';
+  const ink = shade(C, -0.6);
+  const LEG = muted ? '#1e1e16' : '#8a7a8a';
+  const leg = (d: string) => (muted ? tube(d, 3, LEG, '#000') : tube(d, 7, LEG));
+  push(P, 'legB', leg(muted ? 'M92,112 Q120,96 126,150' : 'M90,116 Q116,104 120,140'), leg(muted ? 'M84,118 Q104,124 108,154' : 'M84,122 Q100,128 100,148'));
+  push(P, 'legF', leg(muted ? 'M50,112 Q20,96 14,150' : 'M52,116 Q26,104 22,140'), leg(muted ? 'M58,118 Q38,124 34,154' : 'M58,122 Q42,128 40,148'));
+  const body = muted
+    ? 'M30,90 L40,66 L56,58 L72,50 L92,58 L106,70 L112,90 L106,110 L90,122 L54,122 L38,112 Z'
+    : 'M26,104 L34,74 L52,70 L60,50 L74,66 L90,56 L96,74 L112,80 L114,106 L100,124 L44,126 Z';
+  push(P, 'body', blob(body, C, { ink }),
+    ...[[40, 86], [58, 66], [88, 70], [104, 96], [90, 116]].map(([x, y]) => `<path d="M${x},${y} l${x < 70 ? -6 : 6},-6" stroke="${shade(C, 0.35)}" stroke-width="2" stroke-linecap="round"/>`));
+  if (kind === 'arakneMalade') push(P, 'head', eyeChibi(52, 98, 9, 8, '#8a1a1a', { lid: 1, skin: C, ring: '#c84a3a' }), eyeChibi(76, 96, 8, 7, '#8a1a1a', { lid: 1, skin: C, ring: '#c84a3a' }),
+    `<path d="M54,114 L58,120 L62,114 L66,120 L70,114" fill="#fff" stroke="${ink}" stroke-width="1.2"/>`, `<circle cx="88" cy="82" r="3" fill="#b84a3a" opacity="0.7"/><circle cx="96" cy="88" r="2" fill="#b84a3a" opacity="0.7"/>`);
+  else if (kind === 'araknose') push(P, 'head',
+    `<ellipse cx="52" cy="94" rx="12" ry="15" fill="#fdfdf8" stroke="#a82a1a" stroke-width="3"/><ellipse cx="80" cy="92" rx="11" ry="14" fill="#fdfdf8" stroke="#a82a1a" stroke-width="3"/>`,
+    `<ellipse cx="50" cy="95" rx="2.6" ry="9" fill="#101418"/><ellipse cx="78" cy="93" rx="2.4" ry="8" fill="#101418"/>`,
+    `<path d="M56,116 L60,128 L64,116 Z M70,116 L74,128 L78,116 Z" fill="#fffaf0" stroke="${ink}" stroke-width="1.2"/>`);
+  else push(P, 'head', ...[[46, 82, 9], [74, 76, 7], [96, 90, 10], [60, 104, 6], [84, 110, 5], [40, 106, 5]].map(([x, y, r]) =>
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="#f4ecd0" stroke="#101010" stroke-width="1.6"/><circle cx="${x - r * 0.3}" cy="${y + r * 0.1}" r="${r * 0.45}" fill="#101418"/>`));
+  return assemble(kind, P, part);
+}
+
+/** Plantes des Champs d'Astrub et de la Grange (deux pieds-racines, tige, feuilles-bras, tête). */
+function astrubPlantSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const G = '#3a9a3a';
+  const legs = (col = G) => {
+    push(P, 'legB', rootLeg(74, 128, 80, 144, 12, col));
+    push(P, 'legF', rootLeg(66, 128, 60, 146, -12, col));
+  };
+  if (kind === 'tournesolSauvage' || kind === 'tournesolAffame') {
+    const boss = kind === 'tournesolAffame';
+    legs(boss ? '#2a8a3a' : G);
+    push(P, 'stem', tube('M70,132 Q66,116 70,100', boss ? 12 : 8, boss ? '#2a8a3a' : G));
+    push(P, 'leafB', blob('M76,112 Q100,98 112,112 Q96,122 76,114 Z', '#5ab84a'));
+    push(P, 'leafF', boss
+      ? blob('M62,112 Q34,96 22,128 L30,124 L26,140 L36,130 L38,144 Q50,120 62,116 Z', '#4aa83a', { ink: '#1a4a1a' })
+      : blob('M64,114 Q40,100 28,114 Q44,124 64,116 Z', '#5ab84a'));
+    // pétales larges en deux couronnes, comme les tournesols de Dofus
+    const petals = [0, 1].map((ring) => [...Array(13)].map((_, i) => {
+      const a = ((i + ring * 0.5) / 13) * 360, r = ring ? 30 : 34;
+      return `<ellipse cx="68" cy="${80 - r}" rx="${ring ? 9 : 10}" ry="${ring ? 17 : 19}" transform="rotate(${a.toFixed(0)} 68 80)" fill="${ring ? '#f8d23a' : '#f0b81c'}" stroke="#a87010" stroke-width="1.6"/>`;
+    }).join('')).join('');
+    push(P, 'head', petals, blob(circle(68, 80, 22), boss ? '#a8301c' : '#7a4a1a', { ink: '#3a1a08' }));
+    if (boss) push(P, 'head',
+      `<path d="M50,58 L56,40 L62,56 L70,34 L78,56 L86,40 L90,58 Z" fill="#e83a1a" stroke="#5a1008" stroke-width="2" stroke-linejoin="round"/>`,
+      `<path d="M50,74 L60,70 M78,70 L88,74" stroke="#f8e8a0" stroke-width="3" stroke-linecap="round"/>`,
+      eyeChibi(60, 76, 5, 5.5, '#101010', { lid: 1, skin: '#a8301c' }), eyeChibi(78, 76, 5, 5.5, '#101010', { lid: 1, skin: '#a8301c' }),
+      `<path d="M50,86 Q68,108 88,86 Q68,94 50,86 Z" fill="#2a0a08" stroke="#3a1a08" stroke-width="1.4"/><path d="M53,87 l3,5 l3,-4 l3,5 l3,-4 l3,5 l3,-4 l3,5 l3,-4 l3,5 l3,-5" fill="#fffaf0" stroke="#3a1a08" stroke-width="0.8"/>`);
+    else push(P, 'head', eyeChibi(60, 74, 6, 7, '#101010'), eyeChibi(76, 72, 5.5, 6.5, '#101010'),
+      `<path d="M54,84 Q66,100 82,84 Q66,90 54,84 Z" fill="#5a1a10" stroke="#3a1a08" stroke-width="1.4"/><path d="M60,86 Q68,90 76,86" fill="#e85a4a"/>`);
+  } else if (kind === 'roseDemo') {
+    legs();
+    push(P, 'stem', tube('M70,132 Q64,116 70,100', 7, G));
+    push(P, 'leafB', blob('M76,110 Q98,96 108,106 L114,98 L112,112 Q96,120 76,114 Z', '#4aa83a'), `<path d="M108,104 l8,-6 M100,100 l6,-8" stroke="#e8e0c0" stroke-width="2.4"/>`);
+    push(P, 'leafF', blob('M64,112 Q40,98 30,110 L22,104 L26,118 Q44,124 64,116 Z', '#4aa83a'), `<path d="M30,110 l-10,-4 M38,104 l-6,-8" stroke="#e8e0c0" stroke-width="2.4"/>`);
+    push(P, 'head', blob('M42,84 C40,58 56,46 72,48 C92,50 102,64 98,84 C92,100 80,104 70,104 C56,104 44,98 42,84 Z', '#d8401c', { ink: '#5a1008' }),
+      `<path d="M52,64 Q70,52 88,64 Q78,60 70,66 Q62,58 56,70 M58,80 Q70,70 84,78 M48,86 Q60,94 72,88" fill="none" stroke="#7a1408" stroke-width="2" stroke-linecap="round"/>`,
+      blob('M60,40 Q70,30 84,40 Q76,46 70,44 Q66,48 60,40 Z', '#f0782c', { ink: '#5a1008', w: 1.2 }),
+      eyeChibi(60, 84, 7, 8.5, '#101010'), eyeChibi(80, 82, 6.5, 8, '#101010'));
+  } else if (kind === 'pissenlitDiabo') {
+    legs();
+    push(P, 'stem', tube('M70,132 Q66,122 70,112', 7, G));
+    push(P, 'leafB', blob('M76,118 Q94,110 102,120 Q90,126 76,122 Z', '#5ab84a'));
+    push(P, 'leafF', blob('M64,118 Q46,110 38,120 Q50,126 64,122 Z', '#5ab84a'));
+    push(P, 'head', blob(circle(70, 70, 40), '#f4ecd0', { ink: '#8a7a50', hl: [0.35, 0.3] }),
+      ...[...Array(26)].map((_, i) => {
+        const a = i * 2.4, r = 10 + (i % 5) * 6;
+        return `<path d="M${f(70 + Math.cos(a) * r)},${f(70 + Math.sin(a) * r)} l${f(Math.cos(a + 1) * 6)},${f(Math.sin(a + 1) * 6)}" stroke="#a89a6a" stroke-width="1.4" stroke-linecap="round"/>`;
+      }),
+      `<ellipse cx="58" cy="78" rx="9" ry="11" fill="#fff" stroke="#101010" stroke-width="2.4"/><ellipse cx="82" cy="76" rx="8" ry="10" fill="#fff" stroke="#101010" stroke-width="2.4"/>`,
+      `<circle cx="56" cy="80" r="3" fill="#101010"/><circle cx="80" cy="78" r="2.8" fill="#101010"/>`);
+  } else if (kind === 'epouvanteur') {
+    push(P, 'legF', tube('M70,150 L70,104', 6, '#7a5a30', '#3a2410'));
+    push(P, 'legB', '');
+    push(P, 'stem', blob('M52,100 Q70,94 88,100 L92,130 L84,124 L80,134 L72,126 L64,134 L58,124 L50,130 Z', '#d8c8a0', { ink: '#6a5a3a' }),
+      `<circle cx="72" cy="112" r="8" fill="none" stroke="#c8301c" stroke-width="2"/><circle cx="72" cy="112" r="3" fill="#c8301c"/><path d="M60,104 h4 M80,120 h5" stroke="#6a5a3a" stroke-width="1.4"/>`);
+    push(P, 'leafB', tube('M70,98 L108,92', 5, '#7a5a30', '#3a2410'), `<path d="M108,92 l6,-4 M108,92 l7,2 M108,92 l4,6" stroke="#c8a85a" stroke-width="2" stroke-linecap="round"/>`);
+    push(P, 'leafF', tube('M70,98 L34,92', 5, '#7a5a30', '#3a2410'),
+      blob('M34,92 L22,52 Q20,44 28,46 L34,58 L38,90 Z', '#6a6a72', { ink: '#2a2a30' }), blob('M28,94 L42,90 L42,96 L28,100 Z', '#8a5a2a', { ink: '#3a2410', w: 1.2, rim: false }));
+    push(P, 'head', blob('M50,70 C48,52 60,44 70,44 C82,44 92,52 90,70 C88,84 80,90 70,90 C60,90 52,84 50,70 Z', '#e0d0a8', { ink: '#6a5a3a' }),
+      `<circle cx="61" cy="66" r="7" fill="none" stroke="#c8301c" stroke-width="2"/><circle cx="61" cy="66" r="2.6" fill="#c8301c"/><circle cx="79" cy="66" r="7" fill="none" stroke="#c8301c" stroke-width="2"/><circle cx="79" cy="66" r="2.6" fill="#c8301c"/>`,
+      `<path d="M62,80 Q70,86 78,80" fill="none" stroke="#c8301c" stroke-width="2" stroke-linecap="round"/>`,
+      `<path d="M56,46 L54,24 M62,44 L62,20 M70,44 L72,18 M78,44 L82,22 M84,48 L90,28" stroke="#e8b83a" stroke-width="3.4" stroke-linecap="round"/>`,
+      `<path d="M46,48 Q70,40 94,48" fill="none" stroke="#a8781a" stroke-width="4" stroke-linecap="round"/>`);
+  } else {
+    // Gardienne Champêtre : tige recourbée, bourgeon de feuilles fermé
+    push(P, 'legB', blob(ellipse(78, 148, 10, 4), '#2a6a2a', { rim: false }));
+    push(P, 'legF', blob(ellipse(62, 148, 10, 4), '#2a6a2a', { rim: false }));
+    push(P, 'stem', tube('M70,148 Q78,120 70,96 Q62,76 64,62', 8, '#4aa83a'));
+    push(P, 'leafB', blob('M72,108 Q92,100 98,110 Q86,116 74,112 Z', '#6ac84a'));
+    push(P, 'leafF', blob('M68,124 Q48,118 42,128 Q54,134 68,128 Z', '#6ac84a'));
+    push(P, 'head', blob('M40,50 C40,26 60,14 76,18 C94,22 100,40 92,56 C84,70 64,74 52,68 C44,64 40,58 40,50 Z', '#7ad84a', { ink: '#2a6a1a' }),
+      blob('M50,52 C48,34 62,24 74,28 C66,36 64,48 70,62 C60,64 52,60 50,52 Z', '#4aa83a', { ink: '#2a6a1a', w: 1.4 }),
+      blob('M76,30 C90,32 94,46 86,58 C80,52 76,42 76,30 Z', '#5ab83a', { ink: '#2a6a1a', w: 1.4 }),
+      `<path d="M48,56 Q60,46 76,50" fill="none" stroke="#bff0a0" stroke-width="2" opacity="0.7"/>`);
+  }
+  return assemble(kind, P, part);
+}
+
+/** Larves des Prairies : chenilles brillantes en anneaux ; piquants (Bleue), cornes et taches (Verte), antennes lumineuses (Orange, Jaune). */
+const LARVE: Record<string, { c: string; deco: 'spikes' | 'horns' | 'glow' | 'spiral' }> = {
+  larveBleue: { c: '#2a8ad8', deco: 'spikes' }, larveVerte: { c: '#4ab83a', deco: 'horns' }, larveOrange: { c: '#f0901c', deco: 'glow' }, larveJaune: { c: '#f8c81c', deco: 'spiral' },
+};
+
+function larveSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const { c, deco } = LARVE[kind];
+  const ink = shade(c, -0.55);
+  const segs: [number, number, number][] = [[112, 124, 16], [94, 118, 20], [74, 114, 23]];
+  push(P, 'back', `<ellipse cx="78" cy="146" rx="52" ry="8" fill="#2a2a20" opacity="0.2"/>`,
+    ...segs.map(([x, y, r]) => blob(ellipse(x, y, r, r * 0.95), c, { ink, hl: [0.4, 0.25] })),
+    ...segs.map(([x, y, r]) => blob(ellipse(x + 2, y + r * 0.85, r * 0.45, r * 0.25), shade(c, -0.3), { ink, w: 1.2, rim: false })));
+  if (deco === 'spikes') push(P, 'back', ...segs.map(([x, y, r]) => blob(`M${x - 5},${y - r + 3} L${x + 2},${y - r - 14} L${x + 6},${y - r + 4} Z`, shade(c, -0.3), { ink, w: 1.4 })));
+  if (deco === 'horns') push(P, 'back', ...segs.map(([x, y, r]) => blob(circle(x + 4, y - r * 0.2, r * 0.22), '#c8301c', { ink: '#5a1008', w: 1.2, rim: false })));
+  if (deco === 'spiral') push(P, 'back', ...segs.slice(0, 2).map(([x, y, r]) => `<path d="M${x},${y} m-${r * 0.4},0 a${r * 0.4},${r * 0.4} 0 1,1 ${r * 0.8},0 a${r * 0.25},${r * 0.25} 0 1,1 -${r * 0.5},0" fill="none" stroke="#c84a1a" stroke-width="2.6"/>`));
+  push(P, 'body', blob(ellipse(48, 112, 26, 25), c, { ink, hl: [0.35, 0.25] }));
+  if (deco === 'glow' || deco === 'spiral') push(P, 'body', ...[[44, 88, -0.3], [62, 86, 0.3]].map(([x, y, a]) =>
+    tube(`M${x},${y + 4} Q${x + a * 20},${y - 14} ${x + a * 14},${y - 26}`, 3, shade(c, -0.2), ink) + halo(uid('h'), x + a * 14, y - 30, 12, '#fff6a0') + blob(ellipse(x + a * 14, y - 30, 6, 7), '#fff6b0', { ink: '#c8a830', w: 1.2, rim: false })));
+  if (deco === 'horns') push(P, 'body', blob('M54,90 L60,70 L64,92 Z', '#e8781c', { ink: '#6a3008', w: 1.4 }));
+  if (deco === 'spikes') push(P, 'body', blob('M50,90 L58,66 L64,92 Z', shade(c, -0.3), { ink, w: 1.4 }));
+  push(P, 'face', blob(ellipse(30, 118, 9, 9), '#f8c81c', { ink: '#8a6010', w: 1.4, rim: false }),
+    `<circle cx="38" cy="108" r="9" fill="#fdfdf8" stroke="${ink}" stroke-width="1.8"/><circle cx="35" cy="109" r="4.2" fill="#101418"/><circle cx="33.5" cy="107" r="1.4" fill="#fff"/>`);
+  return assemble(kind, P, part);
+}
+
+export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
   feuVif: (p) => flameSvg('feuVif', p), feuJoie: (p) => flameSvg('feuJoie', p), feuFurieux: (p) => flameSvg('feuFurieux', p), feuFollet: (p) => flameSvg('feuFollet', p),
   aminite: (p) => aminiteSvg(p),
+  ...(Object.fromEntries(Object.keys(PIOU).map((k) => [k, (p?: CritterPart) => piouSvg(k as CritterKind, p)])) as Record<string, (p?: CritterPart) => string>),
+  tofuMalade: (p) => tofuMaladeSvg(p),
+  arakneMalade: (p) => spiderSvg('arakneMalade', p), araknose: (p) => spiderSvg('araknose', p), arakmute: (p) => spiderSvg('arakmute', p),
+  tournesolSauvage: (p) => astrubPlantSvg('tournesolSauvage', p), roseDemo: (p) => astrubPlantSvg('roseDemo', p), pissenlitDiabo: (p) => astrubPlantSvg('pissenlitDiabo', p),
+  epouvanteur: (p) => astrubPlantSvg('epouvanteur', p), gardienne: (p) => astrubPlantSvg('gardienne', p), tournesolAffame: (p) => astrubPlantSvg('tournesolAffame', p),
+  ...(Object.fromEntries(Object.keys(LARVE).map((k) => [k, (p?: CritterPart) => larveSvg(k as CritterKind, p)])) as Record<string, (p?: CritterPart) => string>),
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
-};
+} as Record<CritterKind, (part?: CritterPart) => string>;
 
 /** Feu follet seul (piège de la Forêt) : cadre 60 × 70, centre en (30, 44). */
 export function wispSvg(col = '#7ff0b0'): string {
