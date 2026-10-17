@@ -84,7 +84,7 @@ describe('Plaine et Donjon des Scarafeuilles, Bomberfu', () => {
     expect(w.monsters[1].hp).toBe(121);
   });
 
-  it('Scarabosse Doré : Picoti frappe dans 4 éléments et vole de la vie ; Naissance : 5 Immatures d’un coup', () => {
+  it('Scarabosse Doré : Picoti frappe dans 4 éléments et vole de la vie ; Naissance : 5 Immatures d’un coup, une seule fois', () => {
     const w = new World(5, tough(), AREAS.scaraDonjon);
     w.startRoom(AREAS.scaraDonjon.rooms - 1);
     const boss = w.boss!;
@@ -95,6 +95,13 @@ describe('Plaine et Donjon des Scarafeuilles, Bomberfu', () => {
       for (const e of w.drain()) {
         if (e.type === 'summon' && e.by === boss.uid) born++;
       }
+    }
+    expect(born).toBe(5);
+    // une seule Naissance : tuées, elles ne reviennent pas
+    for (const m of w.monsters) if (m.def.id === 'scaraImmature') m.hp = 0;
+    for (let t = 0; t < 30; t += STEP) {
+      w.step({ x: 0, y: 0 });
+      for (const e of w.drain()) if (e.type === 'summon' && e.by === boss.uid) born++;
     }
     expect(born).toBe(5);
     expect(w.monsters.filter((m) => m.def.id === 'scaraImmature' && m.summoner === boss.uid).length).toBe(5);

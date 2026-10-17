@@ -234,7 +234,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
    * résistances 24 % partout ; 3 PM.
    * Picoti : vol de vie Eau, Terre, Air et Feu 11-15 chacun, 1-3 cases en ligne (valeurs réelles), 1 fois par tour → toutes les 4 s ;
    * Premiers soins : se soigne de 17-26 PV tous les 3 tours → toutes les 12 s ;
-   * Naissance : invoque 5 Scarafeuilles Immatures d'un coup tous les 5 tours → toutes les 20 s.
+   * Naissance : invoque 5 Scarafeuilles Immatures d'un coup, une seule fois (choix d'Enzo : on peut les tuer et il n'en refait pas ; dans Dofus, tous les 5 tours).
    * Expulsion (repousse autour de lui) et Brouillard Empoisonné (-6 PO, -2 PM) ne sont pas repris.
    */
   scarabosse: {
@@ -242,7 +242,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     grades: ([[1600, 17000], [1800, 21000], [2000, 25000], [2200, 30000], [2400, 34560]] as const).map(([hp, xp]) => g(40, hp, 280, [24, 24, 24, 24, 24], xp, 280, 0, -7, 2, { intelligence: 280, chance: 280, agilite: 280 })),
     behavior: 'boss', speed: 100, radius: 48, art: 'scarabosse', scale: 1.6,
     attack: { shape: 'circle', trigger: 190, size: 90, spread: 0, offset: 110, windup: 0.85, recover: 0.5, cooldown: [3.6, 4.4], roll: { min: 11, max: 15, critBonus: 3, critBase: 3, element: 'eau' }, multi: ['eau', 'terre', 'air', 'feu'], steal: true },
-    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 10, summonEvery: 20, summon: 'scaraImmature', maxSummons: 5, summonCount: 5, heal: { every: 12, min: 17, max: 26, spell: 'Premiers soins' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 10, summonEvery: 1e9, summon: 'scaraImmature', maxSummons: 5, summonCount: 5, heal: { every: 12, min: 17, max: 26, spell: 'Premiers soins' } },
   },
   /**
    * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.
