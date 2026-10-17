@@ -26,7 +26,11 @@ DUNGEON_LEVEL = 10
 CRYPT = [4046, 4047, 4049, 4050, 4051]
 # cartes de farm (étape 9) : Champs, Pâturages, Forêt et Cimetière d'Incarnam
 MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
-                4108, 4109, 4110, 4107, 3270, 3271, 3272, 3273]  # errants : Lac, Mine, Route des âmes
+                4108, 4109, 4110, 4107, 3270, 3271, 3272, 3273,  # errants : Lac, Mine, Route des âmes
+                # Astrub, branche A : Cité, Souterrains, Champs d'Astrub, Prairies, Grange (+ archimonstres, boss)
+                236, 489, 490, 491, 492, 493, 2341, 2342, 2343, 2344, 2345, 2347,
+                473, 474, 4817, 4818, 2312, 2356, 48, 78, 79, 4820, 2348, 2352, 2358,
+                31, 34, 46, 5225, 2331, 2332, 2339, 2574, 4821, 799]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -208,7 +212,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')
     items[kid] = {'id': kid, 'name': d['name']['fr'], 'level': d['level'], 'type': d['type']['name']['fr'],

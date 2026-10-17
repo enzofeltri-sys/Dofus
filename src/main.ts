@@ -660,7 +660,7 @@ async function main() {
         later(0.8, () => hud.toast(ev.name, 1500));
         break;
       case 'monsterHeal':
-        hud.toast('Reconstitution Céleste !', 1200);
+        hud.toast(`${ev.spell ?? 'Reconstitution Céleste'} !`, 1200);
         numberAt(ev.x + 22, ev.y - 120 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
         for (let i = 0; i < 16; i++) emit(ev.x, ev.y - 40, 0x9ff0ff, { vx: rand(-90, 90), vy: rand(-200, -60), life: 0.7, size: 0.08 });
         break;

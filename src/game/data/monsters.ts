@@ -1,4 +1,5 @@
 import { baseStats, type DamageRoll, type Stats } from '../formulas';
+import { astrubMonsters } from './monsters.astrub';
 
 /**
  * Grade DofusDB : niveau, PV, Force, résistances % [neutre, terre, feu, eau, air], XP, sagesse,
@@ -105,7 +106,7 @@ export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclair
   | 'tournesolSauvage' | 'roseDemo' | 'pissenlitDiabo' | 'epouvanteur' | 'gardienne' | 'tournesolAffame' | 'larveBleue' | 'larveVerte' | 'larveOrange' | 'larveJaune';
 
 export interface BossKit {
-  /** Craquement d'Os : accélère le boss et ses alliés proches (s). */
+  /** Craquement d'Os : accélère le boss et ses alliés proches (s) ; 0 = pas de craquement. */
   crackEvery: number;
   crackDuration: number;
   haste: number;
@@ -113,8 +114,11 @@ export interface BossKit {
   /** Appel de Kardorib : invocation (s). */
   summonFirst: number;
   summonEvery: number;
-  summon: string;
+  /** Monstre invoqué (au hasard dans la liste). */
+  summon: string | string[];
   maxSummons: number;
+  /** Soin périodique du boss (PV, toutes les `every` s). */
+  heal?: { every: number; min: number; max: number };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -156,7 +160,33 @@ function feux(): Record<string, MonsterDef> {
   return out;
 }
 
+/** Élite de fin de carte (création, faute d'élite de ce niveau dans Dofus) : le vrai monstre, plus grand, PV et XP ×2,5. */
+const eliteOf = (base: MonsterDef, id: string, name: string): MonsterDef => ({
+  ...base, id, name, scale: (base.scale ?? 1) * 1.3, radius: base.radius + 8, hpMult: 2.5, xpMult: 2.5,
+});
+
+const ASTRUB = astrubMonsters(rows, roll, neutre);
+
 export const MONSTERS: Record<string, MonsterDef> = {
+  ...ASTRUB,
+  piouElite: eliteOf(ASTRUB.piouRouge, 'piouElite', 'Piou Rouge d’élite'),
+  arakneElite: eliteOf(ASTRUB.arakneMalade, 'arakneElite', 'Arakne Malade d’élite'),
+  epouvanteurElite: eliteOf(ASTRUB.epouvanteur, 'epouvanteurElite', 'Épouvanteur d’élite'),
+  larveElite: eliteOf(ASTRUB.larveOrange, 'larveElite', 'Larve Orange d’élite'),
+  gardienneElite: eliteOf(ASTRUB.gardienne, 'gardienneElite', 'Gardienne Champêtre d’élite'),
+  /**
+   * Tournesol Affamé (799) : boss de la Grange, niveau 20, 550 à 810 PV, toutes caractéristiques 80, 2 PM.
+   * Goinfrage : vol de vie Eau 17-30 au contact (valeur réelle, comme Kardorim) ;
+   * Appel des Champs : invoque Gardienne, Pissenlit, Rose ou Épouvanteur tous les 3 tours → toutes les 12 s ;
+   * Soin Feuillu : 17-26 PV tous les 4 tours → toutes les 16 s.
+   */
+  tournesolAffame: {
+    id: 'tournesolAffame', name: 'Tournesol Affamé', dofusId: 799,
+    grades: ([[550, 3300], [610, 4200], [680, 5100], [740, 5900], [810, 6720]] as const).map(([hp, xp]) => g(20, hp, 80, [25, 25, 25, -10, -15], xp, 60, 0, 0, 0, { intelligence: 80, chance: 80, agilite: 80 })),
+    behavior: 'boss', speed: 70, radius: 46, art: 'tournesolAffame', scale: 1.55,
+    attack: { shape: 'circle', trigger: 140, size: 96, spread: 0, offset: 80, windup: 0.85, recover: 0.5, cooldown: [1.5, 2.1], roll: { min: 17, max: 30, critBonus: 4, critBase: 3, element: 'eau' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 5, summonEvery: 12, summon: ['gardienne', 'pissenlitDiabo', 'roseDemo', 'epouvanteur'], maxSummons: 3, heal: { every: 16, min: 17, max: 26 } },
+  },
   chaferDebutant: {
     id: 'chaferDebutant', name: 'Chafer Débutant', dofusId: 4046,
     grades: [g(5, 28, 20, neu(10), 110, 10, 10, 2, 2), g(6, 32, 30, neu(11), 130, 20, 10, 1, 2), g(7, 36, 40, neu(12), 160, 30, 10, 1, 2), g(8, 40, 50, neu(13), 190, 40, 10, 1, 2), g(9, 44, 60, neu(14), 230, 50, 10, 0, 2)], behavior: 'melee', speed: 144, radius: 24, art: 'debutant',

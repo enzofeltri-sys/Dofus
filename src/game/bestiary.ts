@@ -28,7 +28,8 @@ export function placesOf(id: string): string[] {
     else if (a.archis?.some((x) => x === id)) out.push(`${a.name} (rare)`);
   }
   for (const d of Object.values(MONSTERS)) {
-    if (d.boss?.summon === id || d.summons?.id === id) out.push(`invoqué par ${d.name}`);
+    const sm = d.boss?.summon;
+    if ((Array.isArray(sm) ? sm.includes(id) : sm === id) || d.summons?.id === id) out.push(`invoqué par ${d.name}`);
   }
   return [...new Set(out)];
 }

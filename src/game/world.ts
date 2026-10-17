@@ -140,8 +140,9 @@ export interface Monster {
   /** Attaque en cours (normale ou charge) et délai avant la prochaine charge. */
   atk: MonsterAttack;
   chargeT: number;
-  /** Soin unique déjà utilisé. */
+  /** Soin unique déjà utilisé ; délai avant le prochain soin périodique (boss). */
   healed: boolean;
+  healT?: number;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -238,7 +239,7 @@ export type WorldEvent =
   | { type: 'hazard'; id: number; kind: HazardKind; phase: 'warn' | 'strike' }
   | { type: 'rooted' }
   | { type: 'wavesOver' }
-  | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number }
+  | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
   | { type: 'wanderers'; name: string };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
@@ -937,8 +938,17 @@ export class World {
   /** Sorts de boss (Craquement d'Os, Appel de Kardorib). */
   private stepBoss(m: Monster) {
     const b = m.def.boss!;
-    m.crackT -= STEP;
-    if (m.crackT <= 0) {
+    if (b.heal) {
+      m.healT = (m.healT ?? b.heal.every) - STEP;
+      if (m.healT <= 0 && m.hp < m.maxHp) {
+        m.healT = b.heal.every;
+        const amount = Math.min(m.maxHp - m.hp, b.heal.min + Math.floor(this.rnd() * (b.heal.max - b.heal.min + 1)));
+        m.hp += amount;
+        this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: 'Soin Feuillu' });
+      }
+    }
+    if (b.crackEvery > 0) m.crackT -= STEP;
+    if (b.crackEvery > 0 && m.crackT <= 0) {
       m.crackT = b.crackEvery;
       for (const o of this.monsters) {
         if (o.state !== 'dead' && flatDist(o.x, o.y, m.x, m.y) <= b.crackRadius) o.hasteT = b.crackDuration;
@@ -949,7 +959,7 @@ export class World {
   }
 
   /** Invocation à intervalle régulier, à côté de l'invocateur. */
-  private stepSummon(m: Monster, k: { every: number; id: string; max: number }) {
+  private stepSummon(m: Monster, k: { every: number; id: string | string[]; max: number }) {
     m.summonT -= STEP;
     if (m.summonT > 0) return;
     m.summonT = k.every;
@@ -958,7 +968,8 @@ export class World {
     const side = this.rnd() < 0.5 ? -1 : 1;
     const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + side * 90));
     const [sx, sy] = this.pushOut(x, m.y + 30, 26);
-    const s = this.makeMonster(MONSTERS[k.id], 1, sx, sy);
+    const id = Array.isArray(k.id) ? k.id[Math.floor(this.rnd() * k.id.length)] : k.id;
+    const s = this.makeMonster(MONSTERS[id], 1, sx, sy);
     s.summoner = m.uid;
     this.pending.push(s);
     this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
