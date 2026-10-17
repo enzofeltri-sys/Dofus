@@ -14,13 +14,16 @@ export const CRITTER_W = 140;
 export const CRITTER_H = 160;
 export const CRITTER_FOOT: [number, number] = [70, 152];
 
-export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor';
+export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
-export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number];
+export const CAT_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'wisp'] as const;
+export type CritterPart = (typeof TOFU_PARTS)[number] | (typeof PLANT_PARTS)[number] | (typeof SHEEP_PARTS)[number] | (typeof CAT_PARTS)[number];
 export const SHEEP: CritterKind[] = ['palichon', 'orageux', 'nuageux', 'bouftor'];
-export const partsOf = (k: CritterKind): readonly CritterPart[] => (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : PLANT_PARTS);
+export const CATS: CritterKind[] = ['chakrobat', 'tigrimas', 'ronronchon'];
+export const partsOf = (k: CritterKind): readonly CritterPart[] =>
+  (k === 'tofu' ? TOFU_PARTS : SHEEP.includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS : PLANT_PARTS);
 const SHEEP_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [116, 98], legB: [104, 136], body: [80, 132], legF: [66, 138], head: [60, 110], horn: [60, 94] };
 
 /** Pivots (rotation des morceaux) : hanches, base de la tige, attache de la tête… */
@@ -30,6 +33,9 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   rose: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 112], leafF: [66, 114], head: [70, 102] },
   tournesol: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 116], leafF: [66, 118], head: [70, 98] },
   palichon: SHEEP_PIVOTS, orageux: SHEEP_PIVOTS, nuageux: SHEEP_PIVOTS, bouftor: SHEEP_PIVOTS,
+  chakrobat: { tail: [84, 128], legB: [78, 132], body: [70, 140], legF: [64, 132], head: [66, 96], wisp: [56, 34] },
+  tigrimas: { tail: [102, 112], legB: [96, 132], body: [78, 140], legF: [64, 132], head: [62, 100], wisp: [24, 124] },
+  ronronchon: { tail: [104, 110], legB: [100, 140], body: [76, 146], legF: [56, 140], head: [54, 104], wisp: [30, 70] },
 };
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -316,7 +322,83 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
 }
 const f = (n: number) => n.toFixed(1);
 
+/* ---------------------------------------------------------------------------------------- */
+/* Forêt d'Incarnam : chats fantômes bleu pâle, moustaches vertes, feux follets à yeux        */
+/* ---------------------------------------------------------------------------------------- */
+
+const CAT = '#d4ecf6';
+const WHISKER = '#6fe8a8';
+
+/** Feu follet : flamme lumineuse avec deux petits yeux (regard vers la gauche). */
+function wisp(x: number, y: number, r: number, col: string): string {
+  const d = `M${x - r},${y} Q${x - r},${y + r} ${x},${y + r} Q${x + r},${y + r} ${x + r},${y} Q${x + r * 0.7},${y - r * 0.9} ${x + r * 0.25},${y - r * 2} Q${x - r * 0.05},${y - r} ${x - r * 0.45},${y - r * 1.4} Q${x - r * 0.95},${y - r * 0.7} ${x - r},${y} Z`;
+  const e = (ex: number, s: number) => `<circle cx="${ex}" cy="${y + r * 0.1}" r="${s}" fill="#fff" stroke="#24323a" stroke-width="1.2"/><circle cx="${ex - s * 0.35}" cy="${y + r * 0.15}" r="${s * 0.5}" fill="#101418"/>`;
+  return halo(uid('h'), x, y - r * 0.2, r * 2.3, col) + blob(d, col, { ink: shade(col, -0.45), w: 1.4 }) +
+    `<ellipse cx="${x}" cy="${y + r * 0.2}" rx="${r * 0.55}" ry="${r * 0.45}" fill="#fff" opacity="0.55"/>` +
+    e(x - r * 0.38, r * 0.3) + e(x + r * 0.3, r * 0.26);
+}
+
+/** Tête de chat : ronde, deux oreilles pointues, moustaches vertes. */
+function catHead(cx: number, cy: number, r: number): string {
+  const ear = (x0: number, x1: number, tx: number, ty: number) =>
+    blob(`M${x0},${cy - r * 0.55} Q${tx - 2},${ty + 6} ${tx},${ty} Q${tx + 4},${ty + 8} ${x1},${cy - r * 0.62} Z`, CAT, { w: 1.6 }) +
+    `<path d="M${x0 + 4},${cy - r * 0.6} Q${tx},${ty + 10} ${tx + 1},${ty + 6} Q${tx + 3},${ty + 10} ${x1 - 4},${cy - r * 0.64}" fill="#a9d4e6"/>`;
+  return ear(cx + r * 0.05, cx + r * 0.75, cx + r * 0.5, cy - r * 1.35) + ear(cx - r * 0.8, cx - r * 0.1, cx - r * 0.55, cy - r * 1.3) +
+    blob(ellipse(cx, cy, r, r * 0.9), CAT, { hl: [0.3, 0.25] });
+}
+const whiskers = (x: number, y: number) =>
+  `<path d="M${x},${y} l-16,-5 M${x},${y + 4} l-17,1 M${x},${y + 8} l-15,6" stroke="${WHISKER}" stroke-width="1.8" stroke-linecap="round"/>`;
+const paw = (x: number, y0: number, len: number, w = 7) => tube(`M${x},${y0} L${x - 1},${y0 + len}`, w, CAT) + blob(ellipse(x - 2, y0 + len + 3, w * 0.75, w * 0.5), CAT, { rim: false });
+
+function catSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  if (kind === 'chakrobat') {
+    // acrobate élancé, debout, bras levés vers le feu follet bleu qui flotte au-dessus de sa tête, bouche grande ouverte
+    push(P, 'tail', tube('M82,126 Q108,148 104,112 Q100,90 116,82', 4.5, CAT));
+    push(P, 'legB', paw(76, 128, 14, 6.5));
+    push(P, 'legF', paw(62, 128, 15, 6.5));
+    push(P, 'body', halo(uid('h'), 70, 100, 52, '#d8f2ff'), blob(ellipse(70, 116, 16, 22), CAT));
+    push(P, 'body', tube('M78,104 Q94,84 70,52', 5, CAT), blob(ellipse(69, 49, 5.5, 4.5), CAT, { rim: false }));
+    push(P, 'head', catHead(64, 86, 22),
+      eyeChibi(60, 82, 7.5, 9, '#3a8ac0', { look: [-0.3, -0.3] }), eyeChibi(44, 83, 8.5, 10, '#3a8ac0', { look: [-0.3, -0.3] }),
+      blob(ellipse(50, 98, 7.5, 8), '#8a1e2a', { rim: false, w: 1.4 }), `<ellipse cx="51" cy="102" rx="4.5" ry="3" fill="#e0606e"/>`,
+      whiskers(40, 92),
+      // bras avant levé le long de la tête, la patte sous le feu follet
+      tube('M62,112 Q18,108 30,58', 5, CAT), blob(ellipse(31, 54, 5.5, 4.5), CAT, { rim: false }));
+    push(P, 'wisp', wisp(56, 36, 12, '#8fd8ff'));
+  } else if (kind === 'tigrimas') {
+    // chat rond qui ricane, queue dressée en crochet, feu follet vert qui le suit au ras du sol
+    push(P, 'tail', tube('M100,112 Q130,100 124,60 Q122,38 136,34', 5.5, CAT));
+    push(P, 'legB', paw(92, 126, 12), paw(104, 124, 12));
+    push(P, 'legF', paw(60, 128, 12), paw(74, 130, 12));
+    push(P, 'body', halo(uid('h'), 80, 104, 56, '#d8f2ff'), blob(ellipse(82, 112, 30, 24), CAT));
+    push(P, 'body', `<path d="M66,98 Q80,90 98,94" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity="0.5"/>`);
+    push(P, 'head', catHead(58, 82, 27),
+      eyeChibi(62, 74, 8, 9.5, '#2fae7a', { lid: 1, skin: CAT, look: [-0.35, 0.1] }), eyeChibi(43, 75, 9, 10.5, '#2fae7a', { lid: 1, skin: CAT, look: [-0.35, 0.1] }),
+      blob('M34,90 Q48,108 68,92 Q50,98 34,90 Z', '#8a1e2a', { rim: false, w: 1.4 }),
+      `<path d="M38,92 L41,96 L44,93.5 L47,97 L50,94 L53,97 L56,94 L59,96 L63,93.5" fill="#fff" stroke="#8a1e2a" stroke-width="0.8"/>`,
+      whiskers(36, 84));
+    push(P, 'wisp', wisp(24, 128, 10, '#7ff0b0'));
+  } else {
+    // gros chat assis, l'air blasé ; sa queue est un esprit bleu à yeux qui s'enroule au-dessus de lui
+    push(P, 'tail', tube('M104,112 Q132,92 120,52 Q110,24 80,30', 7, '#a8dcf4', '#4a8aa8'),
+      wisp(76, 34, 11, '#9ee0ff'), spark(126, 70, 4, 0.8));
+    push(P, 'legB', paw(100, 132, 6, 9));
+    push(P, 'legF', paw(56, 134, 6, 9), paw(74, 136, 6, 9));
+    push(P, 'body', halo(uid('h'), 78, 110, 64, '#d8f2ff'), blob(ellipse(80, 116, 40, 30), CAT, { hl: [0.3, 0.2] }));
+    push(P, 'body', `<path d="M56,100 Q74,88 100,92" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.5"/>`);
+    push(P, 'head', catHead(54, 96, 25),
+      eyeChibi(58, 92, 8, 8.5, '#c0922a', { lid: -1, skin: CAT, look: [-0.3, 0.25] }), eyeChibi(40, 93, 9, 9.5, '#c0922a', { lid: -1, skin: CAT, look: [-0.3, 0.25] }),
+      `<path d="M40,108 Q46,104 52,108" fill="none" stroke="#24323a" stroke-width="2" stroke-linecap="round"/>`,
+      whiskers(34, 100));
+    push(P, 'wisp', wisp(28, 72, 7, '#7ff0b0'), wisp(122, 136, 6, '#b8f070'));
+  }
+  return assemble(kind, P, part);
+}
+
 export const CRITTER_SVG: Record<CritterKind, (part?: CritterPart) => string> = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
+  chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
 };

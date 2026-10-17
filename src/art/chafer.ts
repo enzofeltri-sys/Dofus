@@ -15,7 +15,7 @@ const BONE = '#ece2c8';
 const BONE_INK = '#4a3a26';
 const GOLD = '#e0a31c';
 
-export type ChaferKind = 'debutant' | 'furtif' | 'piquier' | 'sergent';
+export type ChaferKind = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur';
 
 const bone = (pts: [number, number][], w: number) => tube(pts, w, 'url(#bone)', BONE_INK);
 

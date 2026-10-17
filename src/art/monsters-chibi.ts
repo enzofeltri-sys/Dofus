@@ -75,6 +75,17 @@ export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
     P.cape.push(blob('M86,70 Q112,86 120,132 L110,127 L105,140 L96,129 L87,137 Q86,104 80,78 Z', '#9a2420', { ink: '#3e0c0a' }));
     P.cape.push(`<path d="M90,82 Q102,104 104,128" fill="none" stroke="#5a0e0c" stroke-width="1" opacity="0.6"/>`);
   }
+  // Éclaireur : carquois de flèches dans le dos, puis longue cape sombre en lambeaux
+  if (kind === 'eclaireur') {
+    for (const [x, y] of [[104, 30], [111, 34], [98, 36]] as [number, number][]) {
+      P.cape.push(`<path d="M${x - 10},${y + 34} L${x},${y}" stroke="#3a2a14" stroke-width="3.4" stroke-linecap="round"/><path d="M${x - 10},${y + 34} L${x},${y}" stroke="#c8a060" stroke-width="1.6"/>`);
+      P.cape.push(blob(`M${x},${y} L${x - 4},${y - 9} L${x + 1},${y - 5} L${x + 4},${y - 11} L${x + 4},${y - 2} Z`, '#efe4c4', { ink: '#5a4a2a', w: 1, rim: false }));
+    }
+    P.cape.push(blob('M88,62 L102,46 Q108,44 110,50 L98,74 Q92,76 88,70 Z', '#b0682a', { ink: '#3e1e08' }));
+    P.cape.push(`<path d="M92,58 L106,50" stroke="${GOLD}" stroke-width="2.4"/>`);
+    P.cape.push(blob('M84,64 Q114,76 122,140 L114,132 L110,148 L102,134 L96,150 L90,136 L84,146 Q86,104 78,72 Z', '#2e3438', { ink: '#0e1012' }));
+    P.cape.push(`<path d="M92,80 Q104,104 106,134 M86,90 Q92,116 92,140" fill="none" stroke="#14181a" stroke-width="1.2" opacity="0.7"/>`);
+  }
 
   // Bras arrière fin, pend le long du flanc
   P.armB.push(bone([[97, 84], [104, 100], [101, 114]], 4.2));
@@ -121,6 +132,17 @@ export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
     P.armF.push(blob('M64,2 Q70,11 69,22 L64,26 L59,22 Q58,11 64,2 Z', '#e8eef2', { ink: '#3a4450' }));
     P.armF.push(blob('M59,23 L69,23 L68,28 L60,28 Z', GOLD, { ink: GOLD_INK, w: 1.1, rim: false }));
     P.armF.push(blob('M58,98 Q64,94 69,99 Q69,106 63,107 Q58,105 58,98 Z', BONE, { ink: BONE_INK, rim: false }));
+  } else if (kind === 'eclaireur') {
+    // arc tenu à bout de bras, flèche encochée pointée vers la gauche
+    P.armF.push(bone([[74, 84], [62, 92], [48, 94]], 4.2));
+    const bow = 'M44,44 Q20,94 44,144';
+    P.armF.push(`<path d="${bow}" fill="none" stroke="#2a1a0a" stroke-width="7" stroke-linecap="round"/><path d="${bow}" fill="none" stroke="#a8743a" stroke-width="4" stroke-linecap="round"/>`);
+    P.armF.push(`<path d="M44,44 L58,94 L44,144" fill="none" stroke="#e8e0cc" stroke-width="1.1"/>`);
+    for (const y of [44, 144]) P.armF.push(`<circle cx="44" cy="${y}" r="3" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="1"/>`);
+    P.armF.push(`<path d="M60,94 L8,94" stroke="#3a2a14" stroke-width="3.4" stroke-linecap="round"/><path d="M60,94 L8,94" stroke="#c8a060" stroke-width="1.6"/>`);
+    P.armF.push(blob('M2,94 L12,88 L10,94 L12,100 Z', '#dfe6ea', { ink: '#3a4450', w: 1.2, rim: false }));
+    P.armF.push(blob('M56,94 L64,89 L62,94 L64,99 Z', '#efe4c4', { ink: '#5a4a2a', w: 1, rim: false }));
+    P.armF.push(blob('M30,88 Q36,84 40,89 Q40,98 34,99 Q29,96 30,88 Z', BONE, { ink: BONE_INK, rim: false }));
   } else {
     // cimeterre sombre qui s'évase vers la pointe (comme dans Dofus)
     P.armF.push(bone([[74, 84], [63, 95], [53, 98]], 4.2));
@@ -139,6 +161,7 @@ export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
   // Tête : crâne allongé vers l'avant, mâchoire ouverte, orbites à lueur rouge
   const h = P.head;
   h.push(glowFilter(glow, 1.8));
+  if (kind === 'eclaireur') h.push(blob('M62,3 Q100,2 108,34 Q110,58 94,74 L80,66 Q66,30 62,2 Z', '#2e3438', { ink: '#0e1012' }));
   // fond de la bouche ouverte, puis mâchoire inférieure qui pend
   h.push(`<path d="M38,58 L68,60 L68,70 L40,70 Z" fill="#2a1416"/>`);
   h.push(blob('M36,66 Q34,80 48,83 Q62,84 70,74 L68,66 Z', BONE, { ink: BONE_INK }));
@@ -161,6 +184,12 @@ export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
     h.push(`<path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD_INK}" stroke-width="4.4" stroke-linecap="round"/><path d="M31,31 Q64,21 99,31" fill="none" stroke="${GOLD}" stroke-width="2.6" stroke-linecap="round"/>`);
     h.push(blob('M54,4 Q55,-6 62,-6 Q66,-2 64,4 Z', '#a8b030', { ink: '#2e3208', w: 1.2 }));
     h.push(blob('M68,4 Q70,-6 77,-5 Q80,0 77,6 Z', '#a8b030', { ink: '#2e3208', w: 1.2 }));
+  }
+  if (kind === 'eclaireur') {
+    // capuche sombre rabattue sur le crâne, l'ombre mange le haut du visage
+    h.push(blob('M26,42 C22,16 44,1 68,1 C92,1 106,16 104,42 Q96,28 70,26 Q44,26 26,42 Z', '#363c42', { ink: '#0e1012' }));
+    h.push(`<path d="M30,36 Q48,26 70,26.5 Q92,27 102,38" fill="none" stroke="#12161a" stroke-width="3" opacity="0.6"/>`);
+    h.push(`<path d="M38,12 Q52,5 70,5" fill="none" stroke="#6a7278" stroke-width="2.4" stroke-linecap="round" opacity="0.7"/>`);
   }
   if (kind === 'sergent') {
     h.push(blob('M30,32 C29,11 46,2 66,2 C86,2 101,12 100,32 Q64,22 30,32 Z', '#7a2620', { ink: '#2a0a08' }));
