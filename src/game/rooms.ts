@@ -211,6 +211,9 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   coinBouftous: { block: [['autumnTree', 1.05, 1.25], ['autumnTree', 1.05, 1.25], ['hut', 1.0, 1.15], ['mossrock', 0.8, 1]], decor: ['flowers'] },
   coinBoos: { block: [['barn', 0.7, 0.8], ['barrels', 0.9, 1.05], ['haystack', 0.9, 1.05], ['fence', 1, 1.1], ['autumnTree', 1, 1.15]], decor: ['flowers'] },
   abords: { block: [['autumnTree', 1.05, 1.2], ['fence', 1, 1.1], ['crates', 0.9, 1.1], ['haystack', 0.9, 1.05]], decor: ['flowers'] },
+  // Amakna, d'après les vraies cartes : prairie aux arbres d'automne et grosses bottes de foin ; Tofulailler (grange sombre, paille, caisses, tonneaux)
+  ingalsse: { block: [['autumnTree', 1.05, 1.25], ['haystack', 1.0, 1.2], ['autumnTree', 1.05, 1.25], ['mossrock', 0.8, 1], ['fence', 1, 1.1]], decor: ['flowers'] },
+  tofus: { block: [['haystack', 0.9, 1.1], ['crates', 0.9, 1.1], ['barrels', 0.9, 1.05], ['haystack', 0.9, 1.1]], decor: ['pebbles'] },
 };
 
 /** Zone de la salle et formes à éviter pour poser un décor. */

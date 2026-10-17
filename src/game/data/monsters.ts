@@ -43,6 +43,8 @@ export interface MonsterAttack {
   roll: DamageRoll;
   /** Sort lancé à distance : la zone se pose là où se tenait le héros au début de l'annonce (offset = distance au héros). */
   atTarget?: boolean;
+  /** Poison sur le héros (Graine Empoisonnée) : dommages Neutre par PA dépensé, pendant `duration` s. */
+  poison?: { min: number; max: number; duration: number };
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -98,6 +100,11 @@ export interface MonsterDef {
   selfHeal?: { below: number };
   /** Charge : attaque spéciale en ligne, puis le monstre fonce sur toute la longueur. */
   charge?: { every: number; attack: MonsterAttack; dash: number };
+  /**
+   * Sort de soutien lancé toutes les `every` s sur les alliés à `radius` px ou moins (lui compris) :
+   * soin du plus blessé (PV fixes ou % des PV max), ou bénédiction de tous (attaques plus rapides, PV en plus).
+   */
+  support?: { name: string; every: number; radius: number; heal?: [number, number]; healPct?: [number, number]; bless?: { duration: number; speed: number; hp: number } };
 }
 
 /** Dessin : Chafers et Kardorim (rig des Chafers), ou une des bestioles d'Incarnam et d'Astrub. */
@@ -182,6 +189,8 @@ export const MONSTERS: Record<string, MonsterDef> = {
   bouftouElite: eliteOf(ASTRUB.bouftou, 'bouftouElite', 'Bouftou d’élite'),
   bouftonNoirElite: eliteOf(ASTRUB.bouftonNoir, 'bouftonNoirElite', 'Boufton Noir d’élite'),
   bouftouNoirElite: eliteOf(ASTRUB.bouftouNoir, 'bouftouNoirElite', 'Bouftou Noir d’élite'),
+  tofuNoirElite: eliteOf(ASTRUB.tofuNoir, 'tofuNoirElite', 'Tofu Noir d’élite'),
+  tofuMutantElite: eliteOf(ASTRUB.tofuMutant, 'tofuMutantElite', 'Tofu Mutant d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
    * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
@@ -194,6 +203,21 @@ export const MONSTERS: Record<string, MonsterDef> = {
     behavior: 'boss', speed: 120, radius: 48, art: 'bouftouRoyal', scale: 1.75,
     attack: { shape: 'circle', trigger: 140, size: 100, spread: 0, offset: 82, windup: 0.8, recover: 0.45, cooldown: [1.4, 1.9], roll: { min: 31, max: 46, critBonus: 5, critBase: 3, element: 'feu' } },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'bouftou', maxSummons: 0, heal: { every: 4, min: 51, max: 75, spell: 'Guérison Bouftou' } },
+  },
+  /**
+   * Batofu (800) : boss du Donjon des Tofus, niveau 40, 760 à 1100 PV, Agilité 350, Sagesse 150,
+   * résistances Neutre 37, Terre 9, Feu -14, Eau -4, Air 36 ; 10 PM.
+   * Béco de Batofu : Air 17-26 à 1-2 cases (valeur réelle, comme les autres boss) ;
+   * Lancer de Tofu Fugace : Neutre 21-30 en ligne à 1-10 cases, tous les 2 tours → toutes les 8 s (le Tofu Fugace invoqué n'est pas repris) ;
+   * Gotame : invoque un Tofu Noir tous les 5 tours → toutes les 20 s. Liberté (repousse autour de lui) n'est pas reprise.
+   */
+  batofu: {
+    id: 'batofu', name: 'Batofu', dofusId: 800,
+    grades: ([[760, 17000], [850, 21000], [940, 25000], [1000, 30000], [1100, 34560]] as const).map(([hp, xp]) => g(40, hp, 0, [37, 9, -14, -4, 36], xp, 150, 0, 3, 2, { agilite: 350 })),
+    behavior: 'boss', speed: 160, radius: 44, art: 'batofu', scale: 1.5,
+    attack: { shape: 'circle', trigger: 150, size: 90, spread: 0, offset: 86, windup: 0.7, recover: 0.4, cooldown: [1.1, 1.5], roll: { min: 17, max: 26, critBonus: 4, critBase: 3, element: 'air' } },
+    charge: { every: 8, dash: 0, attack: { shape: 'line', trigger: 480, size: 520, spread: 26, offset: 0, windup: 0.9, recover: 0.5, cooldown: [1.2, 1.6], roll: { min: 21, max: 30, critBonus: 4, critBase: 3, element: 'neutre' } } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 8, summonEvery: 20, summon: 'tofuNoir', maxSummons: 2 },
   },
   /**
    * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.

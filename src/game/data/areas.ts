@@ -7,7 +7,8 @@ import { CRYPT_POOL } from './monsters';
 
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
-  | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords';
+  | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
+  | 'ingalsse' | 'tofus';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -242,6 +243,30 @@ export const COUR: AreaDef = {
   theme: 'cour',
 };
 
+/* ---------- Amakna (validé par Enzo, option A) : Champ des Ingalsse → Donjon des Tofus ---------- */
+/* Vraies zones de Dofus : Champ des Ingalsse (sous-zone 3, niveau 30) et Donjon des Tofus (sous-zone 201, niveau 40).
+   Pas de détour : les zones voisines ont des monstres pas encore dessinés. */
+const TOFUS = ['tofuJaune', 'tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant'];
+
+export const INGALSSE: AreaDef = {
+  id: 'ingalsse', name: 'Champ des Ingalsse', kind: 'map', zone: 'amakna', level: 32,
+  sub: '5 salles · élite : Tofu Mutant d’élite',
+  rooms: 5, pool: TOFUS, count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'tofuMutantElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2355'],
+  theme: 'ingalsse',
+};
+
+export const TOFULAILLER: AreaDef = {
+  id: 'tofus', name: 'Donjon des Tofus', kind: 'dungeon', zone: 'amakna', level: 40,
+  sub: '7 salles · mini-boss · Batofu',
+  rooms: 7, pool: [...TOFUS, 'tofuVentripotent'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'tofuNoirElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'batofu', grade: 5, adds: 3 },
+  archis: ['archi2355'],
+  theme: 'tofus',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -293,6 +318,13 @@ export const ZONES: Zone[] = [
       { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', area: COUR, needs: ['tainela', 'coinBouftous', 'coinBoos', 'abords'] },
     ],
   },
+  {
+    id: 'amakna', name: 'Amakna',
+    nodes: [
+      { id: 'ingalsse', name: 'Champ des Ingalsse', level: 32, kind: 'map', area: INGALSSE, needs: ['cour'] },
+      { id: 'tofus', name: 'Donjon des Tofus', level: 40, kind: 'dungeon', area: TOFULAILLER, needs: ['ingalsse'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -300,6 +332,7 @@ export const AREAS: Record<string, AreaDef> = {
   cite: CITE, souterrains: SOUTERRAINS, champsAstrub: CHAMPS_ASTRUB, prairies: PRAIRIES, grange: GRANGE,
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
   tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
+  ingalsse: INGALSSE, tofus: TOFULAILLER,
 };
 
 /** Étapes jouables et débloquées. */

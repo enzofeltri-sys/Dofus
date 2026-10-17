@@ -46,7 +46,7 @@ interface Land {
   sky: [string, string];
   hills: [string, string];
   /** Ce qu'on voit au fond : arbres, maisons de la Cité, granges, ou un mur (Souterrains). */
-  far: 'trees' | 'houses' | 'barns' | 'wall' | 'dunes' | 'sea' | 'arena';
+  far: 'trees' | 'houses' | 'barns' | 'wall' | 'wood' | 'dunes' | 'sea' | 'arena';
   /** Bordure des côtés et du fond : haie, mur de briques, rochers de grès, remparts de sable. */
   border: 'hedge' | 'wall' | 'rock' | 'sandwall' | 'shore';
   /** Couleur de la berge des étangs (sable sur la côte). */
@@ -77,7 +77,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -108,6 +108,10 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     coinBoos: { ...base, ...green, flowers: 25, land: { sky, hills: ['#9ad058', '#78b444'], far: 'barns', border: 'hedge', water, pens: true, wheat: 2, dirt: 5, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
     // Abords de la Cour (création) : prairie au pied des murs de la Cour
     abords: { ...base, ...green, flowers: 25, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'sandwall', wallCol: ['#d8ccb0', '#4a6a9a', '#3a3a34'], water, pens: true, wheat: 0, dirt: 6, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
+    // Champ des Ingalsse : herbe vert vif, chemins de terre, arbres d'automne au loin
+    ingalsse: { ...base, ...green, grass: ['#b2d64a', '#a4ca42', '#94bc3a'], flowers: 30, land: { sky, hills: ['#a8d050', '#88b83e'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 7, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    // Donjon des Tofus (le Tofulailler) : grange sombre en planches, paille, bannières rouges, lampes suspendues
+    tofus: { ...base, grass: ['#c49c5c', '#b89050', '#aa8244'], light: '#e0bc78', dark: '#6a4a24', tuftTones: ['#d8b048', '#e8c860', '#f0d878'], touch: ['#f0d27a', '#8a6a3a'], stone: '#c8a878', cliff: ['#6a4a2a', '#4a321a', '#2a1a0a'], land: { sky: ['#160e08', '#24180e'], hills: ['#7a5430', '#5a3c20'], far: 'wood', border: 'wall', water: ['#4a3420', '#3a2814', '#24180a'], floor: 'planks', wheat: 0, dirt: 0, grassy: 0, arch: ['#c89a5a', '#8a5a2a', '#3a2410'] } },
     souterrains: { ...base, grass: ['#5e6656', '#545c4c', '#4a5042'], light: '#727a62', dark: '#363c30', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#8a8c7c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1e221c', '#2e342a'], hills: ['#3a4032', '#2a3024'], far: 'wall', border: 'wall', water: ['#5a7a4a', '#3e5a34', '#24381e'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
   };
 }
@@ -349,6 +353,23 @@ function landBackdrop(D: Land, r: () => number): string {
     }
     for (let k = 0; k < 30; k++) o.push(`<ellipse cx="${f1(r() * ROOM_W)}" cy="${f1(FLOOR_TOP - r() * 120)}" rx="${f1(10 + r() * 20)}" ry="${f1(5 + r() * 6)}" fill="#4e7a2e" opacity="${(0.4 + r() * 0.3).toFixed(2)}"/>`);
     o.push(`<rect x="0" y="${FLOOR_TOP - 60}" width="${ROOM_W}" height="70" fill="#000" opacity="0.25" filter="url(#soft)"/>`);
+    return o.join('\n');
+  }
+  if (D.far === 'wood') {
+    // Tofulailler : mur de planches verticales, poutres, bannières rouges, lampes suspendues et leur halo
+    o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP + 10}" fill="${D.sky[0]}"/>`);
+    for (let x = 0; x < ROOM_W; x += 34) o.push(`<rect x="${x + 1}" y="0" width="32" height="${FLOOR_TOP}" fill="${shade(D.hills[0], (r() - 0.5) * 0.3)}" stroke="#1e1208" stroke-width="2"/>`);
+    for (const y of [40, 150]) o.push(`<rect x="0" y="${y}" width="${ROOM_W}" height="18" fill="#4a2e14" stroke="#1e1208" stroke-width="2.5"/>`);
+    for (const x of [120, 600]) {
+      o.push(`<path d="M${x - 26},62 H${x + 26} V140 L${x},126 L${x - 26},140 Z" fill="#b8282a" stroke="#4a0a0a" stroke-width="3"/>`);
+      o.push(`<circle cx="${x}" cy="94" r="12" fill="#e8b84a" stroke="#6a3a10" stroke-width="2"/>`);
+    }
+    for (const x of [250, 470]) {
+      o.push(`<path d="M${x - 70},${FLOOR_TOP + 10} L${x - 10},40 L${x + 10},40 L${x + 70},${FLOOR_TOP + 10} Z" fill="#ffd27a" opacity="0.16"/>`);
+      o.push(`<path d="M${x},0 V40" stroke="#2a1a0a" stroke-width="3"/><path d="M${x - 14},52 Q${x},34 ${x + 14},52 Z" fill="#3a2410" stroke="#1e1208" stroke-width="2"/><circle cx="${x}" cy="54" r="7" fill="#ffe8a0"/>`);
+    }
+    for (let k = 0; k < 18; k++) o.push(`<ellipse cx="${f1(r() * ROOM_W)}" cy="${f1(FLOOR_TOP - r() * 30)}" rx="${f1(14 + r() * 24)}" ry="${f1(5 + r() * 6)}" fill="#e8c860" opacity="${(0.5 + r() * 0.3).toFixed(2)}"/>`);
+    o.push(`<rect x="0" y="${FLOOR_TOP - 60}" width="${ROOM_W}" height="70" fill="#000" opacity="0.3" filter="url(#soft)"/>`);
     return o.join('\n');
   }
   o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${FLOOR_TOP + 10}" fill="url(#skyG)"/>`);

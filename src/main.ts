@@ -8,7 +8,7 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
+import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, TOFUS, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
@@ -155,7 +155,7 @@ async function main() {
   };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
+    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
       : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
@@ -689,7 +689,7 @@ async function main() {
       case 'hit': {
         const y = ev.target === 'hero' ? ev.y - 130 * CHAR_SCALE : ev.y - 120 * CHAR_SCALE;
         // faiblesse : chiffre corail ; résistance : chiffre grisé ; poussée : violet
-        const col = ev.target === 'hero' ? '#e8664a' : ev.push ? '#cdaaf2' : ev.crit ? '#f2c45c' : ev.eff === 'weak' ? '#ff9a5a' : ev.eff === 'resist' ? '#b9b0a0' : '#fffaf0';
+        const col = ev.poison ? '#8bd04a' : ev.target === 'hero' ? '#e8664a' : ev.push ? '#cdaaf2' : ev.crit ? '#f2c45c' : ev.eff === 'weak' ? '#ff9a5a' : ev.eff === 'resist' ? '#b9b0a0' : '#fffaf0';
         numberAt(ev.x, y, `-${ev.damage}`, col, ev.crit || ev.eff === 'weak');
         const mon = ev.uid !== undefined ? game.monsters.find((x) => x.uid === ev.uid) : undefined;
         if (ev.push) labelAt(ev.x, y - 40, 'Poussée !', '#cdaaf2');
@@ -741,9 +741,22 @@ async function main() {
         later(0.4, () => hud.toast(`Archimonstre : ${ev.name} !`, 1800));
         break;
       case 'monsterHeal':
-        hud.toast(`${ev.spell ?? 'Reconstitution Céleste'} !`, 1200);
+        // soins des boss annoncés ; ceux des monstres (Picota, Mutation Prolifique) : juste le chiffre
+        if (game.monsters.find((x) => x.uid === ev.uid)?.def.boss) hud.toast(`${ev.spell ?? 'Reconstitution Céleste'} !`, 1200);
         numberAt(ev.x + 22, ev.y - 120 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
         for (let i = 0; i < 16; i++) emit(ev.x, ev.y - 40, 0x9ff0ff, { vx: rand(-90, 90), vy: rand(-200, -60), life: 0.7, size: 0.08 });
+        break;
+      case 'bless': {
+        // Bénédiction du Tofulailler : anneau doré au sol, étincelles sur les alliés
+        addFx(0.7, (g, k) => {
+          g.clear().ellipse(ev.x, ev.y, ev.radius * (1.1 - k * 0.5), ev.radius * PERSP * (1.1 - k * 0.5)).stroke({ width: 8 * k, color: 0xffd84a, alpha: k });
+        });
+        for (const o of game.monsters) if (o.blessT > 0 && o.state !== 'dead') for (let i = 0; i < 5; i++) emit(o.x, o.y - 50, 0xffe27a, { vx: rand(-60, 60), vy: rand(-160, -60), life: 0.6, size: 0.07 });
+        break;
+      }
+      case 'poisoned':
+        numberAt(ev.x, ev.y - 160 * CHAR_SCALE, 'Empoisonné', '#8bd04a');
+        for (let i = 0; i < 12; i++) emit(ev.x, ev.y - 50, 0x8bd04a, { vx: rand(-80, 80), vy: rand(-140, -40), life: 0.6, size: 0.08 });
         break;
       case 'ambush':
         hud.toast('Embuscade !', 1200);

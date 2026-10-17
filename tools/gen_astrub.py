@@ -73,13 +73,31 @@ d('scelerat', 465, 'scelerat', 'melee', 150, 24, 1, MEL('eau', 4, 5), 'Mordillag
 d('milirat', 475, 'milirat', 'lancer', 115, 22, 0.9, "{ shape: 'line', trigger: 250, size: 270, spread: 22, offset: 0, windup: 0.55, recover: 0.3, cooldown: [1.3, 1.8], roll: roll('eau', 3, 4) }", 'Lancer de Lance : Eau 12-14, 1-6 cases en ligne')
 d('ramane', 3205, 'ramane', 'caster', 105, 24, 0.95, "{ shape: 'circle', trigger: 300, size: 62, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.7, 2.3], roll: roll('terre', 3, 4), atTarget: true }", 'Roblochon ancestral : Terre 14-16, 1-5 cases')
 
+# Donjon des Tofus (validé par Enzo) : Champ des Ingalsse et Donjon des Tofus. Béco : 1-2 cases (trigger 120)
+BECO = lambda el, a, b, sp=(0.8, 1.2): f"{{ shape: 'circle', trigger: 120, size: 60, spread: 0, offset: 64, windup: 0.38, recover: 0.22, cooldown: [{sp[0]}, {sp[1]}], roll: roll('{el}', {a}, {b}) }}"
+d('tofuJaune', 98, 'tofuJaune', 'melee', 200, 22, 0.85, BECO('air', 3, 5), 'Béco : Air 13-18, 1-2 cases ; 10 PM (très rapide). Tofulekan (+Fuite) non repris')
+d('tofuNoir', 796, 'tofuNoir', 'melee', 215, 22, 0.85, BECO('eau', 4, 6), 'Béco Rosif : Eau 17-24, 1-2 cases ; 12 PM. Érosion et Fougue Tofuesque non reprises')
+d('tofoune', 804, 'tofoune', 'melee', 140, 26, 1.05,
+  "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.45, recover: 0.25, cooldown: [1.6, 2.2], roll: neutre(0, 0), poison: { min: 1, max: 2, duration: 20 } }",
+  'Graine Empoisonnée : au contact, pendant 5 tours, 1-2 dommages Neutre par PA dépensé (valeur réelle : le Sacrieur dépense ses PA au rythme de Dofus) ; Picota : soigne 11-15 PV un allié proche, 1 fois par tour',
+  ", support: { name: 'Picota', every: 4, radius: 120, heal: [11, 15] }")
+d('tofukaz', 806, 'tofukaz', 'stealth', 200, 22, 0.8, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.36, recover: 0.22, cooldown: [0.9, 1.3], roll: roll('air', 5, 6) }",
+  'Provocation : Air 21-25 au corps à corps ; Disparition groupée → devient invisible par moments')
+d('tofuMutant', 4824, 'tofuMutant', 'melee', 170, 24, 0.95, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.42, recover: 0.25, cooldown: [1.0, 1.4], roll: roll('feu', 5, 7) }",
+  'Bigle : Feu 21-26 au corps à corps (le retrait de portée n\'est pas repris) ; Mutation Prolifique : se soigne de 15-20 % de ses PV tous les 3 tours',
+  ", support: { name: 'Mutation Prolifique', every: 12, radius: 0, healPct: [15, 20] }")
+d('tofuVentripotent', 808, 'tofuVentripotent', 'caster', 60, 32, 1.35, "{ shape: 'circle', trigger: 200, size: 60, spread: 0, offset: 0, windup: 1, recover: 0.4, cooldown: [999, 999], roll: neutre(0, 0), atTarget: true }",
+  'N\'attaque pas ; 3 PM (très lent). Bénédiction du Tofulailler : tous les 2 tours, les alliés à 3 cases ou moins gagnent +1 PA (attaques 1,2 fois plus fréquentes) et 21-30 Vitalité (+25 PV) pendant 4 tours. Invocation de Bomberfu non reprise (pas de dessin)',
+  ", support: { name: 'Bénédiction du Tofulailler', every: 8, radius: 180, bless: { duration: 16, speed: 0.83, hp: 25 } }")
+
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
          (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc'),
          (2315, 'bouftonBlanc'), (2316, 'bouftonNoir'), (2317, 'bouftou'), (2324, 'chefBouftou'), (2333, 'milimulou'), (2349, 'prespic'), (2353, 'sanglier'),
-         (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts')]
+         (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts'),
+         (2355, 'tofuJaune')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -87,7 +105,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

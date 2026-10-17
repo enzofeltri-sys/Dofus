@@ -138,6 +138,9 @@ export interface Monster {
   moving: boolean;
   /** Accélération (Craquement d'Os) restante. */
   hasteT: number;
+  /** Sort de soutien (délai) et bénédiction reçue (durée restante). */
+  supportT: number;
+  blessT: number;
   /** Boss : délais avant la prochaine accélération / invocation. */
   crackT: number;
   summonT: number;
@@ -216,11 +219,14 @@ export interface Hero {
   tackled: number;
   /** Agrippé (mains du Cimetière) : immobile tant que > 0. */
   rootT: number;
+  /** Graine Empoisonnée : durée restante et dommages Neutre par PA dépensé. */
+  poisonT: number;
+  poison: [number, number];
 }
 
 export type WorldEvent =
   | { type: 'swing'; dir: Vec; ranged: boolean; x: number; y: number }
-  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean }
+  | { type: 'hit'; target: 'monster' | 'hero'; uid?: number; x: number; y: number; damage: number; crit: boolean; element?: Element; eff?: 'weak' | 'resist'; push?: boolean; poison?: boolean }
   | { type: 'telegraph'; uid: number }
   | { type: 'strike'; uid: number }
   | { type: 'death'; uid: number; x: number; y: number }
@@ -248,6 +254,8 @@ export type WorldEvent =
   | { type: 'rooted' }
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
+  | { type: 'poisoned'; x: number; y: number }
+  | { type: 'bless'; uid: number; x: number; y: number; radius: number; spell: string }
   | { type: 'wanderers'; name: string }
   | { type: 'archi'; name: string }
   | { type: 'dash'; fx: number; fy: number; x: number; y: number }
@@ -598,7 +606,7 @@ export class World {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
-      hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
+      hasteT: 0, supportT: def.support ? def.support.every * 0.5 : 0, blessT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
       markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
     };
   }
@@ -771,6 +779,7 @@ export class World {
     for (const sl of this.run.slots) if (sl) sl.cd = Math.max(0, sl.cd - STEP);
     h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
     h.thornsT = Math.max(0, h.thornsT - STEP);
+    h.poisonT = Math.max(0, h.poisonT - STEP);
     // bouclier de Coagulation
     if (h.shieldT > 0) {
       h.shieldT -= STEP;
@@ -791,6 +800,7 @@ export class World {
       if (h.pa < sp.pa) return false;
       if (!this.cast(sp, sl, i)) return false;
       h.pa -= sp.pa;
+      if (h.poisonT > 0) this.poisonHero(sp.pa);
       sl.cd = sp.cooldown * (1 - sl.cdBonus);
       h.castCd = CAST_DELAY;
       return true;
@@ -1128,6 +1138,32 @@ export class World {
     this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons });
   }
 
+  /** Soutien (Picota, Mutation Prolifique, Bénédiction du Tofulailler) : soin du plus blessé ou bénédiction des alliés proches. */
+  private stepSupport(m: Monster, k: NonNullable<MonsterDef['support']>) {
+    m.supportT -= STEP;
+    if (m.supportT > 0) return;
+    const near = this.monsters.filter((o) => o.state !== 'dead' && o.state !== 'spawn' && flatDist(o.x, o.y, m.x, m.y) <= k.radius + o.def.radius);
+    if (k.bless) {
+      m.supportT = k.every;
+      for (const o of near) {
+        if (o.blessT <= 0) {
+          o.maxHp += k.bless.hp;
+          o.hp += k.bless.hp;
+        }
+        o.blessT = k.bless.duration;
+      }
+      this.events.push({ type: 'bless', uid: m.uid, x: m.x, y: m.y, radius: k.radius, spell: k.name });
+      return;
+    }
+    const hurt = near.filter((o) => o.hp < o.maxHp).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
+    if (!hurt) { m.supportT = 0.5; return; }
+    m.supportT = k.every;
+    const [lo, hi] = k.heal ?? k.healPct!.map((p) => (p * hurt.maxHp) / 100);
+    const amount = Math.min(hurt.maxHp - hurt.hp, Math.round(lo + this.rnd() * (hi - lo)));
+    hurt.hp += amount;
+    this.events.push({ type: 'monsterHeal', uid: hurt.uid, x: hurt.x, y: hurt.y, amount, spell: k.name });
+  }
+
   /** Invocation à intervalle régulier, à côté de l'invocateur. */
   private stepSummon(m: Monster, k: { every: number; id: string | string[]; max: number }) {
     m.summonT -= STEP;
@@ -1180,6 +1216,8 @@ export class World {
     m.critDownT = Math.max(0, m.critDownT - STEP);
     if (m.def.boss && h.alive) this.stepBoss(m);
     if (m.def.summons && h.alive) this.stepSummon(m, m.def.summons);
+    if (m.def.support && h.alive) this.stepSupport(m, m.def.support);
+    m.blessT = Math.max(0, m.blessT - STEP);
 
     // Chafer Furtif : alterne visible / invisible
     if (m.def.behavior === 'stealth') {
@@ -1266,7 +1304,7 @@ export class World {
       if (m.t >= a.recover) {
         m.state = 'chase';
         m.t = 0;
-        m.cd = a.cooldown[0] + this.rnd() * (a.cooldown[1] - a.cooldown[0]);
+        m.cd = (a.cooldown[0] + this.rnd() * (a.cooldown[1] - a.cooldown[0])) * (m.blessT > 0 ? m.def.support?.bless?.speed ?? 0.8 : 1);
         m.atk = m.def.attack;
       }
     }
@@ -1300,7 +1338,8 @@ export class World {
     const melee = m.atk.trigger <= MONSTER_MELEE;
     const mine = this.heroStats();
     const hit = resolveHit(m.atk.roll, st, mine, this.rnd, { melee, source: 'sort' });
-    const dmg = Math.round(hit.damage * (1 - this.passive('endurance')));
+    // Graine Empoisonnée, Bénédiction : sorts sans dommages directs
+    const dmg = m.atk.roll.max > 0 ? Math.round(hit.damage * (1 - this.passive('endurance'))) : 0;
     const absorbed = Math.min(h.shield, dmg);
     h.shield -= absorbed;
     h.hp = Math.max(0, h.hp - (dmg - absorbed));
@@ -1320,8 +1359,34 @@ export class World {
     h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
     h.hurtT = 0.25;
     h.invulnT = 0.35;
-    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: hit.crit });
-    if (h.hp <= 0) {
+    if (dmg > 0 || !m.atk.poison) this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: hit.crit });
+    if (m.atk.poison) {
+      if (h.poisonT <= 0) this.events.push({ type: 'poisoned', x: h.x, y: h.y });
+      h.poisonT = m.atk.poison.duration;
+      h.poison = [m.atk.poison.min, m.atk.poison.max];
+    }
+    this.checkHeroDeath();
+  }
+
+  /** Graine Empoisonnée : chaque PA dépensé coûte des PV (dommages Neutre, réduits par la résistance Neutre). */
+  private poisonHero(pa: number) {
+    const h = this.hero;
+    let dmg = 0;
+    for (let i = 0; i < pa; i++) dmg += h.poison[0] + Math.floor(this.rnd() * (h.poison[1] - h.poison[0] + 1));
+    dmg = Math.max(0, Math.round(dmg * (1 - Math.min(50, this.heroStats().resPct.neutre) / 100)) - this.heroStats().resFixe.neutre);
+    if (dmg <= 0) return;
+    const absorbed = Math.min(h.shield, dmg);
+    h.shield -= absorbed;
+    h.hp = Math.max(0, h.hp - (dmg - absorbed));
+    this.stats.taken += dmg - absorbed;
+    h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
+    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: false, poison: true });
+    this.checkHeroDeath();
+  }
+
+  private checkHeroDeath() {
+    const h = this.hero;
+    if (h.hp <= 0 && h.alive) {
       h.alive = false;
       h.swing = null;
       this.phase = 'dead';
@@ -1550,7 +1615,7 @@ export class World {
 }
 
 function freshCombat() {
-  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, thornsT: 0, eroded: 0, tackled: 1, rootT: 0 };
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, thornsT: 0, eroded: 0, tackled: 1, rootT: 0, poisonT: 0, poison: [0, 0] as [number, number] };
 }
 
 /** Charges de Souffrance : 1 par tranche de 10 % de PV perdus, sur les PV max avant érosion. */
