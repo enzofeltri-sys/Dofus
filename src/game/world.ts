@@ -5,7 +5,7 @@ import { rollDrops } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
 import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import { ARCHI_OF } from './data/monsters.astrub';
-import { CRYPTE, type AreaDef } from './data/areas';
+import { CRYPTE, type AreaDef, type Theme, type WanderGroup } from './data/areas';
 import type { Stats } from './formulas';
 import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { islandLayout, mirrorLayout, obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
@@ -274,6 +274,10 @@ export class World {
   plan: RoomPlan[] = [];
   shape: RoomShape = roomShape('plaine');
   special: Special | null = null;
+  /** Décor de la salle : celui de la carte, ou celui de la zone d'un groupe errant (détour). */
+  roomTheme: Theme = 'crypt';
+  /** Détour : la salle entière appartient à une autre zone (décor et monstres), ex. la Forêt d'Astrub. */
+  detour: WanderGroup | null = null;
   /** Gardien du coffre, position du coffre (ouvert ou non), fontaine et soin déjà rendu. */
   guard: Monster | null = null;
   chest: { x: number; y: number; open: boolean } | null = null;
@@ -370,7 +374,12 @@ export class World {
     this.gate = 0;
     this.rnd = rng(this.seed * 977 + index * 131);
     const plan = this.plan[index] ?? { shape: 'plaine', mirror: false, special: null };
-    const theme = this.area.theme;
+    // détour : 20 % des salles normales passent par une zone voisine (son décor et ses monstres)
+    const A0 = this.area, fixedRoom = (A0.elite && index === A0.elite.room) || (A0.boss && index === A0.rooms - 1);
+    const detours = (A0.wanderers ?? []).filter((w) => w.theme);
+    this.detour = detours.length && !plan.special && !fixedRoom && index > 0 && this.rnd() < WANDER_CHANCE ? detours[Math.floor(this.rnd() * detours.length)] : null;
+    const theme = this.detour?.theme ?? this.area.theme;
+    this.roomTheme = theme;
     this.shape = roomShape(plan.shape, plan.mirror);
     this.bounds.x0 = 76 + this.shape.margin;
     this.bounds.x1 = ROOM_W - 76 - this.shape.margin;
@@ -446,7 +455,9 @@ export class World {
     }
     // monstres de plus en plus nombreux ; à partir de `waveFrom`, une partie arrive en deuxième vague
     const count = Math.min(A.count.max, A.count.base + Math.floor(index * A.count.perRoom));
-    const roll = () => ({ def: this.maybeArchi(pick()), grade: roomGrade(index, this.rnd(), A.rooms) });
+    const D = this.detour;
+    const roll = () => ({ def: this.maybeArchi(D ? MONSTERS[D.pool[Math.floor(this.rnd() * D.pool.length)]] : pick()), grade: roomGrade(index, this.rnd(), A.rooms) });
+    if (D) this.events.push({ type: 'wanderers', name: D.name });
     if (this.special === 'embuscade') {
       // la salle a l'air vide… puis tout le monde surgit autour du héros
       this.reserve = [...Array(count)].map(roll);
@@ -462,7 +473,7 @@ export class World {
       const second = index >= A.waveFrom && this.special !== 'fontaine' ? Math.round(n * 0.4) : 0;
       this.reserve = defs.splice(defs.length - second, second);
       // rencontre : un petit groupe venu d'une autre zone d'Incarnam remplace une partie des monstres
-      const W = A.wanderers;
+      const W = A.wanderers?.filter((w) => !w.theme);
       if (W?.length && !this.special && this.rnd() < WANDER_CHANCE) {
         const grp = W[Math.floor(this.rnd() * W.length)];
         const n = Math.max(2, Math.ceil(defs.length / 2));
@@ -563,7 +574,7 @@ export class World {
   /** 1 % des monstres de la carte sont remplacés par leur archimonstre (s'il est de la zone). */
   private maybeArchi(def: MonsterDef): MonsterDef {
     const id = ARCHI_OF[def.id];
-    if (!id || !this.area.archis?.includes(id)) return def;
+    if (!id || !(this.area.archis?.includes(id) || this.detour?.archis?.includes(id))) return def;
     return this.rnd() < ARCHI_CHANCE ? MONSTERS[id] : def;
   }
 
@@ -1223,7 +1234,7 @@ export class World {
 
   /** Pièges de la carte (pas dans la salle de l'élite ni dans le donjon). */
   private initHazards() {
-    const t = this.area.theme;
+    const t = this.roomTheme;
     if (this.elite || this.boss) return;
     if (t === 'foret') {
       for (let i = 0; i < HAZARD.wisp.count; i++) {
@@ -1234,7 +1245,7 @@ export class World {
   }
 
   private stepHazards() {
-    const t = this.area.theme, h = this.hero;
+    const t = this.roomTheme, h = this.hero;
     if (h.rootT > 0) h.rootT = Math.max(0, h.rootT - STEP);
     // salle vidée : les pièges annoncés s'éteignent (un troupeau déjà lancé finit sa course)
     if (this.phase !== 'fight') this.hazards = this.hazards.filter((z) => z.kind === 'herd' && z.state === 'active');

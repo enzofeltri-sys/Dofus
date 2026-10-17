@@ -7,7 +7,13 @@ import { CRYPT_POOL } from './monsters';
 
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
-  | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour';
+  | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords';
+
+/**
+ * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
+ * Avec un décor (`theme`) : détour, toute la salle devient cette zone (décor et monstres), validé par Enzo : « si c'est forêt c'est forêt ».
+ */
+export interface WanderGroup { name: string; pool: string[]; theme?: Theme; archis?: string[]; /** Nom de la zone affiché pendant le détour. */ zone?: string }
 
 export interface AreaDef {
   id: string;
@@ -32,7 +38,7 @@ export interface AreaDef {
   /** Archimonstres de la zone (1 % des monstres, plus forts, meilleur butin). */
   archis?: string[];
   /** Monstres errants possibles (rencontres) : nom affiché et monstres du groupe. */
-  wanderers?: { name: string; pool: string[] }[];
+  wanderers?: WanderGroup[];
   theme: Theme;
 }
 
@@ -180,50 +186,59 @@ export const CHATEAU: AreaDef = {
   theme: 'chateau',
 };
 
-/* ---------- Astrub, branche B (validée par Enzo) : Tainéla, Forêt d'Astrub, Carrière, Égouts → Donjon des Bouftous ---------- */
+/* ---------- Astrub, branche B (validée par Enzo) : les zones des Bouftous → Donjon des Bouftous ---------- */
+/* Dans Dofus, les Bouftous vivent à Tainéla, au Coin des Bouftous et au Coin des Boos ; les Abords de la Cour sont une création.
+   La Forêt d'Astrub, la Carrière et les Égouts n'ont pas de carte : ce sont des détours (20 % des salles), avec leur décor et leurs monstres. */
+
+const D_FORET: WanderGroup = { name: 'Détour par la Forêt d’Astrub !', zone: 'Forêt d’Astrub', pool: ['prespic', 'sanglier', 'ecurouille', 'milimulou'], theme: 'foretAstrub', archis: ['archi2333', 'archi2349', 'archi2353'] };
+const D_CARRIERE: WanderGroup = { name: 'Détour par la Carrière d’Astrub !', zone: 'Carrière d’Astrub', pool: ['martoa', 'sherpoa', 'douzdoa', 'pikdoa'], theme: 'carriere' };
+const D_EGOUTS: WanderGroup = { name: 'Détour par les Égouts d’Astrub !', zone: 'Égouts d’Astrub', pool: ['arakneEgouts', 'scelerat', 'milirat', 'ramane'], theme: 'egouts', archis: ['archi2393', 'archi2350', 'archi2334'] };
+const BOUFTOUS = ['bouftou', 'bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou'];
+const BOUFTOU_ARCHIS = ['archi2315', 'archi2316', 'archi2317', 'archi2324'];
 
 export const TAINELA: AreaDef = {
   id: 'tainela', name: 'Tainéla', kind: 'map', zone: 'astrub', level: 22,
   sub: '5 salles · élite : Chef de Guerre Bouftou d’élite',
-  rooms: 5, pool: ['bouftou', 'bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  rooms: 5, pool: BOUFTOUS, count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
   elite: { room: 4, id: 'chefElite', grade: 3, adds: 3, addGrade: 2 },
-  archis: ['archi2315', 'archi2316', 'archi2317', 'archi2324'],
+  archis: BOUFTOU_ARCHIS, wanderers: [D_CARRIERE, D_EGOUTS],
   theme: 'tainela',
 };
 
-export const FORET_ASTRUB: AreaDef = {
-  id: 'foretAstrub', name: 'Forêt d’Astrub', kind: 'map', zone: 'astrub', level: 24,
-  sub: '5 salles · élite : Sanglier d’élite',
-  rooms: 5, pool: ['prespic', 'sanglier', 'ecurouille', 'milimulou'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
-  elite: { room: 4, id: 'sanglierElite', grade: 3, adds: 3, addGrade: 2 },
-  archis: ['archi2333', 'archi2349', 'archi2353'],
-  theme: 'foretAstrub',
+export const COIN_BOUFTOUS: AreaDef = {
+  id: 'coinBouftous', name: 'Coin des Bouftous', kind: 'map', zone: 'astrub', level: 23,
+  sub: '5 salles · élite : Bouftou d’élite',
+  rooms: 5, pool: BOUFTOUS, count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'bouftouElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: BOUFTOU_ARCHIS, wanderers: [D_FORET],
+  theme: 'coinBouftous',
 };
 
-export const CARRIERE: AreaDef = {
-  id: 'carriere', name: 'Carrière d’Astrub', kind: 'map', zone: 'astrub', level: 26,
-  sub: '5 salles · élite : Martoa d’élite',
-  rooms: 5, pool: ['martoa', 'sherpoa', 'douzdoa', 'pikdoa'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
-  elite: { room: 4, id: 'martoaElite', grade: 3, adds: 3, addGrade: 2 },
-  theme: 'carriere',
+export const COIN_BOOS: AreaDef = {
+  id: 'coinBoos', name: 'Coin des Boos', kind: 'map', zone: 'astrub', level: 24,
+  sub: '5 salles · élite : Boufton Noir d’élite',
+  rooms: 5, pool: BOUFTOUS, count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'bouftonNoirElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: BOUFTOU_ARCHIS, wanderers: [D_FORET],
+  theme: 'coinBoos',
 };
 
-export const EGOUTS: AreaDef = {
-  id: 'egouts', name: 'Égouts d’Astrub', kind: 'map', zone: 'astrub', level: 27,
-  sub: '5 salles · élite : Ramane Strubien d’élite',
-  rooms: 5, pool: ['arakneEgouts', 'scelerat', 'milirat', 'ramane'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
-  elite: { room: 4, id: 'ramaneElite', grade: 3, adds: 3, addGrade: 2 },
-  archis: ['archi2393', 'archi2350', 'archi2334'],
-  theme: 'egouts',
+export const ABORDS: AreaDef = {
+  id: 'abords', name: 'Abords de la Cour', kind: 'map', zone: 'astrub', level: 26,
+  sub: '5 salles · élite : Bouftou Noir d’élite',
+  rooms: 5, pool: ['bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou', 'bouftouNoir'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'bouftouNoirElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: BOUFTOU_ARCHIS, wanderers: [D_EGOUTS],
+  theme: 'abords',
 };
 
 export const COUR: AreaDef = {
   id: 'cour', name: 'Donjon des Bouftous', kind: 'dungeon', zone: 'astrub', level: 30,
   sub: '7 salles · mini-boss · Bouftou Royal',
   rooms: 7, pool: ['bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou', 'bouftouNoir', 'bouftouNoir'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
-  elite: { room: 3, id: 'bouftouNoirElite', grade: 5, adds: 4, addGrade: 3 },
+  elite: { room: 3, id: 'chefElite', grade: 5, adds: 4, addGrade: 3 },
   boss: { id: 'bouftouRoyal', grade: 5, adds: 3 },
-  archis: ['archi2315', 'archi2316', 'archi2317', 'archi2324'],
+  archis: BOUFTOU_ARCHIS,
   theme: 'cour',
 };
 
@@ -272,10 +287,10 @@ export const ZONES: Zone[] = [
       { id: 'plage', name: 'Plage du Château', level: 19, kind: 'map', area: PLAGE, needs: ['dunes'] },
       { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', area: CHATEAU, needs: ['lisiere', 'dunes', 'calanques', 'plage'] },
       { id: 'tainela', name: 'Tainéla', level: 22, kind: 'map', area: TAINELA, needs: ['grange'] },
-      { id: 'foretAstrub', name: 'Forêt d’Astrub', level: 24, kind: 'map', area: FORET_ASTRUB, needs: ['tainela'] },
-      { id: 'carriere', name: 'Carrière d’Astrub', level: 26, kind: 'map', area: CARRIERE, needs: ['tainela'] },
-      { id: 'egouts', name: 'Égouts d’Astrub', level: 27, kind: 'map', area: EGOUTS, needs: ['carriere'] },
-      { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', area: COUR, needs: ['tainela', 'foretAstrub', 'carriere', 'egouts'] },
+      { id: 'coinBouftous', name: 'Coin des Bouftous', level: 23, kind: 'map', area: COIN_BOUFTOUS, needs: ['tainela'] },
+      { id: 'coinBoos', name: 'Coin des Boos', level: 24, kind: 'map', area: COIN_BOOS, needs: ['tainela'] },
+      { id: 'abords', name: 'Abords de la Cour', level: 26, kind: 'map', area: ABORDS, needs: ['coinBouftous', 'coinBoos'] },
+      { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', area: COUR, needs: ['tainela', 'coinBouftous', 'coinBoos', 'abords'] },
     ],
   },
 ];
@@ -284,7 +299,7 @@ export const AREAS: Record<string, AreaDef> = {
   crypte: CRYPTE, champs: CHAMPS, paturages: PATURAGES, foret: FORET, cimetiere: CIMETIERE,
   cite: CITE, souterrains: SOUTERRAINS, champsAstrub: CHAMPS_ASTRUB, prairies: PRAIRIES, grange: GRANGE,
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
-  tainela: TAINELA, foretAstrub: FORET_ASTRUB, carriere: CARRIERE, egouts: EGOUTS, cour: COUR,
+  tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
 };
 
 /** Étapes jouables et débloquées. */

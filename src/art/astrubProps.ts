@@ -188,3 +188,25 @@ export function quarryBlock(): PropArt {
     `<path d="M14,48 Q40,34 66,40" fill="none" stroke="#fff" stroke-width="3" opacity="0.5"/>`;
   return { svg: svg(112, 132, '', b), foot: [54, 120] };
 }
+
+/** Hutte au toit de chaume du Coin des Bouftous. */
+export function thatchHut(): PropArt {
+  const b = shadow(70, 150, 62, 11) +
+    `<path d="M26,148 L26,86 L114,86 L114,148 Z" fill="#c8945a" stroke="${INK}" stroke-width="3"/>` +
+    [42, 58, 74, 90, 106].map((x) => `<path d="M${x},88 V146" stroke="#8a5a2a" stroke-width="1.8" opacity="0.7"/>`).join('') +
+    `<path d="M56,148 L56,112 Q70,100 84,112 L84,148 Z" fill="#5a3418" stroke="${INK}" stroke-width="2.6"/>` +
+    `<path d="M8,96 Q30,40 70,14 Q110,40 132,96 Q100,84 70,84 Q40,84 8,96 Z" fill="#f0c83a" stroke="#8a6010" stroke-width="3" stroke-linejoin="round"/>` +
+    [20, 36, 52, 70, 88, 104, 120].map((x) => `<path d="M${x},${92 - Math.abs(x - 70) * 0.1} L${70 + (x - 70) * 0.35},${30 + Math.abs(x - 70) * 0.3}" stroke="#c8981a" stroke-width="2"/>`).join('') +
+    `<path d="M70,14 L70,2 M64,6 L76,6" stroke="${INK}" stroke-width="2.4"/>`;
+  return { svg: svg(140, 158, '', b), foot: [70, 150] };
+}
+
+/** Tonneaux de la ferme (Coin des Boos). */
+export function barrels(): PropArt {
+  const barrel = (x: number, y: number, s: number) =>
+    `<path d="M${x - 16 * s},${y} Q${x - 20 * s},${y - 22 * s} ${x - 16 * s},${y - 44 * s} L${x + 16 * s},${y - 44 * s} Q${x + 20 * s},${y - 22 * s} ${x + 16 * s},${y} Z" fill="#a8743e" stroke="${INK}" stroke-width="2.6"/>` +
+    `<path d="M${x - 18 * s},${y - 10 * s} H${x + 18 * s} M${x - 18 * s},${y - 34 * s} H${x + 18 * s}" stroke="#5a5a5a" stroke-width="3"/>` +
+    `<ellipse cx="${x}" cy="${y - 44 * s}" rx="${16 * s}" ry="${5 * s}" fill="#c8945a" stroke="${INK}" stroke-width="2"/>`;
+  const b = shadow(50, 86, 46, 8) + barrel(32, 86, 1) + barrel(70, 84, 0.9) + `<path d="M52,40 Q60,30 68,38" fill="#e84a3a" stroke="#7a1a0a" stroke-width="1.6"/>`;
+  return { svg: svg(100, 94, '', b), foot: [50, 86] };
+}

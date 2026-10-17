@@ -12,7 +12,7 @@ import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, FLAMES, JELLIES, CRITTER_PIV
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
-import { autumnTree, barn, bigShell, cityHouse, crates, fence, haystack, marketStall, mossRock, palmTree, pebbles, pipe, quarryBlock, sandRock, sandTower, sunflowers } from './art/astrubProps';
+import { autumnTree, barn, barrels, bigShell, cityHouse, crates, fence, haystack, marketStall, mossRock, palmTree, pebbles, pipe, quarryBlock, sandRock, sandTower, sunflowers, thatchHut } from './art/astrubProps';
 import { boneHands, chest, darkBlock, deadTree, fountain, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
@@ -100,7 +100,7 @@ const PROP_ART: Record<PropKind, () => PropArt> = {
   column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers,
   redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar, chest: () => chest(), fountain,
   autumnTree, fence, barn, haystack, house: cityHouse, stall: marketStall, crates, sunflowers, pipe,
-  palm: palmTree, shell: () => bigShell(), shellBlue: () => bigShell('#7ab8f0', '#f8a8c8'), sandrock: sandRock, tower: sandTower, pebbles, mossrock: mossRock, quarry: quarryBlock,
+  palm: palmTree, shell: () => bigShell(), shellBlue: () => bigShell('#7ab8f0', '#f8a8c8'), sandrock: sandRock, tower: sandTower, pebbles, mossrock: mossRock, quarry: quarryBlock, hut: thatchHut, barrels,
 };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
@@ -141,7 +141,7 @@ async function main() {
   } as Record<MonsterArt, Texture[]>;
   /** Dessins des monstres d'une carte, préparés à l'entrée (pas tous au démarrage : il y en a beaucoup). */
   const loadArea = async (A: AreaDef) => {
-    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => w.pool)].filter(Boolean) as string[]);
+    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);
     for (const id of [...ids]) {
       const d = MONSTERS[id], sm = d.boss?.summon;
       for (const x of [d.summons?.id, ...(Array.isArray(sm) ? sm : [sm])]) if (x) ids.add(x);
@@ -356,7 +356,7 @@ async function main() {
 
   async function buildRoom(index: number) {
     // 1) la partie lente d'abord (la boucle d'affichage continue de tourner pendant ce temps)
-    const theme = game.area.theme;
+    const theme = game.roomTheme;
     await loadArea(game.area);
     // les cartes d'Incarnam partagent la même île (herbe, falaises, ciel du vide) : seule la palette et le décor changent
     const champs = theme !== 'crypt';
@@ -438,7 +438,7 @@ async function main() {
       dust.push({ s, x: rand(60, ROOM_W - 60), y: rand(200, ROOM_H), vx: rand(-6, 6), vy: rand(-10, -3), ph: rand(0, 10) });
     }
     for (const m of game.monsters) monsterViews.set(m.uid, makeMonsterView(m));
-    hud.setArea(game.area.name, game.area.boss ? 'Boss' : 'Élite');
+    hud.setArea(game.detour?.zone ?? game.area.name, game.area.boss ? 'Boss' : 'Élite');
     hud.setRooms(index + 1, game.area.rooms);
     heroView.anim.dead = null;
   }

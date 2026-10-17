@@ -23,7 +23,7 @@ await p.waitForSelector('.camp:not([hidden]) .enter', { timeout: 20000 });
 await p.click('.camp .enter');
 await p.waitForTimeout(1500);
 console.log('carte :', await p.evaluate(() => window.__game.area.name));
-const shapes = { tainela: 'lac', foretAstrub: 'trous', carriere: 'archipel', egouts: 'pont', cour: 'arene' };
+const shapes = { tainela: 'lac', coinBouftous: 'trous', coinBoos: 'archipel', abords: 'pont', cour: 'arene' };
 for (const [id, shape] of Object.entries(shapes)) {
   await p.evaluate(async ([id, shape]) => {
     const g = window.__game;
@@ -50,7 +50,24 @@ await p.evaluate(async () => {
 });
 await p.waitForTimeout(2500);
 await p.screenshot({ path: 'shots/brancheB_archi.png' });
-// Grange : salle du boss
+// détours : une salle de la Forêt d'Astrub (Coin des Bouftous), de la Carrière et des Égouts (Tainéla)
+for (const [zone, want] of [['coinBouftous', 'foretAstrub'], ['tainela', 'carriere'], ['tainela', 'egouts']]) {
+  const got = await p.evaluate(async ([zone, want]) => {
+    const g = window.__game;
+    g.area = (await import('/src/game/data/areas.ts')).AREAS[zone];
+    for (let s = 1; s < 400; s++) {
+      g.seed = s;
+      g.plan[2] = { shape: 'plaine', mirror: false, special: null };
+      g.startRoom(2);
+      if (g.roomTheme === want) { await window.__room(2); g.hero.hp = g.hero.maxHp = 99999; for (const m of g.monsters) m.cd = 99; return [...new Set(g.monsters.map((m) => m.def.name))].join(', '); }
+    }
+    return 'introuvable';
+  }, [zone, want]);
+  await p.waitForTimeout(2500);
+  await p.screenshot({ path: `shots/brancheB_detour_${want}.png` });
+  console.log('détour', want, ':', got);
+}
+// Donjon des Bouftous : salle du boss
 await p.evaluate(async () => {
   const g = window.__game;
   g.area = (await import('/src/game/data/areas.ts')).AREAS.cour;

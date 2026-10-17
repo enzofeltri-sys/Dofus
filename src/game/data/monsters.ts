@@ -179,9 +179,8 @@ export const MONSTERS: Record<string, MonsterDef> = {
   klouneElite: eliteOf(ASTRUB.pichonKloune, 'klouneElite', 'Pichon Kloune d’élite'),
   // branche B (élites : créations)
   chefElite: eliteOf(ASTRUB.chefBouftou, 'chefElite', 'Chef de Guerre Bouftou d’élite'),
-  sanglierElite: eliteOf(ASTRUB.sanglier, 'sanglierElite', 'Sanglier d’élite'),
-  martoaElite: eliteOf(ASTRUB.martoa, 'martoaElite', 'Martoa d’élite'),
-  ramaneElite: eliteOf(ASTRUB.ramane, 'ramaneElite', 'Ramane Strubien d’élite'),
+  bouftouElite: eliteOf(ASTRUB.bouftou, 'bouftouElite', 'Bouftou d’élite'),
+  bouftonNoirElite: eliteOf(ASTRUB.bouftonNoir, 'bouftonNoirElite', 'Boufton Noir d’élite'),
   bouftouNoirElite: eliteOf(ASTRUB.bouftouNoir, 'bouftouNoirElite', 'Bouftou Noir d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,

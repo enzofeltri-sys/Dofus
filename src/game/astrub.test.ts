@@ -9,7 +9,7 @@ import { MID_SHAPES } from './shapes';
 import { ARCHI_CHANCE, flatDist, STEP, World } from './world';
 
 const strong = () => ({ ...startingHero(), hp: 5000 });
-const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange', 'lisiere', 'dunes', 'calanques', 'plage', 'chateau', 'tainela', 'foretAstrub', 'carriere', 'egouts', 'cour'];
+const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange', 'lisiere', 'dunes', 'calanques', 'plage', 'chateau', 'tainela', 'coinBouftous', 'coinBoos', 'abords', 'cour'];
 
 describe('Astrub, branche A', () => {
   it('cartes valides : monstres, élites, boss et archimonstres existent', () => {
@@ -49,6 +49,35 @@ describe('Astrub, branche A', () => {
     }
   });
 
+  it('détours (branche B) : la salle devient la zone visitée, décor et monstres (« si c’est forêt c’est forêt »)', () => {
+    let detours = 0, rooms = 0;
+    for (let seed = 1; seed <= 150; seed++) {
+      const w = new World(seed, strong(), AREAS.coinBouftous);
+      for (let i = 1; i < 4; i++) {
+        w.plan[i] = { ...w.plan[i], special: null };
+        w.startRoom(i);
+        rooms++;
+        const all = [...w.monsters.map((m) => m.def), ...w.reserve.map((r) => r.def)];
+        if (w.detour) {
+          detours++;
+          expect(w.roomTheme).toBe('foretAstrub');
+          for (const d of all) expect(['prespic', 'sanglier', 'ecurouille', 'milimulou'].includes(d.archi?.of ?? d.id), d.id).toBe(true);
+          expect(w.drain().some((e) => e.type === 'wanderers')).toBe(true);
+        } else {
+          expect(w.roomTheme).toBe('coinBouftous');
+          for (const d of all) expect(d.id.startsWith('boufto') || d.id === 'chefBouftou' || d.archi, d.id).toBeTruthy();
+          w.drain();
+        }
+      }
+    }
+    expect(detours / rooms).toBeGreaterThan(0.12);
+    expect(detours / rooms).toBeLessThan(0.28);
+    // jamais dans la salle de l'élite ni dans Incarnam
+    const w = new World(2, strong(), AREAS.coinBouftous);
+    w.startRoom(4);
+    expect(w.detour).toBeNull();
+  });
+
   it('Mob l’Éponge : se soigne (Régénération Spontanée) et n’invoque pas', () => {
     const w = new World(5, { ...startingHero(), hp: 100000 }, AREAS.chateau);
     w.startRoom(AREAS.chateau.rooms - 1);
@@ -72,7 +101,8 @@ describe('Astrub, branche A', () => {
     expect(isUnlocked(node('grange'), ['crypte', 'cite', 'souterrains', 'champsAstrub'])).toBe(false);
     expect(isUnlocked(node('grange'), ['crypte', 'cite', 'souterrains', 'champsAstrub', 'prairies'])).toBe(true);
     expect(isUnlocked(node('cour'), ['grange'])).toBe(false);
-    expect(isUnlocked(node('cour'), ['grange', 'tainela', 'foretAstrub', 'carriere', 'egouts'])).toBe(true);
+    expect(isUnlocked(node('cour'), ['grange', 'tainela', 'coinBouftous', 'coinBoos'])).toBe(false);
+    expect(isUnlocked(node('cour'), ['grange', 'tainela', 'coinBouftous', 'coinBoos', 'abords'])).toBe(true);
   });
 
   it('ni monstre ni décor dans les étangs, sur les 5 décors', () => {

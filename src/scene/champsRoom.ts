@@ -54,6 +54,10 @@ interface Land {
   /** Couleurs des rochers (remplissage, contour) et des remparts (pierre, créneaux, contour). */
   rockCol?: [string, string];
   wallCol?: [string, string, string];
+  /** Les trous deviennent des enclos à Bouftous (paille, barrière de bois) au lieu d'étangs. */
+  pens?: boolean;
+  /** Cadre de feuillage d'automne sombre sur les bords (cour du Donjon des Bouftous). */
+  frame?: boolean;
   water: [string, string, string];
   /** Sol : place pavée (Cité), arène de planches en damier (Grange), dalles moussues (Souterrains). */
   floor?: 'plaza' | 'planks' | 'slabs';
@@ -73,7 +77,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -96,7 +100,14 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     foretAstrub: { ...base, ...green, grass: ['#86c446', '#76b43a', '#64a232'], flowers: 20, land: { sky, hills: ['#6aa83a', '#4e8a2a'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 6, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
     carriere: { ...base, ...green, grass: ['#c8b880', '#bca870', '#ac9860'], light: '#e8dcb0', dark: '#8a7a4a', tuftTones: ['#6a9a32', '#86b03e', '#a8c858'], touch: ['#e8e0c8', '#a89868'], flowers: 0, stone: '#e8e4d8', land: { sky, hills: ['#a8b878', '#d8d4c4'], far: 'trees', border: 'rock', rockCol: ['#e8e4d8', '#6a665a'], water, wheat: 0, dirt: 4, grassy: 0.5, floor: 'slabs', arch: ['#f0ece0', '#b8b4a8', '#5a5650'] } },
     egouts: { ...base, grass: ['#5a6450', '#4e5846', '#444c3c'], light: '#6e7a5a', dark: '#30362a', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#7a826c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1a1e18', '#2a3026'], hills: ['#3a4232', '#2a3024'], far: 'wall', border: 'wall', water: ['#8ab04a', '#5a8a2e', '#36541c'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
-    cour: { ...base, ...green, flowers: 30, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'hedge', water, wheat: 0, dirt: 5, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
+    // Cour du Bouftou Royal : cour fermée, bâtiments aux toits bleus, terre battue, enclos, feuillage d'automne sombre autour
+    cour: { ...base, ...green, flowers: 15, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'sandwall', wallCol: ['#d8ccb0', '#4a6a9a', '#3a3a34'], water, pens: true, frame: true, wheat: 0, dirt: 9, grassy: 0.8, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
+    // Coin des Bouftous : prairie, arbres d'automne, hutte de chaume, dalles de pierre
+    coinBouftous: { ...base, ...green, tiles: true, stone: '#efe6c8', flowers: 30, land: { sky, hills: ['#9ad058', '#78b444'], far: 'trees', border: 'hedge', water, pens: true, wheat: 0, dirt: 5, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    // Coin des Boos : ferme au toit orange, tonneaux, la mer au loin
+    coinBoos: { ...base, ...green, flowers: 25, land: { sky, hills: ['#9ad058', '#78b444'], far: 'barns', border: 'hedge', water, pens: true, wheat: 2, dirt: 5, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    // Abords de la Cour (création) : prairie au pied des murs de la Cour
+    abords: { ...base, ...green, flowers: 25, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'sandwall', wallCol: ['#d8ccb0', '#4a6a9a', '#3a3a34'], water, pens: true, wheat: 0, dirt: 6, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
     souterrains: { ...base, grass: ['#5e6656', '#545c4c', '#4a5042'], light: '#727a62', dark: '#363c30', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#8a8c7c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1e221c', '#2e342a'], hills: ['#3a4032', '#2a3024'], far: 'wall', border: 'wall', water: ['#5a7a4a', '#3e5a34', '#24381e'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
   };
 }
@@ -491,6 +502,28 @@ function pondsSvg(D: Land, shape: RoomShape, r: () => number): string {
   shape.holes.forEach((h, i) => {
     const ry = h.r * P;
     const stadium = (g = 0) => `M${f1(h.x - h.hx)},${f1(h.y - ry - g)} L${f1(h.x + h.hx)},${f1(h.y - ry - g)} A${f1(h.r + g)},${f1(ry + g)} 0 0 1 ${f1(h.x + h.hx)},${f1(h.y + ry + g)} L${f1(h.x - h.hx)},${f1(h.y + ry + g)} A${f1(h.r + g)},${f1(ry + g)} 0 0 1 ${f1(h.x - h.hx)},${f1(h.y - ry - g)} Z`;
+    if (D.pens) {
+      // enclos : paille dorée, barrière de bois tout autour
+      o.push(`<path d="${stadium(6)}" fill="#a8743e" opacity="0.5"/><path d="${stadium()}" fill="#e2c068"/>`);
+      for (let k = 0; k < 40; k++) {
+        const x = h.x - h.hx - h.r * 0.8 + r() * (2 * h.hx + h.r * 1.6), y = h.y - ry * 0.7 + r() * ry * 1.4;
+        o.push(`<path d="M${f1(x)},${f1(y)} l${f1((r() - 0.5) * 14)},${f1(-4 - r() * 4)}" stroke="#b8901a" stroke-width="1.6" stroke-linecap="round"/>`);
+      }
+      const n = Math.max(8, Math.round((2 * h.hx + Math.PI * h.r) / 34));
+      const pts: [number, number][] = [];
+      for (let k = 0; k < n; k++) {
+        const t = k / n, per = 2 * h.hx + Math.PI * h.r, d = t * per * 2;
+        // points le long du contour du stade (haut puis bas)
+        let x: number, y: number;
+        if (d < 2 * h.hx) { x = h.x - h.hx + d; y = h.y - ry; } else if (d < 2 * h.hx + Math.PI * h.r) { const a = -Math.PI / 2 + (d - 2 * h.hx) / h.r; x = h.x + h.hx + Math.cos(a) * h.r; y = h.y + Math.sin(a) * ry; } else if (d < 4 * h.hx + Math.PI * h.r) { x = h.x + h.hx - (d - 2 * h.hx - Math.PI * h.r); y = h.y + ry; } else { const a = Math.PI / 2 + (d - 4 * h.hx - Math.PI * h.r) / h.r; x = h.x - h.hx + Math.cos(a) * h.r; y = h.y + Math.sin(a) * ry; }
+        pts.push([x, y]);
+      }
+      const rail = (dy: number) => pts.map(([x, y], k) => `${k ? 'L' : 'M'}${f1(x)},${f1(y + dy)}`).join(' ') + ' Z';
+      o.push(`<path d="${rail(-12)}" fill="none" stroke="#5a3418" stroke-width="7"/><path d="${rail(-12)}" fill="none" stroke="#c08a4a" stroke-width="4"/>`);
+      o.push(`<path d="${rail(-24)}" fill="none" stroke="#5a3418" stroke-width="7"/><path d="${rail(-24)}" fill="none" stroke="#c08a4a" stroke-width="4"/>`);
+      for (const [x, y] of pts) o.push(`<rect x="${f1(x - 4)}" y="${f1(y - 32)}" width="8" height="34" rx="2" fill="#a8743e" stroke="#3a220c" stroke-width="2"/>`);
+      return;
+    }
     o.push(`<clipPath id="pond${i}"><path d="${stadium()}"/></clipPath>`);
     o.push(`<path d="${stadium(10)}" fill="${D.border === 'wall' ? '#3a3c32' : D.bank ?? '#a8783e'}"/>`);
     o.push(`<path d="${stadium()}" fill="url(#waterG)"/>`);
@@ -511,11 +544,27 @@ function pondsSvg(D: Land, shape: RoomShape, r: () => number): string {
       o.push(`<path d="M${f1(x - 4)},${f1(y)} q1,-12 -2,-18 M${f1(x)},${f1(y)} q1,-14 3,-20 M${f1(x + 4)},${f1(y)} q-1,-10 3,-15" fill="none" stroke="#3a7a22" stroke-width="2.4" stroke-linecap="round"/>`);
     }
   });
-  // passerelles de planches
+  // passerelles de planches (enclos : un passage de terre battue)
+  if (D.pens) {
+    for (const b of shape.bands) o.push(`<rect x="${f1(b.gapX - b.gapHalf - 6)}" y="${f1(b.y - b.half - 20)}" width="${f1(2 * b.gapHalf + 12)}" height="${f1(2 * b.half + 40)}" rx="10" fill="#c89a5a"/>`);
+    return o.join('\n');
+  }
   for (const b of shape.bands) {
     const x0 = b.gapX - b.gapHalf - 6, x1 = b.gapX + b.gapHalf + 6, y0 = b.y - b.half - 14, y1 = b.y + b.half + 14;
     for (let y = y0; y < y1; y += 15) o.push(`<rect x="${f1(x0 + (r() - 0.5) * 3)}" y="${f1(y)}" width="${f1(x1 - x0)}" height="12" rx="2" fill="${shade('#b8824a', (r() - 0.5) * 0.2)}" stroke="#4a2e14" stroke-width="1.8"/>`);
     for (const x of [x0 - 3, x1 + 3]) o.push(`<rect x="${f1(x - 4)}" y="${f1(y0 - 6)}" width="8" height="${f1(y1 - y0 + 12)}" rx="3" fill="#8a5a2e" stroke="#3a220c" stroke-width="2"/>`);
+  }
+  return o.join('\n');
+}
+
+/** Cadre de feuillage d'automne sombre (la cour du Donjon des Bouftous, comme sur les vraies cartes). */
+function darkFrame(r: () => number): string {
+  const o: string[] = [`<radialGradient id="frameG" cx="0.5" cy="0.55" r="0.75"><stop offset="0.62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#140c04" stop-opacity="0.75"/></radialGradient>`];
+  o.push(`<rect x="0" y="0" width="${ROOM_W}" height="${ROOM_H}" fill="url(#frameG)"/>`);
+  for (const side of [0, 1]) for (let y = FLOOR_TOP - 40; y < ROOM_H + 40; y += 46) {
+    const x = side ? ROOM_W - 6 + (r() - 0.5) * 20 : 6 + (r() - 0.5) * 20, R = 30 + r() * 18;
+    const c = r() < 0.4 ? '#6a3a10' : r() < 0.7 ? '#3a4a14' : '#5a2a0a';
+    o.push(`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(R)}" fill="${c}" opacity="0.92"/><circle cx="${f1(x + (side ? -R * 0.3 : R * 0.3))}" cy="${f1(y - R * 0.3)}" r="${f1(R * 0.45)}" fill="#c8701a" opacity="0.35"/>`);
   }
   return o.join('\n');
 }
@@ -537,6 +586,7 @@ function landRoom(D: Land, shape: RoomShape | undefined, r: () => number): strin
     landBorder(D, back, r, 56),
     shape ? pondsSvg(D, shape, r) : '',
     exitArch(),
+    D.frame ? darkFrame(r) : '',
   ].join('\n');
 }
 

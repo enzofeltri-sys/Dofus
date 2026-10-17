@@ -9,7 +9,7 @@ import type { Theme } from './data/areas';
 export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
   | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain'
   | 'autumnTree' | 'fence' | 'barn' | 'haystack' | 'house' | 'stall' | 'crates' | 'sunflowers' | 'pipe'
-  | 'palm' | 'shell' | 'shellBlue' | 'sandrock' | 'tower' | 'pebbles' | 'mossrock' | 'quarry';
+  | 'palm' | 'shell' | 'shellBlue' | 'sandrock' | 'tower' | 'pebbles' | 'mossrock' | 'quarry' | 'hut' | 'barrels';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -31,7 +31,7 @@ export interface Obstacle {
 const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
   redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56,
   autumnTree: 32, fence: 40, barn: 66, haystack: 38, house: 66, stall: 44, crates: 36, sunflowers: 0, pipe: 30,
-  palm: 24, shell: 32, shellBlue: 32, sandrock: 42, tower: 40, pebbles: 0, mossrock: 42, quarry: 46 };
+  palm: 24, shell: 32, shellBlue: 32, sandrock: 42, tower: 40, pebbles: 0, mossrock: 42, quarry: 46, hut: 56, barrels: 36 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -207,7 +207,10 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   foretAstrub: { block: [['autumnTree', 1.1, 1.3], ['autumnTree', 1.1, 1.3], ['mossrock', 0.85, 1.05], ['autumnTree', 1.1, 1.3]], decor: ['flowers'] },
   carriere: { block: [['quarry', 0.85, 1.05], ['quarry', 0.85, 1.05], ['crates', 0.9, 1.1], ['mossrock', 0.8, 0.95]], decor: ['pebbles'] },
   egouts: { block: [['pipe', 0.95, 1.15], ['pipe', 0.95, 1.15], ['crates', 0.9, 1.1], ['block', 0.8, 1]], decor: ['bones'] },
-  cour: { block: [['haystack', 0.9, 1.1], ['crates', 0.9, 1.1], ['fence', 1, 1.1], ['autumnTree', 1.05, 1.2]], decor: ['flowers'] },
+  cour: { block: [['stall', 0.95, 1.1], ['haystack', 0.9, 1.1], ['crates', 0.9, 1.1], ['barrels', 0.9, 1.05]], decor: ['flowers'] },
+  coinBouftous: { block: [['autumnTree', 1.05, 1.25], ['autumnTree', 1.05, 1.25], ['hut', 1.0, 1.15], ['mossrock', 0.8, 1]], decor: ['flowers'] },
+  coinBoos: { block: [['barn', 0.7, 0.8], ['barrels', 0.9, 1.05], ['haystack', 0.9, 1.05], ['fence', 1, 1.1], ['autumnTree', 1, 1.15]], decor: ['flowers'] },
+  abords: { block: [['autumnTree', 1.05, 1.2], ['fence', 1, 1.1], ['crates', 0.9, 1.1], ['haystack', 0.9, 1.05]], decor: ['flowers'] },
 };
 
 /** Zone de la salle et formes à éviter pour poser un décor. */
