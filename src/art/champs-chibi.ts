@@ -251,7 +251,7 @@ interface SheepStyle {
 const SHEEP_STYLE: Record<string, SheepStyle> = {
   palichon: { fleece: '#f2f7f6', face: '#a9bcb4', hoof: '#8ff0b4', iris: '#6a7a3a', ear: '#93aaa2', horn: 'small', hornCol: '#8fa49c' },
   orageux: { fleece: '#7f978b', face: '#1f2a25', hoof: '#eef8f4', iris: '#3a4a3a', ear: '#2a3630', horn: 'small', hornCol: '#f2f6f4' },
-  nuageux: { fleece: '#f4f8f8', face: '#cfe2dc', hoof: '#8ff0b4', iris: '#7a6a2a', ear: '#f6c6d2', nose: '#3fcf8f', sleepy: true, horn: 'small', hornCol: '#f6d0da' },
+  nuageux: { fleece: '#f4f8f8', face: '#cfe2dc', hoof: '#8ff0b4', iris: '#7a6a2a', ear: '#b4cac4', nose: '#3fcf8f', sleepy: true, horn: 'small', hornCol: '#e6eeec' },
   bouftor: { fleece: '#eef7fb', face: '#c4d8dc', hoof: '#8ff0b4', iris: '#2a5a7a', ear: '#a8c6d0', horn: 'ram', hornCol: '#5e6662', crystals: true },
 };
 
@@ -270,7 +270,7 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
   const S = SHEEP_STYLE[kind];
   const P: Parts = {};
   // pattes très courtes : seuls les sabots dépassent de la toison
-  const leg = (x: number, y0: number) => tube(`M${x},${y0} L${x - 1},${y0 + 5}`, 9, shade(S.fleece, -0.15)) + blob(ellipse(x - 1, y0 + 10, 10, 6.5), S.hoof);
+  const leg = (x: number, y0: number) => tube(`M${x},${y0} L${x - 1},${y0 + 7}`, 8, shade(S.fleece, -0.15)) + blob(ellipse(x - 1, y0 + 10, 5.5, 3.5), S.hoof, { w: 1.4, rim: false });
   // queue (cristal pour le Bouftor)
   push(P, 'tail', S.crystals
     ? blob('M114,96 L130,74 L124,92 L138,86 L126,100 Z', '#bfe6f6', { ink: '#5a8aa0' }) + tube('M112,100 Q122,96 126,88', 3, '#7aa4b4')
@@ -302,11 +302,12 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
     // corne en spirale (pierre gravée) enroulée sur le côté de la tête
     const spiral = 'M56,98 C44,70 70,48 92,60 C114,72 108,104 86,110 C70,114 64,98 72,90 C78,84 88,88 86,96';
     const back = 'M66,90 C66,70 84,58 100,64 C110,68 112,80 106,86';
-    push(P, 'horn',
-      tube(back, 14, shade(S.hornCol, -0.25), '#1e2220'),
-      tube(spiral, 19, S.hornCol, '#1e2220'),
-      `<path d="M58,76 l7,5 M76,58 l2,8 M98,64 l-4,7 M106,88 l-8,0 M94,106 l-4,-6" stroke="#c8d0cc" stroke-width="2.4" stroke-linecap="round"/>`,
-      `<path d="M62,70 Q72,56 88,56" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.35"/>`);
+    // plus petite (réduite autour de l'attache de la tête)
+    push(P, 'horn', `<g transform="translate(60,96) scale(0.62) translate(-60,-96)">` +
+      tube(back, 14, shade(S.hornCol, -0.25), '#1e2220') +
+      tube(spiral, 19, S.hornCol, '#1e2220') +
+      `<path d="M58,76 l7,5 M76,58 l2,8 M98,64 l-4,7 M106,88 l-8,0 M94,106 l-4,-6" stroke="#c8d0cc" stroke-width="2.4" stroke-linecap="round"/>` +
+      `<path d="M62,70 Q72,56 88,56" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.35"/></g>`);
   } else {
     push(P, 'horn', blob('M48,82 Q46,70 54,66 Q60,70 56,82 Z', S.hornCol));
   }
