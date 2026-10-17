@@ -398,56 +398,70 @@ export function kardoribChibiSvg(part?: ChaferPart): string {
 /* Vampires des Cryptes (même découpe que les Chafers)                                       */
 /* ======================================================================================== */
 
-/** Vampire : visage blafard, cheveux blancs, yeux rouges, haut col rouge, grande cape noire doublée de rouge. Maître : plus large, bras blancs musclés, touches violettes. */
+/**
+ * Vampire : grande capuche rouge pointue, longs cheveux blancs, visage blafard et fin, yeux rouges, crocs,
+ * épaulière à pointes, longue cape noire doublée de rouge. Maître Vampire : massif, énorme bras blanc nu, gilet rouge, touches violettes.
+ */
 function vampireChibiSvg(kind: 'vampire' | 'maitreVampire', part?: ChaferPart): string {
   begin();
   const P = empty();
   const master = kind === 'maitreVampire';
-  const SKIN = '#f2eeea', SKIN_INK = '#5a4a52', CLOTH = '#262a26', RED = '#b8221e', TRIM = master ? '#5a2a7a' : '#2e3a2a';
+  const SKIN = '#f4f0ee', SKIN_INK = '#5a4a56', CLOTH = '#24282a', RED = '#c0241e', LEG = master ? '#4a2a6a' : '#2e3a2c';
   const glow = uid('glow');
-  // cape : extérieur noir, doublure rouge, s'évase jusqu'au sol
-  P.cape.push(blob('M80,60 Q120,70 132,170 L110,160 L100,174 L88,160 L76,170 Q78,110 72,66 Z', '#7a1412', { ink: '#2a0404' }));
-  P.cape.push(blob('M84,62 Q114,76 122,160 L108,152 Q100,110 84,70 Z', RED, { ink: '#4a0a08', rim: false }));
+  // cape : extérieur noir, doublure rouge ; celle du Maître traîne au sol
+  P.cape.push(master
+    ? blob('M62,62 Q118,64 142,166 Q146,178 126,178 L44,178 Q30,176 40,168 Q58,150 58,70 Z', '#6a1210', { ink: '#240404' })
+    : blob('M66,62 Q120,68 136,170 L118,164 L106,176 L92,166 L78,176 L62,170 Q62,120 64,70 Z', '#1e1a1c', { ink: '#050405' }));
+  P.cape.push(blob(master ? 'M70,66 Q116,74 132,168 L90,172 Q96,120 70,74 Z' : 'M76,64 Q116,76 126,164 L110,158 Q104,110 78,72 Z', RED, { ink: '#4a0a08', rim: false }));
   // bras arrière
-  P.armB.push(`<path d="M96,80 Q106,96 102,114" fill="none" stroke="#0e100e" stroke-width="${master ? 13 : 10}" stroke-linecap="round"/><path d="M96,80 Q106,96 102,114" fill="none" stroke="${CLOTH}" stroke-width="${master ? 10 : 7}" stroke-linecap="round"/>`);
-  P.armB.push(blob('M96,112 Q102,108 108,114 L106,122 L100,120 Z', SKIN, { ink: SKIN_INK, rim: false }));
-  // jambes : pantalon sombre, bottes pointues violet-noir
+  P.armB.push(`<path d="M96,80 Q108,96 104,116" fill="none" stroke="#0a0c0a" stroke-width="${master ? 15 : 11}" stroke-linecap="round"/><path d="M96,80 Q108,96 104,116" fill="none" stroke="${CLOTH}" stroke-width="${master ? 12 : 8}" stroke-linecap="round"/>`);
+  P.armB.push(blob('M98,114 Q106,110 110,118 L106,126 L100,122 Z', SKIN, { ink: SKIN_INK, rim: false }));
+  // jambes et bottes pointues
   const leg = (arr: string[], hip: number, foot: number) => {
-    arr.push(`<path d="M${hip},112 L${foot + 2},150" stroke="#0e100e" stroke-width="13" stroke-linecap="round"/><path d="M${hip},112 L${foot + 2},150" stroke="${TRIM}" stroke-width="10" stroke-linecap="round"/>`);
-    arr.push(blob(`M${foot - 8},146 L${foot + 10},146 L${foot + 12},172 Q${foot + 10},177 ${foot + 4},177 L${foot - 22},177 Q${foot - 26},174 ${foot - 18},170 L${foot - 10},166 Z`, '#2a1a30', { ink: '#0a060e' }));
+    arr.push(`<path d="M${hip},112 L${foot + 2},150" stroke="#0a0c0a" stroke-width="${master ? 15 : 13}" stroke-linecap="round"/><path d="M${hip},112 L${foot + 2},150" stroke="${LEG}" stroke-width="${master ? 12 : 10}" stroke-linecap="round"/>`);
+    arr.push(blob(`M${foot - 8},144 L${foot + 10},144 L${foot + 12},172 Q${foot + 10},177 ${foot + 4},177 L${foot - 24},177 Q${foot - 28},173 ${foot - 18},169 L${foot - 10},164 Z`, '#2a1a32', { ink: '#0a060e' }));
+    arr.push(`<path d="M${foot - 8},150 L${foot + 11},150" stroke="${RED}" stroke-width="2.4"/>`);
   };
   leg(P.legB, 94, 100);
   leg(P.legF, 80, 70);
-  // ceinture et basques de la tunique
-  P.pelvis.push(blob('M70,100 L102,100 L104,120 L94,116 L86,126 L78,116 L68,120 Z', CLOTH, { ink: '#0a0c0a' }));
-  P.pelvis.push(blob('M70,98 L102,98 L102,105 L70,105 Z', '#3a2418', { ink: '#120a06', w: 1.2, rim: false }), `<rect x="83" y="97" width="7" height="9" rx="1.5" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="1"/>`);
-  // torse : tunique noire, plastron rouge en V
-  const torso = master ? 'M62,66 Q88,56 108,68 L104,102 Q86,108 68,102 Q58,86 62,66 Z' : 'M68,68 Q88,60 104,70 L100,102 Q86,106 72,102 Q64,86 68,68 Z';
-  P.chest.push(blob(torso, CLOTH, { ink: '#0a0c0a' }));
-  P.chest.push(blob('M76,68 L96,68 L86,92 Z', RED, { ink: '#4a0a08', w: 1.2, rim: false }));
-  P.chest.push(`<path d="M86,70 L86,90" stroke="#4a0a08" stroke-width="1"/>`);
-  // bras avant : manche sombre, main blafarde aux griffes (Maître : avant-bras blanc musclé)
+  // basques de la tunique, ceinture
+  P.pelvis.push(blob('M68,98 L104,98 L106,122 L96,116 L88,128 L80,116 L70,122 L66,116 Z', CLOTH, { ink: '#060806' }));
+  P.pelvis.push(blob('M68,96 L104,96 L104,104 L68,104 Z', master ? '#5a2a7a' : '#3a2418', { ink: '#120a06', w: 1.2, rim: false }), `<rect x="83" y="95" width="7" height="10" rx="1.5" fill="${GOLD}" stroke="${GOLD_INK}" stroke-width="1"/>`);
+  // torse
+  P.chest.push(blob(master ? 'M58,66 Q88,52 112,66 L106,100 Q86,108 66,100 Q54,84 58,66 Z' : 'M66,68 Q88,58 106,70 L100,100 Q86,106 72,100 Q62,86 66,68 Z', CLOTH, { ink: '#060806' }));
+  P.chest.push(master
+    ? blob('M70,66 L102,66 L96,98 L76,98 Z', RED, { ink: '#4a0a08', w: 1.2 }) + `<path d="M86,68 L86,96 M78,74 L94,74 M78,84 L94,84" stroke="#4a0a08" stroke-width="1.2"/>`
+    : blob('M76,68 L96,68 L86,94 Z', RED, { ink: '#4a0a08', w: 1.2, rim: false }));
+  // épaulière à pointes argentées (épaule arrière)
+  P.chest.push(blob('M92,64 L98,52 L102,62 L110,54 L110,68 Q102,74 92,72 Z', '#9a9ca6', { ink: '#26262e', w: 1.4 }));
+  // bras avant
   if (master) {
-    P.armF.push(`<path d="M72,76 Q56,88 46,94" fill="none" stroke="#0e100e" stroke-width="16" stroke-linecap="round"/><path d="M72,76 Q56,88 46,94" fill="none" stroke="${CLOTH}" stroke-width="12" stroke-linecap="round"/>`);
-    P.armF.push(blob('M54,84 Q36,80 28,94 Q30,108 46,106 Q58,102 58,92 Z', SKIN, { ink: SKIN_INK }));
-    P.armF.push(blob('M30,96 L18,92 L22,98 L14,100 L24,104 L20,108 L32,106 Z', SKIN, { ink: SKIN_INK, w: 1.3 }));
+    // énorme bras blanc nu, bracelet violet, griffes
+    P.armF.push(blob('M80,64 Q58,56 46,76 Q40,94 54,100 Q72,98 80,82 Z', SKIN, { ink: SKIN_INK }));
+    P.armF.push(blob('M56,82 Q32,76 20,94 Q20,114 40,114 Q58,110 62,94 Z', SKIN, { ink: SKIN_INK }));
+    P.armF.push(`<path d="M60,72 Q66,80 62,88 M40,92 Q46,98 42,104" fill="none" stroke="#c8bcc4" stroke-width="2.4" stroke-linecap="round"/>`);
+    P.armF.push(blob('M48,86 L58,84 L62,98 L52,102 Z', '#5a2a7a', { ink: '#1e0a2a', w: 1.3, rim: false }));
+    P.armF.push(blob('M26,96 L12,90 L18,98 L8,102 L20,104 L14,112 L30,108 Z', SKIN, { ink: SKIN_INK, w: 1.3 }));
   } else {
-    P.armF.push(`<path d="M74,78 Q60,90 48,94" fill="none" stroke="#0e100e" stroke-width="12" stroke-linecap="round"/><path d="M74,78 Q60,90 48,94" fill="none" stroke="${CLOTH}" stroke-width="9" stroke-linecap="round"/>`);
-    P.armF.push(blob('M50,88 Q40,86 36,94 Q38,102 48,100 Q54,96 50,88 Z', SKIN, { ink: SKIN_INK }));
-    P.armF.push(`<path d="M38,92 L28,88 M37,96 L26,96 M39,100 L30,104" stroke="${SKIN_INK}" stroke-width="2" stroke-linecap="round"/>`);
+    P.armF.push(`<path d="M74,76 Q60,88 46,92" fill="none" stroke="#0a0c0a" stroke-width="13" stroke-linecap="round"/><path d="M74,76 Q60,88 46,92" fill="none" stroke="${CLOTH}" stroke-width="10" stroke-linecap="round"/>`);
+    P.armF.push(`<path d="M52,86 L44,96" stroke="${RED}" stroke-width="3"/>`);
+    P.armF.push(blob('M46,86 Q36,84 32,92 Q34,102 44,100 Q50,96 46,86 Z', SKIN, { ink: SKIN_INK }));
+    P.armF.push(`<path d="M34,90 L22,84 M33,94 L20,95 M35,98 L24,104" stroke="${SKIN_INK}" stroke-width="2.2" stroke-linecap="round"/>`);
   }
-  // tête : haut col rouge, visage blafard, longs cheveux blancs, oreille pointue, yeux rouges, crocs
+  // tête : capuche rouge haute et pointue, longs cheveux blancs, visage fin, oreille pointue, yeux rouges, crocs
   const h = P.head;
   h.push(glowFilter(glow, 1.6));
-  h.push(blob('M54,72 Q50,30 70,12 Q92,4 104,22 Q110,52 100,76 Z', RED, { ink: '#4a0a08' }));
-  h.push(blob('M76,4 Q100,4 104,30 Q104,56 94,72 L86,70 Q92,40 76,24 Z', '#e8e6ea', { ink: '#6a6670' }));
-  h.push(blob('M38,38 C38,22 50,14 64,14 C80,14 90,26 88,44 C86,58 76,66 62,66 C48,66 38,54 38,38 Z', SKIN, { ink: SKIN_INK }));
-  h.push(blob('M84,34 L102,22 L94,42 Z', SKIN, { ink: SKIN_INK, w: 1.3 }));
-  h.push(blob('M36,30 C40,8 64,2 82,8 Q94,14 92,30 Q76,18 62,26 Q48,22 36,30 Z', '#f4f2f6', { ink: '#6a6670' }));
-  h.push(`<path d="M44,36 L56,40 M66,38 L76,35" stroke="#2a1a1e" stroke-width="2.6" stroke-linecap="round"/>`);
-  h.push(`<ellipse cx="50" cy="44" rx="5" ry="4" fill="#1a0a0c"/><ellipse cx="71" cy="43" rx="4" ry="3.4" fill="#1a0a0c"/>`);
-  h.push(`<circle cx="50" cy="44" r="4.6" fill="#ff2a2a" filter="url(#${glow})" opacity="0.9"/><circle cx="50" cy="44" r="2" fill="#ffb0a0"/><circle cx="71" cy="43" r="1.7" fill="#ffb0a0"/>`);
-  h.push(`<path d="M50,56 Q58,60 66,56" fill="none" stroke="#5a1a1e" stroke-width="2" stroke-linecap="round"/><path d="M53,57 L55,62 L57,58 M60,58 L62,62 L64,57" fill="#fff" stroke="#5a4a52" stroke-width="0.8"/>`);
-  if (master) h.push(`<path d="M40,52 Q36,58 40,64" fill="none" stroke="#c8c4cc" stroke-width="3" stroke-linecap="round"/>`);
+  h.push(blob('M50,68 Q38,30 62,10 Q76,-6 86,6 Q112,30 102,70 Q90,76 76,74 Q60,74 50,68 Z', RED, { ink: '#3e0806' }));
+  h.push(`<path d="M52,70 Q48,34 66,16 M100,74 Q104,40 86,16" fill="none" stroke="#7a1210" stroke-width="2" opacity="0.7"/>`);
+  h.push(blob('M70,12 Q96,10 100,40 Q102,64 96,84 L86,82 Q88,52 74,30 Z', '#e8e6ee', { ink: '#6a6874' }));
+  h.push(`<path d="M84,30 Q92,52 90,78 M78,26 Q86,46 84,70" fill="none" stroke="#b8b6c4" stroke-width="1.4"/>`);
+  h.push(blob('M40,36 C40,22 50,14 62,14 C76,14 84,24 84,38 C84,52 74,64 60,68 C48,64 40,50 40,36 Z', SKIN, { ink: SKIN_INK }));
+  h.push(blob('M80,36 L100,20 L92,44 Z', SKIN, { ink: SKIN_INK, w: 1.3 }));
+  h.push(blob('M36,32 C38,10 60,4 78,8 Q92,14 90,32 Q84,22 74,24 L68,32 L62,24 Q50,22 36,32 Z', '#f4f2f8', { ink: '#6a6874' }));
+  h.push(`<path d="M44,38 L57,42 M66,40 L77,36" stroke="#1e1418" stroke-width="2.8" stroke-linecap="round"/>`);
+  h.push(`<path d="M44,44 Q50,40 57,45 Q51,49 44,44 Z" fill="#1a0a0c"/><path d="M66,44 Q71,40 77,42 Q72,47 66,44 Z" fill="#1a0a0c"/>`);
+  h.push(`<circle cx="51" cy="45" r="4.4" fill="#ff2222" filter="url(#${glow})" opacity="0.95"/><circle cx="51" cy="45" r="1.8" fill="#ffd0c0"/><circle cx="71.5" cy="43.5" r="1.5" fill="#ffd0c0"/>`);
+  h.push(`<path d="M50,56 Q58,59 66,55" fill="none" stroke="#5a1a1e" stroke-width="2" stroke-linecap="round"/><path d="M53,56.6 L55,62 L57,57.4 M61,57.2 L63,62 L64.6,56.4" fill="#fff" stroke="#5a4a56" stroke-width="0.8"/>`);
+  h.push(`<path d="M56,46 L54,52 L57,52" fill="none" stroke="#c8bcc4" stroke-width="1.2"/>`);
   return assemble(P, part);
 }
