@@ -1,3 +1,4 @@
+import type { CritterKind } from '../../art/champs-chibi';
 import { baseStats, type DamageRoll, type Stats } from '../formulas';
 import { astrubMonsters } from './monsters.astrub';
 
@@ -99,11 +100,8 @@ export interface MonsterDef {
   charge?: { every: number; attack: MonsterAttack; dash: number };
 }
 
-export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol'
-  | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon'
-  | 'plikplok' | 'gloot' | 'splatch' | 'aminite' | 'feuVif' | 'feuJoie' | 'feuFurieux' | 'feuFollet'
-  | 'piouViolet' | 'piouRouge' | 'piouVert' | 'piouBleu' | 'piouRose' | 'piouJaune' | 'tofuMalade' | 'arakneMalade' | 'araknose' | 'arakmute'
-  | 'tournesolSauvage' | 'roseDemo' | 'pissenlitDiabo' | 'epouvanteur' | 'gardienne' | 'tournesolAffame' | 'larveBleue' | 'larveVerte' | 'larveOrange' | 'larveJaune';
+/** Dessin : Chafers et Kardorim (rig des Chafers), ou une des bestioles d'Incarnam et d'Astrub. */
+export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | CritterKind;
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s) ; 0 = pas de craquement. */
