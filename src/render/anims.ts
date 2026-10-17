@@ -144,7 +144,11 @@ export function poseChafer(r: Rig, a: ChaferAnim, scale: number) {
  * Tofu : sautille, bat des ailes, coup de bec ; plantes : trottinent sur leurs pieds-racines, la tête se balance,
  * se penche en arrière pour préparer un sort et pique du nez en le lançant. Mort : elles s'affaissent et s'effacent.
  */
-export function poseCritter(r: Rig, a: ChaferAnim, tofu: boolean) {
+/** Famille de dessin : tofu (ailes, sauts), plante (tige, feuilles), mouton (toison, cornes), chat (queue, feu follet). */
+export type CritterFamily = 'tofu' | 'plant' | 'sheep' | 'cat';
+
+export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
+  const tofu = family === 'tofu';
   if (a.dead !== null) {
     const k = ease.out(clamp01(a.dead / 0.5));
     for (const name of r.parts.keys()) r.pose(name, { rot: name === 'head' ? 0.9 * k : name.startsWith('leaf') || name.startsWith('wing') ? -0.6 * k : 0 });
@@ -176,6 +180,22 @@ export function poseCritter(r: Rig, a: ChaferAnim, tofu: boolean) {
     r.pose('wingF', { rot: flap });
     r.pose('body', { rot: head * 0.5, dy: breath * 0.8 });
     r.pose('crest', { rot: head * 0.5 - (a.moving ? 0.15 : 0) + breath * 0.06, dy: breath * 0.8 });
+  } else if (family === 'sheep') {
+    // petits pas trottinants, la toison rebondit, la tête plonge pour mordre ou charger
+    r.pose('legB', { rot: w * 0.45 });
+    r.pose('legF', { rot: -w * 0.45 });
+    r.pose('body', { dy: breath * 0.9 - Math.abs(w) * 1.2 });
+    r.pose('tail', { rot: (a.moving ? Math.sin(a.walkPh * 2) * 0.35 : breath * 0.1), dy: breath * 0.9 });
+    r.pose('head', { rot: head * 0.8 + breath * 0.04, dy: breath * 0.6 });
+    r.pose('horn', { rot: head * 0.8 + breath * 0.04, dy: breath * 0.6 });
+  } else if (family === 'cat') {
+    // le bloc respire, la queue ondule, le feu follet flotte
+    r.pose('legB', { rot: w * 0.3 });
+    r.pose('legF', { rot: -w * 0.3 });
+    r.pose('body', { dy: breath * 1.1 });
+    r.pose('head', { rot: head * 0.4 + breath * 0.03, dy: breath * 1.1 });
+    r.pose('tail', { rot: Math.sin(a.t * 2.2 + a.seed) * 0.12 + (a.moving ? Math.sin(a.walkPh) * 0.12 : 0) });
+    r.pose('wisp', { dy: Math.sin(a.t * 3.1 + a.seed) * 3 });
   } else {
     r.pose('legB', { rot: w * 0.4 });
     r.pose('legF', { rot: -w * 0.4 });

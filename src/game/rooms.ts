@@ -4,7 +4,10 @@
  * Coordonnées en pixels de salle (720 de large), sol à partir de y = 300.
  */
 
-export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers';
+import type { Theme } from './data/areas';
+
+export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
+  | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -23,7 +26,8 @@ export interface Obstacle {
 }
 
 /** Rayon d'obstacle de chaque objet (0 = décor traversable). */
-const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0 };
+const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
+  redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -86,8 +90,90 @@ const CHAMPS_TEMPLATES: PropPlacement[][] = [
   ],
 ];
 
-export function roomLayout(index: number, theme: 'crypt' | 'champs' = 'crypt'): PropPlacement[] {
-  const t = theme === 'champs' ? CHAMPS_TEMPLATES : TEMPLATES;
+/** Pâturages : comme les Champs, avec buissons rouges et blocs de pierre sombre. */
+const PATURAGES_TEMPLATES: PropPlacement[][] = [
+  [
+    { kind: 'redbush', x: 180, y: 640 }, { kind: 'block', x: 540, y: 700 }, { kind: 'block', x: 600, y: 760, scale: 0.8 },
+    { kind: 'blossom', x: 170, y: 1160, scale: 1.3 }, { kind: 'redbush', x: 560, y: 1200, scale: 1.1 },
+    { kind: 'flowers', x: 330, y: 560 }, { kind: 'flowers', x: 460, y: 980 }, { kind: 'flowers', x: 140, y: 900 },
+  ],
+  [
+    { kind: 'block', x: 220, y: 620 }, { kind: 'block', x: 500, y: 620 },
+    { kind: 'redbush', x: 360, y: 900, scale: 1.2 },
+    { kind: 'stone', x: 190, y: 1180 }, { kind: 'blossom', x: 550, y: 1160, scale: 1.3 },
+    { kind: 'flowers', x: 130, y: 820 }, { kind: 'flowers', x: 600, y: 860 }, { kind: 'flowers', x: 360, y: 1300 },
+  ],
+  [
+    { kind: 'blossom', x: 160, y: 560, scale: 1.3 }, { kind: 'redbush', x: 570, y: 600 },
+    { kind: 'block', x: 300, y: 960 }, { kind: 'block', x: 520, y: 1040, scale: 0.9 },
+    { kind: 'redbush', x: 170, y: 1260 },
+    { kind: 'flowers', x: 420, y: 720 }, { kind: 'flowers', x: 590, y: 1300 },
+  ],
+  [
+    { kind: 'redbush', x: 200, y: 640 }, { kind: 'redbush', x: 520, y: 640 },
+    { kind: 'block', x: 180, y: 1150 }, { kind: 'stele', x: 540, y: 1150 },
+    { kind: 'flowers', x: 360, y: 520 }, { kind: 'flowers', x: 300, y: 880 }, { kind: 'flowers', x: 430, y: 880 },
+  ],
+];
+
+/** Forêt : arbres en fleurs serrés, grandes cornes d'ivoire. */
+const FORET_TEMPLATES: PropPlacement[][] = [
+  [
+    { kind: 'blossom', x: 170, y: 620, scale: 1.4 }, { kind: 'blossom', x: 560, y: 680, scale: 1.35 },
+    { kind: 'horns', x: 380, y: 940 }, { kind: 'blossom', x: 150, y: 1180, scale: 1.3 }, { kind: 'blossom', x: 580, y: 1220, scale: 1.4 },
+    { kind: 'flowers', x: 300, y: 560 }, { kind: 'flowers', x: 470, y: 1100 },
+  ],
+  [
+    { kind: 'horns', x: 200, y: 640 }, { kind: 'blossom', x: 520, y: 600, scale: 1.4 },
+    { kind: 'blossom', x: 360, y: 940, scale: 1.4 },
+    { kind: 'blossom', x: 170, y: 1200, scale: 1.3 }, { kind: 'horns', x: 550, y: 1160 },
+    { kind: 'flowers', x: 130, y: 860 }, { kind: 'flowers', x: 600, y: 900 },
+  ],
+  [
+    { kind: 'blossom', x: 150, y: 560, scale: 1.35 }, { kind: 'blossom', x: 360, y: 600, scale: 1.25 }, { kind: 'blossom', x: 580, y: 580, scale: 1.35 },
+    { kind: 'horns', x: 260, y: 1000 }, { kind: 'blossom', x: 520, y: 1060, scale: 1.3 },
+    { kind: 'blossom', x: 170, y: 1300, scale: 1.25 },
+    { kind: 'flowers', x: 420, y: 800 },
+  ],
+  [
+    { kind: 'horns', x: 190, y: 660 }, { kind: 'horns', x: 530, y: 660 },
+    { kind: 'blossom', x: 170, y: 1150, scale: 1.4 }, { kind: 'blossom', x: 550, y: 1150, scale: 1.4 },
+    { kind: 'flowers', x: 360, y: 520 }, { kind: 'flowers', x: 360, y: 1320 },
+  ],
+];
+
+/** Cimetière : tombes, arbres morts, piliers-lanternes. */
+const CIMETIERE_TEMPLATES: PropPlacement[][] = [
+  [
+    { kind: 'lantern', x: 170, y: 600 }, { kind: 'tomb', x: 530, y: 700 }, { kind: 'tomb', x: 610, y: 740, scale: 0.85 },
+    { kind: 'deadtree', x: 160, y: 1160, scale: 1.2 }, { kind: 'tomb', x: 540, y: 1180 },
+    { kind: 'bones', x: 330, y: 560 }, { kind: 'bones', x: 470, y: 1000 },
+  ],
+  [
+    { kind: 'tomb', x: 210, y: 640 }, { kind: 'tomb', x: 290, y: 660, scale: 0.85 }, { kind: 'lantern', x: 520, y: 620 },
+    { kind: 'deadtree', x: 360, y: 940, scale: 1.25 },
+    { kind: 'tomb', x: 180, y: 1190 }, { kind: 'lantern', x: 560, y: 1160 },
+    { kind: 'bones', x: 600, y: 880 },
+  ],
+  [
+    { kind: 'deadtree', x: 160, y: 580, scale: 1.2 }, { kind: 'lantern', x: 580, y: 600 },
+    { kind: 'tomb', x: 300, y: 970 }, { kind: 'tomb', x: 380, y: 990, scale: 0.85 }, { kind: 'tomb', x: 540, y: 1060 },
+    { kind: 'deadtree', x: 180, y: 1290 },
+    { kind: 'bones', x: 420, y: 720 },
+  ],
+  [
+    { kind: 'lantern', x: 200, y: 640 }, { kind: 'lantern', x: 520, y: 640 },
+    { kind: 'tomb', x: 180, y: 1150 }, { kind: 'deadtree', x: 550, y: 1160, scale: 1.2 },
+    { kind: 'bones', x: 360, y: 880 }, { kind: 'bones', x: 360, y: 1320 },
+  ],
+];
+
+const THEME_TEMPLATES: Record<Theme, PropPlacement[][]> = {
+  crypt: TEMPLATES, champs: CHAMPS_TEMPLATES, paturages: PATURAGES_TEMPLATES, foret: FORET_TEMPLATES, cimetiere: CIMETIERE_TEMPLATES,
+};
+
+export function roomLayout(index: number, theme: Theme = 'crypt'): PropPlacement[] {
+  const t = THEME_TEMPLATES[theme];
   return t[index % t.length];
 }
 

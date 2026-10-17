@@ -1,17 +1,18 @@
 import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, type ChaferKind } from './art/chafer';
 import { chaferChibiSvg as chaferSvg, kardoribChibiSvg as kardoribSvg, kardorimChibiSvg as kardorimSvg } from './art/monsters-chibi';
-import type { MonsterArt } from './game/data/monsters';
+import { MONSTERS, type MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
 import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
 import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
-import { poseChafer, poseCritter, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
-import { CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, type CritterKind } from './art/champs-chibi';
+import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
+import { CATS, CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
+import { darkBlock, deadTree, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
@@ -76,7 +77,10 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
   return new Texture({ source: new ImageSource({ resource: c }) });
 }
 
-const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers };
+const PROP_ART: Record<PropKind, () => PropArt> = {
+  column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers,
+  redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar,
+};
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
 interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
@@ -104,17 +108,20 @@ async function main() {
     Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
     svgTexture(gateBarsSvg(), RES),
     svgTexture(champsGateSvg(), RES),
-    ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
+    ...(['debutant', 'furtif', 'piquier', 'sergent', 'eclaireur'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
-  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol'];
-  const critterTex = await Promise.all(CRITTERS.map((k) => Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * (k === 'tournesol' ? 1.3 : 1))))));
-  const chaferTex: Record<MonsterArt, Texture[]> = {
-    debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], kardorim: chaferFlat[4], kardorib: chaferFlat[5],
-    tofu: critterTex[0], pissenlit: critterTex[1], rose: critterTex[2], tournesol: critterTex[3],
-  };
+  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol', 'palichon', 'orageux', 'nuageux', 'bouftor', 'chakrobat', 'tigrimas', 'ronronchon'];
+  // résolution de la texture selon la plus grande taille d'affichage du monstre (élites agrandies)
+  const artScale = (k: MonsterArt) => Math.max(1, ...Object.values(MONSTERS).filter((d) => d.art === k).map((d) => d.scale ?? 1));
+  const critterTex = await Promise.all(CRITTERS.map((k) => Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))))));
+  const chaferTex = {
+    debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], eclaireur: chaferFlat[4], kardorim: chaferFlat[5], kardorib: chaferFlat[6],
+    ...Object.fromEntries(CRITTERS.map((k, i) => [k, critterTex[i]])),
+  } as Record<MonsterArt, Texture[]>;
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
+  const familyOf = (k: CritterKind): CritterFamily => (k === 'tofu' ? 'tofu' : SHEEP.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : 'plant');
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
     (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
@@ -283,8 +290,10 @@ async function main() {
 
   async function buildRoom(index: number) {
     // 1) la partie lente d'abord (la boucle d'affichage continue de tourner pendant ce temps)
-    const champs = game.area.theme === 'champs';
-    const newBg = await svgTexture(champs ? champsRoomSvg(2000 + index * 23) : cryptRoomSvg(1000 + index * 17), RES);
+    const theme = game.area.theme;
+    // les cartes d'Incarnam partagent la même île (herbe, falaises, ciel du vide) : seule la palette et le décor changent
+    const champs = theme !== 'crypt';
+    const newBg = await svgTexture(theme !== 'crypt' ? champsRoomSvg(2000 + index * 23, theme) : cryptRoomSvg(1000 + index * 17), RES);
     // 2) puis remplacement synchrone de l'ancienne salle
     // nettoyage
     for (const g of roomGlows) g.s.destroy();
@@ -335,6 +344,7 @@ async function main() {
       c.zIndex = p.y;
       actors.addChild(c);
       roomProps.push(c);
+      if (p.kind === 'lantern') addGlow(p.x, p.y - 104 * sc, 0xffd870, 1.5, 0.3);
       if (p.kind === 'brazier') {
         addFlame(c, BRAZIER_FIRE[0], BRAZIER_FIRE[1] + 30, 1.5);
         addGlow(p.x, p.y - 46, 0xffb040, 2.4, 0.3);
@@ -904,11 +914,14 @@ async function main() {
   camY = camTarget();
   document.getElementById('loading')?.classList.add('done');
   if (SHOW_CAMP) {
-    void openCamp().then(() => {
+    void openCamp().then(async () => {
       // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
+      const before = game.area;
       game.restart(heroFromSave(), areaOf());
       hud.setLevel(game.hero.def.level);
       hud.setSlots(slotViews());
+      // autre carte choisie au camp : décor, titre et monstres de la nouvelle carte
+      if (game.area !== before) await buildRoom(0);
     });
   }
 
@@ -974,7 +987,7 @@ async function main() {
       a.spawn = m.state === 'spawn' ? m.t / SPAWN_TIME : 1;
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
-      if (isCritter(m.def.art)) poseCritter(v.rig, a, m.def.art === 'tofu');
+      if (isCritter(m.def.art)) poseCritter(v.rig, a, familyOf(m.def.art));
       else poseChafer(v.rig, a, CHAR_SCALE * (m.def.scale ?? 1));
       v.hpBar.visible = m !== game.boss && m !== game.elite && m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
       if (v.hpBar.visible) {

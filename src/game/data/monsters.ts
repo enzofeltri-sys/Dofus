@@ -92,7 +92,8 @@ export interface MonsterDef {
   charge?: { every: number; attack: MonsterAttack; dash: number };
 }
 
-export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol';
+export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol'
+  | 'palichon' | 'orageux' | 'nuageux' | 'bouftor' | 'chakrobat' | 'tigrimas' | 'ronronchon';
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s). */
@@ -114,6 +115,13 @@ const champ = (rows: [number, number, Res5, number][], more: (i: number) => Part
   rows.map(([lv, hp, res, xp], i) => g(lv, hp, 0, res, xp, 0, 0, 0, 0, more(i)));
 
 /** Sergent Chafer (DofusDB 4050) : Force et Intelligence, résistance Feu. */
+/**
+ * Grades DofusDB complets : niveau, PV, [Force, Intelligence, Chance, Agilité, Sagesse], résistances, XP, tacle, esquive PA, esquive PM.
+ */
+type Row = [number, number, [number, number, number, number, number], Res5, number, number, number, number];
+const rows = (r: Row[]) => r.map(([lv, hp, [fo, int, cha, agi, sa], res, xp, tac, epa, epm]) =>
+  g(lv, hp, fo, res, xp, sa, tac, epa, epm, { intelligence: int, chance: cha, agilite: agi }));
+
 const SERGENT = [[7, 36, 60, 160, 20, 7], [8, 40, 70, 190, 25, 7], [9, 44, 80, 230, 30, 7], [10, 49, 90, 280, 35, 7], [11, 54, 100, 340, 40, 6]]
   .map(([lv, hp, f, xp, sa, epa], i) => g(lv, hp, f, feu(10 + i), xp, sa, 10, epa, 5, { intelligence: f }));
 
@@ -205,6 +213,92 @@ export const MONSTERS: Record<string, MonsterDef> = {
     grades: champ([[3, 21, [10, 0, -10, 0, -15], 70], [4, 24, [11, 0, -9, 0, -14], 90], [5, 28, [12, 0, -8, 0, -13], 110], [6, 32, [13, 0, -7, 0, -12], 130], [7, 36, [14, 0, -6, 0, -11], 160]]),
     behavior: 'caster', speed: 70, radius: 30, art: 'tournesol', scale: 1.3, hpMult: 2.5, xpMult: 2.5,
     attack: { shape: 'circle', trigger: 480, size: 78, spread: 0, offset: 0, windup: 1.0, recover: 0.45, cooldown: [1.8, 2.4], roll: roll('terre', 4, 5), atTarget: true },
+  },
+  /* ---------- Pâturages d'Incarnam (carte 2) : DofusDB, sorts de grade 1 × 0,25 ---------- */
+
+  /** Boufton Pâlichon (972) : niveaux 3-7, 2 PM (lent). Mâchouillage : Air 19-26 au corps à corps. */
+  palichon: {
+    id: 'palichon', name: 'Boufton Pâlichon', dofusId: 972,
+    grades: rows([[3, 21, [0, 0, 0, 15, 0], [0, -4, -5, -5, 1], 70, 0, 0, 0], [4, 24, [0, 0, 0, 20, 0], [0, -3, -4, -4, 2], 90, 0, 0, 0], [5, 28, [0, 0, 0, 25, 0], [0, -2, -3, -3, 3], 110, 0, 0, 0], [6, 32, [0, 0, 0, 30, 0], [0, -1, -2, -2, 4], 130, 0, 0, 0], [7, 36, [0, 0, 0, 35, 0], [0, 0, -1, -1, 5], 160, 0, 0, 0]]),
+    behavior: 'melee', speed: 115, radius: 22, art: 'palichon', scale: 0.9,
+    attack: { shape: 'circle', trigger: 90, size: 54, spread: 0, offset: 48, windup: 0.42, recover: 0.25, cooldown: [0.9, 1.3], roll: roll('air', 5, 7) },
+  },
+  /** Boufton Orageux (973) : niveaux 3-7, 2 PM. Mordillement : Eau 19-26 au corps à corps. */
+  orageux: {
+    id: 'orageux', name: 'Boufton Orageux', dofusId: 973,
+    grades: rows([[3, 21, [0, 0, 0, 15, 0], [-3, -10, -8, -8, -2], 70, 0, 0, 0], [4, 24, [0, 0, 0, 20, 0], [-3, -8, -9, -9, -2], 90, 0, 0, 0], [5, 28, [0, 0, 0, 25, 0], [-2, -6, -10, -10, -1], 110, 0, 0, 0], [6, 32, [0, 0, 0, 30, 0], [-1, -4, -11, -11, 0], 130, 0, 0, 0], [7, 36, [0, 0, 0, 35, 0], [-1, -2, -12, -12, 0], 160, 0, 0, 0]]),
+    behavior: 'melee', speed: 115, radius: 22, art: 'orageux', scale: 0.9,
+    attack: { shape: 'circle', trigger: 90, size: 54, spread: 0, offset: 48, windup: 0.42, recover: 0.25, cooldown: [0.9, 1.3], roll: roll('eau', 5, 7) },
+  },
+  /** Bouftou Nuageux (971) : niveaux 4-8, 3 PM. Morsure : Terre 2-4 seulement (vraie valeur) → il mord peu mais encaisse (Neutre 10-14 %). */
+  nuageux: {
+    id: 'nuageux', name: 'Bouftou Nuageux', dofusId: 971,
+    grades: rows([[4, 24, [0, 0, 0, 10, 5], [10, -10, -15, 0, 0], 90, 0, 0, 0], [5, 28, [0, 0, 0, 11, 6], [11, -9, -14, 0, 0], 110, 0, 0, 0], [6, 32, [0, 0, 0, 12, 7], [12, -8, -13, 0, 0], 130, 0, 0, 0], [7, 36, [0, 0, 0, 13, 8], [13, -7, -12, 0, 0], 160, 0, 0, 0], [8, 40, [0, 0, 0, 14, 9], [14, -6, -11, 0, 0], 190, 0, 0, 0]]),
+    behavior: 'melee', speed: 135, radius: 28, art: 'nuageux', scale: 1.25,
+    attack: { shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.45, recover: 0.25, cooldown: [0.9, 1.3], roll: roll('terre', 1, 1) },
+  },
+  /**
+   * Bouftor Éthéré (984) : niveaux 5-9, 4 PM, grosse esquive. Morsure du Bouftou : Feu 21-30 au corps à corps ;
+   * Fureur du Bouftou : Terre 16-25, 1-4 cases en ligne, tous les 2 tours → charge annoncée toutes les 8 s.
+   * Élite de fin de carte : plus grand, PV et XP ×2,5.
+   */
+  bouftor: {
+    id: 'bouftor', name: 'Bouftor Éthéré', dofusId: 984,
+    grades: rows([[5, 28, [10, 0, 0, 25, 10], [0, 0, -10, -10, -4], 110, 0, 9, 12], [6, 32, [15, 0, 0, 30, 20], [0, 0, -8, -8, -3], 130, 0, 11, 16], [7, 36, [20, 0, 0, 35, 30], [0, 0, -6, -6, -2], 160, 0, 14, 20], [8, 40, [25, 0, 0, 40, 40], [0, 0, -4, -4, -1], 190, 0, 16, 24], [9, 44, [30, 0, 0, 45, 50], [0, 0, -2, -2, 0], 230, 0, 19, 28]]),
+    behavior: 'brute', speed: 125, radius: 34, art: 'bouftor', scale: 1.55, hpMult: 2.5, xpMult: 2.5,
+    attack: { shape: 'circle', trigger: 115, size: 74, spread: 0, offset: 66, windup: 0.55, recover: 0.3, cooldown: [1.1, 1.5], roll: roll('feu', 5, 8) },
+    charge: {
+      every: 8, dash: 260,
+      attack: { shape: 'line', trigger: 360, size: 300, spread: 30, offset: 0, windup: 0.85, recover: 0.6, cooldown: [1.2, 1.6], roll: roll('terre', 4, 6) },
+    },
+  },
+
+  /* ---------- Forêt d'Incarnam (carte 3) ---------- */
+
+  /** Chakrobat (982) : niveaux 4-8. Souffle Céleste : Terre 4-5 au corps à corps (1 fois par tour) → faible mais vif. */
+  chakrobat: {
+    id: 'chakrobat', name: 'Chakrobat', dofusId: 982,
+    grades: rows([[4, 24, [0, 0, 0, 0, 0], [-10, -4, -4, -5, 0], 90, 0, 0, 0], [5, 28, [0, 0, 0, 0, 0], [-8, -3, -3, -4, 0], 110, 0, 1, 1], [6, 32, [0, 0, 0, 0, 0], [-6, -2, -2, -3, 0], 130, 0, 1, 1], [7, 36, [0, 0, 0, 0, 0], [-4, -1, -1, -2, 0], 160, 0, 2, 2], [8, 40, [0, 0, 0, 0, 0], [-2, 0, 0, -1, 0], 190, 0, 2, 2]]),
+    behavior: 'melee', speed: 190, radius: 22, art: 'chakrobat', scale: 0.95,
+    attack: { shape: 'circle', trigger: 90, size: 54, spread: 0, offset: 48, windup: 0.32, recover: 0.22, cooldown: [1.2, 1.6], roll: roll('terre', 1, 2) },
+  },
+  /** Tigrimas (4106) : niveaux 5-9, tacle 20. Lancer de Feu Vif : Neutre 17-23, 1-3 cases en ligne. */
+  tigrimas: {
+    id: 'tigrimas', name: 'Tigrimas', dofusId: 4106,
+    grades: rows([[5, 28, [10, 0, 20, 10, 10], [2, 0, -10, 2, 0], 110, 20, 7, 8], [6, 32, [20, 0, 25, 20, 20], [4, 0, -8, 4, 0], 130, 20, 10, 12], [7, 36, [30, 0, 30, 30, 30], [6, 0, -6, 6, 0], 160, 20, 12, 16], [8, 40, [40, 0, 35, 40, 40], [8, 0, -4, 8, 0], 190, 20, 15, 20], [9, 44, [50, 0, 40, 50, 50], [10, 0, -2, 10, 0], 230, 20, 17, 24]]),
+    behavior: 'lancer', speed: 140, radius: 24, art: 'tigrimas',
+    attack: { shape: 'line', trigger: 170, size: 180, spread: 22, offset: 0, windup: 0.5, recover: 0.3, cooldown: [1.2, 1.6], roll: neutre(4, 6) },
+  },
+  /**
+   * Ronronchon (4105) : niveaux 6-10. Ron-Ron : Neutre 11-20, 1-2 cases ; Écrasement du Ronronchon : Neutre 16-20 + poussée.
+   * Élite de fin de carte : plus grand, PV et XP ×2,5. (Son Invocation de Feu de Joie n'est pas encore reprise.)
+   */
+  ronronchon: {
+    id: 'ronronchon', name: 'Ronronchon', dofusId: 4105,
+    grades: rows([[6, 32, [20, 10, 0, 10, 20], [0, 0, -10, 2, -10], 130, 10, 0, 0], [7, 36, [30, 20, 0, 15, 30], [0, 0, -8, 4, -8], 160, 10, 0, 0], [8, 40, [40, 30, 0, 20, 40], [0, 0, -6, 6, -6], 190, 10, -1, 0], [9, 44, [60, 40, 0, 25, 60], [0, 0, -4, 8, -4], 230, 10, -1, 0], [10, 49, [80, 50, 0, 30, 80], [0, 0, -2, 10, -2], 280, 10, -2, 0]]),
+    behavior: 'brute', speed: 105, radius: 36, art: 'ronronchon', scale: 1.3, hpMult: 2.5, xpMult: 2.5,
+    attack: { shape: 'cone', trigger: 140, size: 165, spread: 0.7, offset: 0, windup: 0.65, recover: 0.35, cooldown: [1.2, 1.7], roll: neutre(3, 5) },
+    charge: {
+      every: 7, dash: 200,
+      attack: { shape: 'line', trigger: 300, size: 240, spread: 32, offset: 0, windup: 0.9, recover: 0.6, cooldown: [1.2, 1.6], roll: neutre(4, 5) },
+    },
+  },
+
+  /* ---------- Cimetière d'Incarnam (carte 4) ---------- */
+
+  /** Chafer Éclaireur (4048) : niveaux 6-10, Intelligence. Flèche de Feu : Feu 8-12, 1-6 cases en ligne (+ brûlure). */
+  chaferEclaireur: {
+    id: 'chaferEclaireur', name: 'Chafer Éclaireur', dofusId: 4048,
+    grades: rows([[6, 32, [10, 30, 0, 10, 10], [0, 10, 0, 0, 0], 130, 5, 3, 2], [7, 36, [15, 40, 0, 15, 10], [0, 11, 0, 0, 0], 160, 5, 3, 2], [8, 40, [20, 50, 0, 20, 10], [0, 12, 0, 0, 0], 190, 5, 3, 2], [9, 44, [25, 60, 0, 25, 10], [0, 13, 0, 0, 0], 230, 5, 3, 2], [10, 49, [30, 70, 0, 30, 10], [0, 14, 0, 0, 0], 280, 5, 3, 2]]),
+    behavior: 'lancer', speed: 120, radius: 24, art: 'eclaireur',
+    attack: { shape: 'line', trigger: 300, size: 320, spread: 18, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.4, 1.9], roll: roll('feu', 3, 4) },
+  },
+  /** Élite du Cimetière (création : pas d'élite de ce niveau dans Dofus) : le vrai Chafer Piquier, plus grand, PV et XP ×2,5. */
+  piquierElite: {
+    id: 'piquierElite', name: 'Chafer Piquier d’élite', dofusId: 4049,
+    grades: [g(7, 36, 20, eau(10), 160, 0, 15, 6, 0), g(8, 40, 30, eau(11), 190, 0, 15, 6, 0), g(9, 44, 40, eau(12), 230, 0, 15, 6, 0), g(10, 49, 50, eau(13), 280, 0, 15, 6, 0), g(11, 54, 60, eau(14), 340, 0, 15, 6, 0)],
+    behavior: 'lancer', speed: 115, radius: 32, art: 'piquier', scale: 1.3, hpMult: 2.5, xpMult: 2.5,
+    attack: { shape: 'line', trigger: 220, size: 240, spread: 28, offset: 0, windup: 0.6, recover: 0.32, cooldown: [1.0, 1.4], roll: neutre(5, 9) },
   },
 };
 

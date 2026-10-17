@@ -5,7 +5,7 @@ import { CRYPT_POOL } from './monsters';
  * Une zone = 4 cartes de farm (5 salles, une élite à la fin), puis son donjon.
  */
 
-export type Theme = 'crypt' | 'champs';
+export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere';
 
 export interface AreaDef {
   id: string;
@@ -47,6 +47,30 @@ export const CHAMPS: AreaDef = {
   theme: 'champs',
 };
 
+export const PATURAGES: AreaDef = {
+  id: 'paturages', name: 'Pâturages d’Incarnam', kind: 'map', zone: 'incarnam', level: 6,
+  sub: '5 salles · élite : Bouftor Éthéré',
+  rooms: 5, pool: ['palichon', 'orageux', 'palichon', 'orageux', 'nuageux'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'bouftor', grade: 3, adds: 3, addGrade: 2 },
+  theme: 'paturages',
+};
+
+export const FORET: AreaDef = {
+  id: 'foret', name: 'Forêt d’Incarnam', kind: 'map', zone: 'incarnam', level: 7,
+  sub: '5 salles · élite : Ronronchon',
+  rooms: 5, pool: ['chakrobat', 'chakrobat', 'tigrimas'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'ronronchon', grade: 3, adds: 3, addGrade: 2 },
+  theme: 'foret',
+};
+
+export const CIMETIERE: AreaDef = {
+  id: 'cimetiere', name: 'Cimetière d’Incarnam', kind: 'map', zone: 'incarnam', level: 8,
+  sub: '5 salles · élite : Chafer Piquier',
+  rooms: 5, pool: ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', 'chaferEclaireur', 'chaferPiquier'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'piquierElite', grade: 3, adds: 3, addGrade: 2 },
+  theme: 'cimetiere',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -66,24 +90,21 @@ export interface Zone {
   nodes: TreeNode[];
 }
 
-/**
- * Arbre des zones. Incarnam : Champs → (Pâturages, Forêt, Cimetière : étape 9b) → Crypte de Kardorim.
- * En attendant les cartes 2 à 4, la Crypte se débloque dès que les Champs sont terminés.
- */
+/** Arbre des zones. Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
 export const ZONES: Zone[] = [
   {
     id: 'incarnam', name: 'Incarnam',
     nodes: [
       { id: 'champs', name: 'Champs', level: 3, kind: 'map', area: CHAMPS, needs: [] },
-      { id: 'paturages', name: 'Pâturages', level: 6, kind: 'map', needs: ['champs'], soon: true },
-      { id: 'foret', name: 'Forêt', level: 7, kind: 'map', needs: ['champs'], soon: true },
-      { id: 'cimetiere', name: 'Cimetière', level: 8, kind: 'map', needs: ['champs'], soon: true },
-      { id: 'crypte', name: 'Crypte de Kardorim', level: 10, kind: 'dungeon', area: CRYPTE, needs: ['champs'] },
+      { id: 'paturages', name: 'Pâturages', level: 6, kind: 'map', area: PATURAGES, needs: ['champs'] },
+      { id: 'foret', name: 'Forêt', level: 7, kind: 'map', area: FORET, needs: ['champs'] },
+      { id: 'cimetiere', name: 'Cimetière', level: 8, kind: 'map', area: CIMETIERE, needs: ['champs'] },
+      { id: 'crypte', name: 'Crypte de Kardorim', level: 10, kind: 'dungeon', area: CRYPTE, needs: ['champs', 'paturages', 'foret', 'cimetiere'] },
     ],
   },
 ];
 
-export const AREAS: Record<string, AreaDef> = { crypte: CRYPTE, champs: CHAMPS };
+export const AREAS: Record<string, AreaDef> = { crypte: CRYPTE, champs: CHAMPS, paturages: PATURAGES, foret: FORET, cimetiere: CIMETIERE };
 
 /** Étapes jouables et débloquées. */
-export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && n.needs.every((id) => done.includes(id));
+export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.includes(n.id) || n.needs.every((id) => done.includes(id)));

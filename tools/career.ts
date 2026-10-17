@@ -1,10 +1,10 @@
 // Simulation d'une « carrière » : un nouveau Sacrieur (niveau 1, sans équipement) enchaîne les Cryptes.
 // L'XP est gardée même en cas de défaite ; tous les points vont en Force. Sans équipement (sauf `arme=<id>`).
-// npx vite-node tools/career.ts [joueurs] [parties max] [arme=<id>] [joueur=moyen|bon]
+// npx vite-node tools/career.ts [joueurs] [parties max] [zone=<id>] [niveau=<départ>] [arme=<id>] [joueur=moyen|bon]
 import { autopilotInput } from '../src/game/autopilot';
 import { applyCard, drawCards, type Card } from '../src/game/cards';
 import { startingHero } from '../src/game/data/hero';
-import { addXp, invest, levelForXp, pointsFree, type Profile } from '../src/game/progression';
+import { addXp, invest, levelForXp, pointsFree, XP_TABLE, type Profile } from '../src/game/progression';
 import { newProfile } from '../src/game/save';
 import { rng } from '../src/iso';
 import { STEP, World, type Vec } from '../src/game/world';
@@ -18,12 +18,14 @@ const good = process.argv.includes('joueur=bon');
 const areaArg = process.argv.find((a) => a.startsWith('zone='));
 const area = AREAS[areaArg ? areaArg.slice(5) : 'crypte'];
 const TOTAL_ROOMS = area.rooms;
+const lvArg = process.argv.find((a) => a.startsWith('niveau='));
+const startLevel = lvArg ? Number(lvArg.slice(7)) : 1;
 const score = (c: Card) => (c.kind === 'spell' ? 3 : c.kind === 'upgrade' ? (c.up === 'dmg' ? 2 : 1.5) : c.stat === 'vitalite' ? 1.8 : 1);
 
 const firstWin: number[] = [];
 const byRun = new Map<number, { room: number[]; level: number[]; min: number[] }>();
 for (let p = 1; p <= players; p++) {
-  let prof: Profile = newProfile();
+  let prof: Profile = { ...newProfile(), xp: XP_TABLE[startLevel] ?? 0 };
   let won = false;
   for (let r = 1; r <= maxRuns && !won; r++) {
     prof = invest(prof, 'force', pointsFree(prof));
