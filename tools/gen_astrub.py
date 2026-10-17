@@ -15,6 +15,9 @@ def rows(mid):
     for r in out:
         if r[4] == 0:
             r[4] = out[0][4]
+    # Milimulou : DofusDB lui donne 10 grades (22-30 puis 82-90, autre version) → on garde les 5 premiers
+    if not m.get('isMiniBoss') and len(out) > 5:
+        out = out[:5]
     return m['name']['fr'], out
 
 # id, dofusId, art, comportement, vitesse, rayon, échelle, attaque (TS), commentaire
@@ -48,11 +51,35 @@ d('pichonBlanc', 922, 'pichonBlanc', 'melee', 130, 24, 0.85, "{ shape: 'circle',
 d('pichonVert', 923, 'pichonVert', 'melee', 130, 22, 0.8, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.4, recover: 0.24, cooldown: [0.9, 1.3], roll: roll('terre', 4, 6) }", 'Reflux : Terre 17-22 au corps à corps (repousse) ; 4 PM')
 d('pichonKloune', 924, 'pichonKloune', 'caster', 120, 22, 0.8, "{ shape: 'circle', trigger: 190, size: 60, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [1.5, 2.0], roll: roll('feu', 5, 7), atTarget: true }", 'Blag : Terre, Air et Feu 7-10 chacun, 1-3 cases ; 4 PM')
 
+# Branche B (validée par Enzo) : Tainéla, Forêt d'Astrub, Carrière, Égouts, Donjon des Bouftous
+# charge annoncée en ligne (Fureur du Bouftou, Charge Forcée), comme le Bouftor d'Incarnam
+CH = ", charge: { every: 8, dash: 260, attack: { shape: 'line', trigger: 360, size: 300, spread: 30, offset: 0, windup: 0.85, recover: 0.6, cooldown: [1.2, 1.6], roll: roll('terre', 4, 6) } }"
+MEL = lambda el, a, b, sp=(0.9, 1.3): f"{{ shape: 'circle', trigger: 100, size: 60, spread: 0, offset: 54, windup: 0.42, recover: 0.25, cooldown: [{sp[0]}, {sp[1]}], roll: {'neutre(' if el == 'neutre' else f"roll('{el}', "}{a}, {b}) }}"
+d('bouftou', 101, 'bouftou', 'melee', 150, 30, 1.25, MEL('feu', 5, 7), 'Morsure du Bouftou : Feu 21-30 au corps à corps ; 4 PM')
+d('bouftonBlanc', 134, 'bouftonBlanc', 'melee', 125, 22, 0.9, MEL('air', 5, 6), 'Mâchouillage : Air 19-26 au corps à corps')
+d('bouftonNoir', 149, 'bouftonNoir', 'melee', 125, 22, 0.9, MEL('eau', 5, 6), 'Mordillement : Eau 19-26 au corps à corps')
+d('chefBouftou', 148, 'chefBouftou', 'brute', 140, 32, 1.4, MEL('neutre', 5, 7, (1.0, 1.4)), 'Morsure de Guerre : Neutre 21-30 au corps à corps ; Fureur du Bouftou : Terre 16-25, 1-4 cases en ligne, tous les 2 tours → charge', CH)
+d('bouftouNoir', 4822, 'bouftouNoir', 'melee', 130, 32, 1.3, MEL('neutre', 4, 6), 'Morsure Obscure : Neutre 16-25 au corps à corps')
+d('prespic', 103, 'prespic', 'lancer', 115, 22, 0.9, "{ shape: 'line', trigger: 290, size: 310, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.4, 1.9], roll: roll('feu', 5, 6) }", 'Moquerie : Feu 21-26, 1-8 cases en ligne')
+d('sanglier', 104, 'sanglier', 'brute', 135, 30, 1.15, MEL('neutre', 3, 4, (1.0, 1.4)), 'Perce-vessie : Neutre 9-12 au corps à corps (repousse) ; Charge Forcée → charge', CH)
+d('ecurouille', 4823, 'ecurouille', 'caster', 110, 22, 0.9, "{ shape: 'circle', trigger: 220, size: 58, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [1.5, 2.0], roll: neutre(3, 4), atTarget: true }", 'Taie de Gland : Neutre 11-16, 1-4 cases')
+d('milimulou', 159, 'milimulou', 'melee', 150, 30, 1.2, MEL('terre', 5, 7), 'Déboyautage : Terre 21-30 au corps à corps ; 4 PM')
+d('martoa', 5228, 'martoa', 'caster', 130, 22, 0.85, "{ shape: 'circle', trigger: 210, size: 60, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [1.5, 2.0], roll: roll('air', 5, 8), atTarget: true }", 'Marteau Branlant : Air 13-20 puis 9-12, 1-4 cases')
+d('sherpoa', 5229, 'sherpoa', 'caster', 120, 22, 0.85, "{ shape: 'circle', trigger: 330, size: 62, spread: 0, offset: 0, windup: 0.85, recover: 0.4, cooldown: [1.8, 2.4], roll: roll('terre', 4, 6), atTarget: true }", 'Lancer de Caillou : Terre 17-24, 1-6 cases')
+d('douzdoa', 5230, 'douzdoa', 'melee', 140, 22, 0.85, MEL('feu', 4, 6), 'Vissage : Feu 17-24 au corps à corps (repousse)')
+d('pikdoa', 5231, 'pikdoa', 'caster', 130, 22, 0.85, "{ shape: 'circle', trigger: 210, size: 60, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [1.5, 2.0], roll: roll('eau', 4, 5), atTarget: true }", 'Piochage : Eau 15-20, 1-4 cases')
+d('arakneEgouts', 255, 'arakneEgouts', 'melee', 165, 26, 0.95, MEL('terre', 4, 5, (0.8, 1.1)), 'Mandibules : Terre 15-17 au corps à corps (2 PA : deux fois par tour)')
+d('scelerat', 465, 'scelerat', 'melee', 150, 24, 1, MEL('eau', 4, 5), 'Mordillage : Eau 16-18 au corps à corps')
+d('milirat', 475, 'milirat', 'lancer', 115, 22, 0.9, "{ shape: 'line', trigger: 250, size: 270, spread: 22, offset: 0, windup: 0.55, recover: 0.3, cooldown: [1.3, 1.8], roll: roll('eau', 3, 4) }", 'Lancer de Lance : Eau 12-14, 1-6 cases en ligne')
+d('ramane', 3205, 'ramane', 'caster', 105, 24, 0.95, "{ shape: 'circle', trigger: 300, size: 62, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.7, 2.3], roll: roll('terre', 3, 4), atTarget: true }", 'Roblochon ancestral : Terre 14-16, 1-5 cases')
+
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
-         (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc')]
+         (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc'),
+         (2315, 'bouftonBlanc'), (2316, 'bouftonNoir'), (2317, 'bouftou'), (2324, 'chefBouftou'), (2333, 'milimulou'), (2349, 'prespic'), (2353, 'sanglier'),
+         (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -60,7 +87,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A et C (Cité, Souterrains, Champs, Prairies, Grange ; Côte et Château Ensablé) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

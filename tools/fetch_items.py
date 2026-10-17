@@ -32,7 +32,10 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 473, 474, 4817, 4818, 2312, 2356, 48, 78, 79, 4820, 2348, 2352, 2358,
                 31, 34, 46, 5225, 2331, 2332, 2339, 2574, 4821, 799,
                 # branche C : Pichons des Calanques et du Château Ensablé (+ archimonstres, Mob l'Éponge)
-                920, 921, 922, 923, 924, 2272, 2338, 2340, 2346, 928]
+                920, 921, 922, 923, 924, 2272, 2338, 2340, 2346, 928,
+                # branche B : Tainéla, Forêt d'Astrub, Carrière, Égouts, Donjon des Bouftous (+ archimonstres, Bouftou Royal)
+                101, 134, 149, 148, 4822, 103, 104, 4823, 159, 5228, 5229, 5230, 5231, 255, 465, 475, 3205,
+                2315, 2316, 2317, 2324, 2333, 2349, 2353, 2334, 2350, 2393, 147]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -214,7 +217,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568}
 dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')

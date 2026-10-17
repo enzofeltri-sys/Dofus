@@ -12,7 +12,7 @@ import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, FLAMES, JELLIES, CRITTER_PIV
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
-import { autumnTree, barn, bigShell, cityHouse, crates, fence, haystack, marketStall, palmTree, pebbles, pipe, sandRock, sandTower, sunflowers } from './art/astrubProps';
+import { autumnTree, barn, bigShell, cityHouse, crates, fence, haystack, marketStall, mossRock, palmTree, pebbles, pipe, quarryBlock, sandRock, sandTower, sunflowers } from './art/astrubProps';
 import { boneHands, chest, darkBlock, deadTree, fountain, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
@@ -100,7 +100,7 @@ const PROP_ART: Record<PropKind, () => PropArt> = {
   column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers,
   redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar, chest: () => chest(), fountain,
   autumnTree, fence, barn, haystack, house: cityHouse, stall: marketStall, crates, sunflowers, pipe,
-  palm: palmTree, shell: () => bigShell(), shellBlue: () => bigShell('#7ab8f0', '#f8a8c8'), sandrock: sandRock, tower: sandTower, pebbles,
+  palm: palmTree, shell: () => bigShell(), shellBlue: () => bigShell('#7ab8f0', '#f8a8c8'), sandrock: sandRock, tower: sandTower, pebbles, mossrock: mossRock, quarry: quarryBlock,
 };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }

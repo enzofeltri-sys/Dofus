@@ -177,6 +177,25 @@ export const MONSTERS: Record<string, MonsterDef> = {
   pichonBleuElite: eliteOf(ASTRUB.pichonBleu, 'pichonBleuElite', 'Pichon Bleu d’élite'),
   pichonVertElite: eliteOf(ASTRUB.pichonVert, 'pichonVertElite', 'Pichon Vert d’élite'),
   klouneElite: eliteOf(ASTRUB.pichonKloune, 'klouneElite', 'Pichon Kloune d’élite'),
+  // branche B (élites : créations)
+  chefElite: eliteOf(ASTRUB.chefBouftou, 'chefElite', 'Chef de Guerre Bouftou d’élite'),
+  sanglierElite: eliteOf(ASTRUB.sanglier, 'sanglierElite', 'Sanglier d’élite'),
+  martoaElite: eliteOf(ASTRUB.martoa, 'martoaElite', 'Martoa d’élite'),
+  ramaneElite: eliteOf(ASTRUB.ramane, 'ramaneElite', 'Ramane Strubien d’élite'),
+  bouftouNoirElite: eliteOf(ASTRUB.bouftouNoir, 'bouftouNoirElite', 'Bouftou Noir d’élite'),
+  /**
+   * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
+   * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
+   * Morsure du Bouftou Royal : Feu 31-46 et vol de vie Feu 31-46 au contact (on garde une ligne : 31-46, valeur réelle) ;
+   * Guérison Bouftou : soin 51-75 PV (sans délai dans Dofus, 1 fois par tour → toutes les 4 s). N'invoque pas.
+   */
+  bouftouRoyal: {
+    id: 'bouftouRoyal', name: 'Bouftou Royal', dofusId: 147,
+    grades: ([[610, 8600], [690, 10000], [760, 12000], [830, 15000], [900, 17280]] as const).map(([hp, xp]) => g(30, hp, 120, [35, 20, 20, 25, 5], xp, 120, 0, 0, 0, { intelligence: 120, chance: 120, agilite: 120 })),
+    behavior: 'boss', speed: 120, radius: 48, art: 'bouftouRoyal', scale: 1.75,
+    attack: { shape: 'circle', trigger: 140, size: 100, spread: 0, offset: 82, windup: 0.8, recover: 0.45, cooldown: [1.4, 1.9], roll: { min: 31, max: 46, critBonus: 5, critBase: 3, element: 'feu' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'bouftou', maxSummons: 0, heal: { every: 4, min: 51, max: 75, spell: 'Guérison Bouftou' } },
+  },
   /**
    * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.
    * Dégraissage : vol de vie Eau 15-20 au contact (valeur réelle, comme les autres boss) ;

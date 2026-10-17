@@ -6,7 +6,8 @@ import { CRYPT_POOL } from './monsters';
  */
 
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
-  | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau';
+  | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
+  | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour';
 
 export interface AreaDef {
   id: string;
@@ -179,6 +180,53 @@ export const CHATEAU: AreaDef = {
   theme: 'chateau',
 };
 
+/* ---------- Astrub, branche B (validée par Enzo) : Tainéla, Forêt d'Astrub, Carrière, Égouts → Donjon des Bouftous ---------- */
+
+export const TAINELA: AreaDef = {
+  id: 'tainela', name: 'Tainéla', kind: 'map', zone: 'astrub', level: 22,
+  sub: '5 salles · élite : Chef de Guerre Bouftou d’élite',
+  rooms: 5, pool: ['bouftou', 'bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'chefElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2315', 'archi2316', 'archi2317', 'archi2324'],
+  theme: 'tainela',
+};
+
+export const FORET_ASTRUB: AreaDef = {
+  id: 'foretAstrub', name: 'Forêt d’Astrub', kind: 'map', zone: 'astrub', level: 24,
+  sub: '5 salles · élite : Sanglier d’élite',
+  rooms: 5, pool: ['prespic', 'sanglier', 'ecurouille', 'milimulou'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'sanglierElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2333', 'archi2349', 'archi2353'],
+  theme: 'foretAstrub',
+};
+
+export const CARRIERE: AreaDef = {
+  id: 'carriere', name: 'Carrière d’Astrub', kind: 'map', zone: 'astrub', level: 26,
+  sub: '5 salles · élite : Martoa d’élite',
+  rooms: 5, pool: ['martoa', 'sherpoa', 'douzdoa', 'pikdoa'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'martoaElite', grade: 3, adds: 3, addGrade: 2 },
+  theme: 'carriere',
+};
+
+export const EGOUTS: AreaDef = {
+  id: 'egouts', name: 'Égouts d’Astrub', kind: 'map', zone: 'astrub', level: 27,
+  sub: '5 salles · élite : Ramane Strubien d’élite',
+  rooms: 5, pool: ['arakneEgouts', 'scelerat', 'milirat', 'ramane'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'ramaneElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2393', 'archi2350', 'archi2334'],
+  theme: 'egouts',
+};
+
+export const COUR: AreaDef = {
+  id: 'cour', name: 'Donjon des Bouftous', kind: 'dungeon', zone: 'astrub', level: 30,
+  sub: '7 salles · mini-boss · Bouftou Royal',
+  rooms: 7, pool: ['bouftou', 'bouftonBlanc', 'bouftonNoir', 'chefBouftou', 'bouftouNoir', 'bouftouNoir'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'bouftouNoirElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'bouftouRoyal', grade: 5, adds: 3 },
+  archis: ['archi2315', 'archi2316', 'archi2317', 'archi2324'],
+  theme: 'cour',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -223,7 +271,11 @@ export const ZONES: Zone[] = [
       { id: 'calanques', name: 'Calanques', level: 18, kind: 'map', area: CALANQUES, needs: ['dunes'] },
       { id: 'plage', name: 'Plage du Château', level: 19, kind: 'map', area: PLAGE, needs: ['dunes'] },
       { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', area: CHATEAU, needs: ['lisiere', 'dunes', 'calanques', 'plage'] },
-      { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', needs: ['grange'], soon: true },
+      { id: 'tainela', name: 'Tainéla', level: 22, kind: 'map', area: TAINELA, needs: ['grange'] },
+      { id: 'foretAstrub', name: 'Forêt d’Astrub', level: 24, kind: 'map', area: FORET_ASTRUB, needs: ['tainela'] },
+      { id: 'carriere', name: 'Carrière d’Astrub', level: 26, kind: 'map', area: CARRIERE, needs: ['tainela'] },
+      { id: 'egouts', name: 'Égouts d’Astrub', level: 27, kind: 'map', area: EGOUTS, needs: ['carriere'] },
+      { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', area: COUR, needs: ['tainela', 'foretAstrub', 'carriere', 'egouts'] },
     ],
   },
 ];
@@ -232,6 +284,7 @@ export const AREAS: Record<string, AreaDef> = {
   crypte: CRYPTE, champs: CHAMPS, paturages: PATURAGES, foret: FORET, cimetiere: CIMETIERE,
   cite: CITE, souterrains: SOUTERRAINS, champsAstrub: CHAMPS_ASTRUB, prairies: PRAIRIES, grange: GRANGE,
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
+  tainela: TAINELA, foretAstrub: FORET_ASTRUB, carriere: CARRIERE, egouts: EGOUTS, cour: COUR,
 };
 
 /** Étapes jouables et débloquées. */

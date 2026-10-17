@@ -9,7 +9,7 @@ import { MID_SHAPES } from './shapes';
 import { ARCHI_CHANCE, flatDist, STEP, World } from './world';
 
 const strong = () => ({ ...startingHero(), hp: 5000 });
-const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange', 'lisiere', 'dunes', 'calanques', 'plage', 'chateau'];
+const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange', 'lisiere', 'dunes', 'calanques', 'plage', 'chateau', 'tainela', 'foretAstrub', 'carriere', 'egouts', 'cour'];
 
 describe('Astrub, branche A', () => {
   it('cartes valides : monstres, élites, boss et archimonstres existent', () => {
@@ -27,6 +27,7 @@ describe('Astrub, branche A', () => {
     expect(DUNGEON_KEYS.grange).toBe(8143);
     expect(AREAS.chateau.boss?.id).toBe('mobEponge');
     expect(DUNGEON_KEYS.chateau).toBe(8437);
+    expect(AREAS.cour.boss?.id).toBe('bouftouRoyal');
   });
 
   it('branche C : la Côte s’ouvre après le Donjon des Champs, le Château après ses 4 cartes', () => {
@@ -41,7 +42,7 @@ describe('Astrub, branche A', () => {
 
   it('clés des Champs et du Château fabricables : chaque ingrédient tombe sur un monstre du jeu (Greuvette, Truite, Sauge, Orge retirées)', () => {
     const dropped = new Set(Object.values(MONSTERS).flatMap((d) => (DUNGEON_DROPS[d.dofusId] ?? []).map(([id]) => id)));
-    for (const key of [8143, 8437]) {
+    for (const key of [8143, 8437, 1568]) {
       const r = RECIPE_DATA.find((x) => x.id === key)!;
       for (const no of [598, 1844, 428, 400]) expect(r.ingredients.map(([id]) => id)).not.toContain(no);
       for (const [id] of r.ingredients) expect(dropped.has(id), `ingrédient ${id} de ${key}`).toBe(true);
@@ -70,7 +71,8 @@ describe('Astrub, branche A', () => {
     expect(isUnlocked(node('cite'), ['crypte'])).toBe(true);
     expect(isUnlocked(node('grange'), ['crypte', 'cite', 'souterrains', 'champsAstrub'])).toBe(false);
     expect(isUnlocked(node('grange'), ['crypte', 'cite', 'souterrains', 'champsAstrub', 'prairies'])).toBe(true);
-    expect(isUnlocked(node('cour'), ['grange'])).toBe(false); // bientôt
+    expect(isUnlocked(node('cour'), ['grange'])).toBe(false);
+    expect(isUnlocked(node('cour'), ['grange', 'tainela', 'foretAstrub', 'carriere', 'egouts'])).toBe(true);
   });
 
   it('ni monstre ni décor dans les étangs, sur les 5 décors', () => {

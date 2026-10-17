@@ -51,6 +51,9 @@ interface Land {
   border: 'hedge' | 'wall' | 'rock' | 'sandwall' | 'shore';
   /** Couleur de la berge des étangs (sable sur la côte). */
   bank?: string;
+  /** Couleurs des rochers (remplissage, contour) et des remparts (pierre, créneaux, contour). */
+  rockCol?: [string, string];
+  wallCol?: [string, string, string];
   water: [string, string, string];
   /** Sol : place pavée (Cité), arène de planches en damier (Grange), dalles moussues (Souterrains). */
   floor?: 'plaza' | 'planks' | 'slabs';
@@ -70,7 +73,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -88,6 +91,12 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     calanques: { ...base, ...sand, flowers: 0, land: { sky, hills: ['#f4dc98', '#e8c87a'], far: 'sea', border: 'rock', water: sea, bank: '#f4e0a8', wheat: 0, dirt: 0, grassy: 0.2, arch: ['#f4e0b0', '#c8a868', '#6a4a1a'] } },
     plage: { ...base, ...sand, grass: ['#f6e2a0', '#f0d890', '#e8cc80'], flowers: 0, land: { sky, hills: ['#f4dc98', '#e8c87a'], far: 'sea', border: 'shore', water: sea, bank: '#f8e8b8', wheat: 0, dirt: 0, grassy: 0.1, arch: ['#f4e0b0', '#c8a868', '#6a4a1a'] } },
     chateau: { ...base, ...sand, grass: ['#f2d68a', '#ecce7c', '#e2c06c'], flowers: 0, land: { sky, hills: ['#f0d488', '#e0c070'], far: 'arena', border: 'sandwall', water: sea, bank: '#f4e0a8', wheat: 0, dirt: 0, grassy: 0, arch: ['#f8e4b0', '#d0ac60', '#7a5a1a'] } },
+    // branche B
+    tainela: { ...base, ...green, flowers: 30, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'sandwall', wallCol: ['#c8c4b4', '#4a7ab8', '#4a4a44'], water, wheat: 0, dirt: 4, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
+    foretAstrub: { ...base, ...green, grass: ['#86c446', '#76b43a', '#64a232'], flowers: 20, land: { sky, hills: ['#6aa83a', '#4e8a2a'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 6, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    carriere: { ...base, ...green, grass: ['#c8b880', '#bca870', '#ac9860'], light: '#e8dcb0', dark: '#8a7a4a', tuftTones: ['#6a9a32', '#86b03e', '#a8c858'], touch: ['#e8e0c8', '#a89868'], flowers: 0, stone: '#e8e4d8', land: { sky, hills: ['#a8b878', '#d8d4c4'], far: 'trees', border: 'rock', rockCol: ['#e8e4d8', '#6a665a'], water, wheat: 0, dirt: 4, grassy: 0.5, floor: 'slabs', arch: ['#f0ece0', '#b8b4a8', '#5a5650'] } },
+    egouts: { ...base, grass: ['#5a6450', '#4e5846', '#444c3c'], light: '#6e7a5a', dark: '#30362a', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#7a826c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1a1e18', '#2a3026'], hills: ['#3a4232', '#2a3024'], far: 'wall', border: 'wall', water: ['#8ab04a', '#5a8a2e', '#36541c'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
+    cour: { ...base, ...green, flowers: 30, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'hedge', water, wheat: 0, dirt: 5, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
     souterrains: { ...base, grass: ['#5e6656', '#545c4c', '#4a5042'], light: '#727a62', dark: '#363c30', tuftTones: ['#3e5a2a', '#4e6e32', '#6a8a3e'], touch: ['#6e7a5a', '#3a4034'], stone: '#8a8c7c', cliff: ['#5a5a50', '#3e3e36', '#24241e'], land: { sky: ['#1e221c', '#2e342a'], hills: ['#3a4032', '#2a3024'], far: 'wall', border: 'wall', water: ['#5a7a4a', '#3e5a34', '#24381e'], floor: 'slabs', wheat: 0, dirt: 0, grassy: 0.25, arch: ['#9a9a88', '#5e5e52', '#2a2a24'] } },
   };
 }
@@ -402,10 +411,11 @@ function landBorder(D: Land, pts: [number, number][], r: () => number, width: nu
     for (const [x, y] of pts) {
       const w = width * (0.9 + r() * 0.3), h = wall ? 60 : 44 + r() * 26;
       if (wall) {
-        o.push(`<rect x="${f1(x - w / 2)}" y="${f1(y - h + 20)}" width="${f1(w)}" height="${f1(h)}" fill="${shade('#ecd08a', (r() - 0.5) * 0.08)}" stroke="#8a6a2a" stroke-width="2.4"/>`);
-        o.push(`<path d="M${f1(x - w / 2)},${f1(y - h + 20)} v-10 h${f1(w / 4)} v10 h${f1(w / 4)} v-10 h${f1(w / 4)} v10" fill="#f4dc9a" stroke="#8a6a2a" stroke-width="2"/>`);
+        const [wc, cap, wi] = D.wallCol ?? ['#ecd08a', '#f4dc9a', '#8a6a2a'];
+        o.push(`<rect x="${f1(x - w / 2)}" y="${f1(y - h + 20)}" width="${f1(w)}" height="${f1(h)}" fill="${shade(wc, (r() - 0.5) * 0.08)}" stroke="${wi}" stroke-width="2.4"/>`);
+        o.push(`<path d="M${f1(x - w / 2)},${f1(y - h + 20)} v-10 h${f1(w / 4)} v10 h${f1(w / 4)} v-10 h${f1(w / 4)} v10" fill="${cap}" stroke="${wi}" stroke-width="2"/>`);
       } else {
-        o.push(`<path d="M${f1(x - w / 2)},${f1(y + 18)} Q${f1(x - w / 2 - 4)},${f1(y - h * 0.6)} ${f1(x - w * 0.1)},${f1(y - h + 16)} Q${f1(x + w / 2)},${f1(y - h + 10)} ${f1(x + w / 2)},${f1(y + 18)} Z" fill="${shade('#d8b878', (r() - 0.5) * 0.14)}" stroke="#7a5a2a" stroke-width="2.6"/>`);
+        o.push(`<path d="M${f1(x - w / 2)},${f1(y + 18)} Q${f1(x - w / 2 - 4)},${f1(y - h * 0.6)} ${f1(x - w * 0.1)},${f1(y - h + 16)} Q${f1(x + w / 2)},${f1(y - h + 10)} ${f1(x + w / 2)},${f1(y + 18)} Z" fill="${shade((D.rockCol ?? ['#d8b878'])[0], (r() - 0.5) * 0.14)}" stroke="${(D.rockCol ?? ['', '#7a5a2a'])[1]}" stroke-width="2.6"/>`);
         o.push(`<path d="M${f1(x - w * 0.3)},${f1(y - h * 0.4 + 16)} Q${f1(x)},${f1(y - h * 0.5 + 16)} ${f1(x + w * 0.3)},${f1(y - h * 0.3 + 16)}" fill="none" stroke="#a8844a" stroke-width="2" opacity="0.8"/>`);
       }
     }

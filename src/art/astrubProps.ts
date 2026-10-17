@@ -164,3 +164,27 @@ export function pebbles(): PropArt {
     `<ellipse cx="62" cy="32" rx="6" ry="4" fill="#bfe6f6" stroke="#4a8aa8" stroke-width="1.2"/><ellipse cx="26" cy="38" rx="4" ry="3" fill="#fff4e0" stroke="#a8946a" stroke-width="1"/>`;
   return { svg: svg(76, 46, '', b), foot: [38, 38] };
 }
+
+/* ---------- Branche B : Forêt d'Astrub, Carrière (d'après les cartes) ---------- */
+
+/** Rocher gris moussu (Forêt d'Astrub). */
+export function mossRock(): PropArt {
+  const b = shadow(56, 84, 50, 8) +
+    `<path d="M8,82 Q4,46 30,32 Q50,14 74,22 Q102,30 106,60 Q110,78 102,84 Z" fill="#a8aca0" stroke="#4a4e44" stroke-width="3" stroke-linejoin="round"/>` +
+    `<path d="M30,32 Q50,44 74,22 M24,62 Q56,70 96,60" fill="none" stroke="#7a7e70" stroke-width="2.2" opacity="0.8"/>` +
+    `<path d="M10,60 Q24,36 50,30 Q70,30 84,40 Q60,40 40,52 Q22,62 10,60 Z" fill="#6aa83a" stroke="#2e5a1a" stroke-width="1.8"/>` +
+    `<path d="M36,30 Q50,22 64,24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.35"/>`;
+  return { svg: svg(112, 92, '', b), foot: [56, 84] };
+}
+
+/** Bloc de pierre taillée de la Carrière, avec son échelle. */
+export function quarryBlock(): PropArt {
+  const b = shadow(54, 120, 50, 8) +
+    `<path d="M10,118 L10,46 L40,30 L98,40 L98,112 L68,124 Z" fill="#e8e4d8" stroke="#6a665a" stroke-width="3" stroke-linejoin="round"/>` +
+    `<path d="M10,46 L68,56 L98,40 M68,56 L68,124" fill="none" stroke="#6a665a" stroke-width="2.4"/>` +
+    `<path d="M68,56 L98,40 L98,112 L68,124 Z" fill="#c8c4b8" opacity="0.8"/>` +
+    `<path d="M20,70 L56,76 M24,96 L50,100" stroke="#a8a498" stroke-width="2"/>` +
+    `<path d="M80,124 L88,30 M96,126 L104,32" stroke="#8a5a2a" stroke-width="4"/>` + [44, 62, 80, 98, 116].map((y) => `<path d="M${81 + (124 - y) * 0.085},${y} L${97 + (124 - y) * 0.085},${y + 1}" stroke="#8a5a2a" stroke-width="3"/>`).join('') +
+    `<path d="M14,48 Q40,34 66,40" fill="none" stroke="#fff" stroke-width="3" opacity="0.5"/>`;
+  return { svg: svg(112, 132, '', b), foot: [54, 120] };
+}
