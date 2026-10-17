@@ -956,7 +956,7 @@ export class World {
         m.healT = b.heal.every;
         const amount = Math.min(m.maxHp - m.hp, b.heal.min + Math.floor(this.rnd() * (b.heal.max - b.heal.min + 1)));
         m.hp += amount;
-        this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: 'Soin Feuillu' });
+        this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.heal.spell ?? 'Soin Feuillu' });
       }
     }
     if (b.crackEvery > 0) m.crackT -= STEP;

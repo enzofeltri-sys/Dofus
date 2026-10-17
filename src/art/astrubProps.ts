@@ -106,3 +106,61 @@ export function pipe(): PropArt {
     `<circle cx="40" cy="78" r="9" fill="#6a8a3a" stroke="${INK}" stroke-width="2"/><path d="M40,70 V86 M32,78 H48" stroke="#2a3a10" stroke-width="2"/>`;
   return { svg: svg(92, 140, '', b), foot: [40, 132] };
 }
+
+/* ---------- Côte d'Astrub et Château Ensablé (d'après les cartes des Calanques et du Château) ---------- */
+
+/** Palmier : tronc annelé penché, grandes palmes vertes, noix de coco. */
+export function palmTree(): PropArt {
+  const leaf = (a: number, l: number, c: string) => {
+    const x = 70 + Math.cos(a) * l, y = 40 + Math.sin(a) * l * 0.7 + l * 0.25;
+    const mx = 70 + Math.cos(a) * l * 0.5, my = 40 + Math.sin(a) * l * 0.35 - 14;
+    return `<path d="M70,40 Q${mx.toFixed(1)},${(my - 8).toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)} Q${(mx + 4).toFixed(1)},${(my + 10).toFixed(1)} 70,44 Z" fill="${c}" stroke="#1e4a10" stroke-width="2.2" stroke-linejoin="round"/>`;
+  };
+  const b = shadow(60, 172, 34, 8) +
+    `<path d="M56,172 Q50,120 64,80 Q68,58 70,42" fill="none" stroke="${INK}" stroke-width="15" stroke-linecap="round"/>` +
+    `<path d="M56,172 Q50,120 64,80 Q68,58 70,42" fill="none" stroke="#b8844a" stroke-width="10" stroke-linecap="round"/>` +
+    [160, 144, 128, 112, 96, 80, 66, 54].map((y, i) => `<path d="M${53 + i * 1.8},${y} q6,-4 12,0" fill="none" stroke="#7a5228" stroke-width="2"/>`).join('') +
+    [[-2.9, 62, '#5aa83a'], [-0.25, 62, '#5aa83a'], [-2.4, 56, '#7ac84a'], [-0.8, 56, '#7ac84a'], [-1.6, 48, '#8ad85a'], [-3.4, 46, '#4a9a2e'], [0.3, 46, '#4a9a2e']]
+      .map(([a, l, c]) => leaf(a as number, l as number, c as string)).join('') +
+    [[64, 48], [74, 50], [69, 54]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5.5" fill="#6a4020" stroke="${INK}" stroke-width="1.6"/>`).join('');
+  return { svg: svg(140, 180, '', b), foot: [56, 172] };
+}
+
+/** Gros coquillage coloré (rose, bleu ou orange) comme sur les plages d'Astrub. */
+export function bigShell(c = '#f07a9a', c2 = '#7ad0f0'): PropArt {
+  const b = shadow(50, 78, 44, 8) +
+    `<path d="M10,74 Q4,30 44,16 Q86,12 92,58 Q94,74 84,78 Z" fill="${c}" stroke="#6a2a3a" stroke-width="2.6" stroke-linejoin="round"/>` +
+    [24, 36, 50, 64, 76].map((x, i) => `<path d="M${x},76 Q${x - 6 + i * 3},40 ${44 + (i - 2) * 6},18" fill="none" stroke="${i % 2 ? '#fff0f4' : '#c8506a'}" stroke-width="${i % 2 ? 3 : 2}" opacity="0.8"/>`).join('') +
+    `<path d="M70,78 Q66,58 82,50 Q96,52 98,70 Q96,80 84,80 Z" fill="${c2}" stroke="#1a4a6a" stroke-width="2.4"/><path d="M76,74 Q78,62 88,58" fill="none" stroke="#fff" stroke-width="2.4" opacity="0.6"/>`;
+  return { svg: svg(104, 86, '', b), foot: [50, 78] };
+}
+
+/** Rocher de grès doré (falaises des Calanques). */
+export function sandRock(): PropArt {
+  const b = shadow(60, 94, 54, 9) +
+    `<path d="M8,92 Q4,50 26,34 Q40,8 66,14 Q96,18 108,46 Q118,72 110,92 Z" fill="#d8b878" stroke="#7a5a2a" stroke-width="3" stroke-linejoin="round"/>` +
+    `<path d="M26,34 Q50,46 66,14 M66,14 Q70,48 108,46 M30,60 Q60,70 96,64 M20,80 Q56,86 104,80" fill="none" stroke="#a8844a" stroke-width="2.2" opacity="0.8"/>` +
+    `<path d="M30,30 Q46,16 62,18" fill="none" stroke="#fff4d0" stroke-width="4" stroke-linecap="round" opacity="0.6"/>` +
+    `<path d="M14,92 Q20,84 30,90 M84,92 Q92,84 102,90" fill="none" stroke="#5aa83a" stroke-width="3" stroke-linecap="round"/>`;
+  return { svg: svg(120, 100, '', b), foot: [60, 94] };
+}
+
+/** Tour de château de sable : créneaux, étoile de mer, petit drapeau. */
+export function sandTower(): PropArt {
+  const b = shadow(50, 150, 46, 9) +
+    `<path d="M16,148 L20,62 L80,62 L84,148 Z" fill="#ecd08a" stroke="#8a6a2a" stroke-width="3"/>` +
+    `<path d="M12,66 L12,48 L24,48 L24,56 L36,56 L36,48 L48,48 L48,56 L60,56 L60,48 L72,48 L72,56 L88,56 L88,66 Z" fill="#f4dc9a" stroke="#8a6a2a" stroke-width="2.6"/>` +
+    `<path d="M30,88 Q50,80 70,88 M26,116 Q50,108 74,116" fill="none" stroke="#c8a860" stroke-width="2.2"/>` +
+    `<path d="M42,148 L42,128 Q50,118 58,128 L58,148 Z" fill="#a8844a" stroke="#6a4a1a" stroke-width="2"/>` +
+    `<path d="M50,92 l3,7 l7,1 l-5,5 l2,7 l-7,-4 l-7,4 l2,-7 l-5,-5 l7,-1 Z" fill="#f8a83a" stroke="#a85a10" stroke-width="1.4"/>` +
+    `<path d="M50,48 L50,14" stroke="${INK}" stroke-width="2.4"/><path d="M50,14 L72,22 L50,30 Z" fill="#e84a2a" stroke="#7a1a0a" stroke-width="1.6"/>`;
+  return { svg: svg(100, 158, '', b), foot: [50, 150] };
+}
+
+/** Petits coquillages et étoiles de mer dans le sable (traversable). */
+export function pebbles(): PropArt {
+  const b = `<path d="M10,30 q6,-12 12,0 Z" fill="#f8b8c8" stroke="#a85a6a" stroke-width="1.4"/>` +
+    `<path d="M40,26 l2,5 l5,0 l-4,3 l2,5 l-5,-3 l-5,3 l2,-5 l-4,-3 l5,0 Z" fill="#f8a83a" stroke="#a85a10" stroke-width="1"/>` +
+    `<ellipse cx="62" cy="32" rx="6" ry="4" fill="#bfe6f6" stroke="#4a8aa8" stroke-width="1.2"/><ellipse cx="26" cy="38" rx="4" ry="3" fill="#fff4e0" stroke="#a8946a" stroke-width="1"/>`;
+  return { svg: svg(76, 46, '', b), foot: [38, 38] };
+}

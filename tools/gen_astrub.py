@@ -41,11 +41,18 @@ d('larveVerte', 34, 'larveVerte', 'caster', 85, 24, 0.9, "{ shape: 'circle', tri
 d('larveOrange', 46, 'larveOrange', 'melee', 115, 24, 0.9, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.42, recover: 0.25, cooldown: [0.9, 1.3], roll: roll('feu', 4, 5) }", 'Bave Collante : Feu 15-20 au corps à corps')
 d('larveJaune', 5225, 'larveJaune', 'melee', 115, 24, 0.9, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.42, recover: 0.25, cooldown: [0.9, 1.3], roll: roll('air', 4, 5) }", 'Bave Affaiblissante : Air 15-20 au corps à corps')
 d('gardienne', 4821, 'gardienne', 'lancer', 110, 24, 1, "{ shape: 'line', trigger: 210, size: 220, spread: 22, offset: 0, windup: 0.55, recover: 0.3, cooldown: [1.3, 1.8], roll: roll('feu', 3, 4) }", 'Désherbant : vol de vie Feu 11-14, 1-5 cases en ligne')
+# Branche C (validée par Enzo) : Pichons des Calanques et du Château Ensablé
+d('pichonOrange', 920, 'pichonOrange', 'caster', 95, 22, 0.8, "{ shape: 'circle', trigger: 300, size: 62, spread: 0, offset: 0, windup: 0.85, recover: 0.4, cooldown: [1.8, 2.4], roll: roll('feu', 3, 4), atTarget: true }", 'Sable Brûlant : Feu 13-16, 1-5 cases')
+d('pichonBleu', 921, 'pichonBleu', 'lancer', 110, 22, 0.8, "{ shape: 'line', trigger: 260, size: 280, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.4, 1.9], roll: roll('eau', 4, 5) }", 'Vaguelette : Eau 15-18, 1-8 cases en ligne')
+d('pichonBlanc', 922, 'pichonBlanc', 'melee', 130, 24, 0.85, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.4, recover: 0.24, cooldown: [0.9, 1.3], roll: roll('air', 4, 6) }", "Bouffée d'Air : Air 17-22 au corps à corps ; 4 PM")
+d('pichonVert', 923, 'pichonVert', 'melee', 130, 22, 0.8, "{ shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.4, recover: 0.24, cooldown: [0.9, 1.3], roll: roll('terre', 4, 6) }", 'Reflux : Terre 17-22 au corps à corps (repousse) ; 4 PM')
+d('pichonKloune', 924, 'pichonKloune', 'caster', 120, 22, 0.8, "{ shape: 'circle', trigger: 190, size: 60, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [1.5, 2.0], roll: roll('feu', 5, 7), atTarget: true }", 'Blag : Terre, Air et Feu 7-10 chacun, 1-3 cases ; 4 PM')
 
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
-         (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue')]
+         (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
+         (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -53,7 +60,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branche A (Cité, Souterrains, Champs d\'Astrub, Prairies, Grange) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A et C (Cité, Souterrains, Champs, Prairies, Grange ; Côte et Château Ensablé) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

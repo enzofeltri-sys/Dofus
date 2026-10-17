@@ -5,7 +5,8 @@ import { CRYPT_POOL } from './monsters';
  * Une zone = 4 cartes de farm (5 salles, une élite à la fin), puis son donjon.
  */
 
-export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange';
+export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
+  | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau';
 
 export interface AreaDef {
   id: string;
@@ -131,6 +132,53 @@ export const GRANGE: AreaDef = {
   theme: 'grange',
 };
 
+/* ---------- Côte d'Astrub, branche C (validée par Enzo : 2 cartes chemin, 2 cartes plage, puis le Château Ensablé) ---------- */
+
+export const LISIERE: AreaDef = {
+  id: 'lisiere', name: 'Lisière des Champs', kind: 'map', zone: 'astrub', level: 16,
+  sub: '5 salles · élite : Rose Démoniaque d’élite',
+  rooms: 5, pool: ['tournesolSauvage', 'roseDemo', 'pissenlitDiabo', 'larveVerte', 'larveBleue'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'roseElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2352', 'archi2358', 'archi2348', 'archi2332', 'archi2574'],
+  theme: 'lisiere',
+};
+
+export const DUNES: AreaDef = {
+  id: 'dunes', name: 'Sentier des Dunes', kind: 'map', zone: 'astrub', level: 17,
+  sub: '5 salles · élite : Pichon Bleu d’élite',
+  rooms: 5, pool: ['larveOrange', 'larveJaune', 'pichonOrange', 'pichonBleu'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'pichonBleuElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2331', 'archi2339', 'archi2340', 'archi2338'],
+  theme: 'dunes',
+};
+
+export const CALANQUES: AreaDef = {
+  id: 'calanques', name: 'Calanques d’Astrub', kind: 'map', zone: 'astrub', level: 18,
+  sub: '5 salles · élite : Pichon Vert d’élite',
+  rooms: 5, pool: ['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'pichonVertElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2340', 'archi2338', 'archi2346', 'archi2272'],
+  theme: 'calanques',
+};
+
+export const PLAGE: AreaDef = {
+  id: 'plage', name: 'Plage du Château', kind: 'map', zone: 'astrub', level: 19,
+  sub: '5 salles · élite : Pichon Kloune d’élite',
+  rooms: 5, pool: ['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'klouneElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2340', 'archi2338', 'archi2346', 'archi2272'],
+  theme: 'plage',
+};
+
+export const CHATEAU: AreaDef = {
+  id: 'chateau', name: 'Château Ensablé', kind: 'dungeon', zone: 'astrub', level: 20,
+  sub: '7 salles · mini-boss · Mob l’Éponge',
+  rooms: 7, pool: ['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'klouneElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'mobEponge', grade: 5, adds: 3 },
+  theme: 'chateau',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -170,8 +218,12 @@ export const ZONES: Zone[] = [
       { id: 'champsAstrub', name: 'Champs d’Astrub', level: 17, kind: 'map', area: CHAMPS_ASTRUB, needs: ['cite'] },
       { id: 'prairies', name: 'Prairies', level: 18, kind: 'map', area: PRAIRIES, needs: ['champsAstrub'] },
       { id: 'grange', name: 'Donjon des Champs', level: 20, kind: 'dungeon', area: GRANGE, needs: ['cite', 'souterrains', 'champsAstrub', 'prairies'] },
+      { id: 'lisiere', name: 'Lisière des Champs', level: 16, kind: 'map', area: LISIERE, needs: ['grange'] },
+      { id: 'dunes', name: 'Sentier des Dunes', level: 17, kind: 'map', area: DUNES, needs: ['lisiere'] },
+      { id: 'calanques', name: 'Calanques', level: 18, kind: 'map', area: CALANQUES, needs: ['dunes'] },
+      { id: 'plage', name: 'Plage du Château', level: 19, kind: 'map', area: PLAGE, needs: ['dunes'] },
+      { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', area: CHATEAU, needs: ['lisiere', 'dunes', 'calanques', 'plage'] },
       { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', needs: ['grange'], soon: true },
-      { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', needs: ['grange'], soon: true },
     ],
   },
 ];
@@ -179,6 +231,7 @@ export const ZONES: Zone[] = [
 export const AREAS: Record<string, AreaDef> = {
   crypte: CRYPTE, champs: CHAMPS, paturages: PATURAGES, foret: FORET, cimetiere: CIMETIERE,
   cite: CITE, souterrains: SOUTERRAINS, champsAstrub: CHAMPS_ASTRUB, prairies: PRAIRIES, grange: GRANGE,
+  lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
 };
 
 /** Étapes jouables et débloquées. */

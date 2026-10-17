@@ -8,7 +8,8 @@ import type { Theme } from './data/areas';
 
 export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
   | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain'
-  | 'autumnTree' | 'fence' | 'barn' | 'haystack' | 'house' | 'stall' | 'crates' | 'sunflowers' | 'pipe';
+  | 'autumnTree' | 'fence' | 'barn' | 'haystack' | 'house' | 'stall' | 'crates' | 'sunflowers' | 'pipe'
+  | 'palm' | 'shell' | 'shellBlue' | 'sandrock' | 'tower' | 'pebbles';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -29,7 +30,8 @@ export interface Obstacle {
 /** Rayon d'obstacle de chaque objet (0 = décor traversable). */
 const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
   redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56,
-  autumnTree: 32, fence: 40, barn: 66, haystack: 38, house: 66, stall: 44, crates: 36, sunflowers: 0, pipe: 30 };
+  autumnTree: 32, fence: 40, barn: 66, haystack: 38, house: 66, stall: 44, crates: 36, sunflowers: 0, pipe: 30,
+  palm: 24, shell: 32, shellBlue: 32, sandrock: 42, tower: 40, pebbles: 0 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -194,6 +196,12 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   champsAstrub: { block: [['barn', 0.75, 0.85], ['haystack', 0.9, 1.15], ['haystack', 0.9, 1.15], ['fence', 1, 1.1]], decor: ['sunflowers', 'flowers'] },
   prairies: { block: [['autumnTree', 1.05, 1.25], ['autumnTree', 1.05, 1.25], ['fence', 1, 1.1], ['haystack', 0.9, 1.05]], decor: ['flowers'] },
   grange: { block: [['haystack', 0.9, 1.15], ['crates', 0.9, 1.1], ['fence', 1, 1.1], ['haystack', 0.9, 1.15]], decor: ['sunflowers'] },
+  // Côte d'Astrub (validé par Enzo : 2 cartes chemin, 2 cartes plage) et Château Ensablé
+  lisiere: { block: [['autumnTree', 1.05, 1.2], ['haystack', 0.9, 1.05], ['fence', 1, 1.1], ['palm', 0.95, 1.1]], decor: ['sunflowers', 'flowers'] },
+  dunes: { block: [['sandrock', 0.8, 1], ['palm', 1, 1.15], ['shell', 0.85, 1], ['fence', 1, 1.1]], decor: ['pebbles'] },
+  calanques: { block: [['sandrock', 0.9, 1.1], ['palm', 1, 1.2], ['shell', 0.9, 1.05], ['shellBlue', 0.9, 1.05]], decor: ['pebbles'] },
+  plage: { block: [['palm', 1, 1.2], ['palm', 1, 1.2], ['shell', 0.9, 1.05], ['shellBlue', 0.9, 1.05], ['sandrock', 0.8, 0.95]], decor: ['pebbles'] },
+  chateau: { block: [['tower', 0.95, 1.1], ['tower', 0.95, 1.1], ['shell', 0.9, 1.05], ['sandrock', 0.8, 0.95]], decor: ['pebbles'] },
 };
 
 /** Zone de la salle et formes à éviter pour poser un décor. */

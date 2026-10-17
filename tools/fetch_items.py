@@ -30,7 +30,9 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 # Astrub, branche A : Cité, Souterrains, Champs d'Astrub, Prairies, Grange (+ archimonstres, boss)
                 236, 489, 490, 491, 492, 493, 2341, 2342, 2343, 2344, 2345, 2347,
                 473, 474, 4817, 4818, 2312, 2356, 48, 78, 79, 4820, 2348, 2352, 2358,
-                31, 34, 46, 5225, 2331, 2332, 2339, 2574, 4821, 799]
+                31, 34, 46, 5225, 2331, 2332, 2339, 2574, 4821, 799,
+                # branche C : Pichons des Calanques et du Château Ensablé (+ archimonstres, Mob l'Éponge)
+                920, 921, 922, 923, 924, 2272, 2338, 2340, 2346, 928]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -212,19 +214,19 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143}
-NO_SOURCE = {598}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437}
+dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')
     items[kid] = {'id': kid, 'name': d['name']['fr'], 'level': d['level'], 'type': d['type']['name']['fr'],
                   'slot': None, 'icon': d['iconId'], 'set': None, 'effects': []}
     r = get(f'/recipes?resultId={kid}')['data'][0]
     for ing in r['ingredientIds']:
-        if ing not in NO_SOURCE:
+        if ing in dropped or ing in recipes:
             add_item(ing)
     ings = list(zip(r['ingredientIds'], r.get('quantities', [])))
-    # Clef des Champs : la Greuvette (598) ne vient que de la pêche, absente du jeu → retirée de la recette (choix d'Enzo)
-    ings = [(i, q) for i, q in ings if i not in NO_SOURCE]
+    # ingrédients sans source dans le jeu (pêche, récolte : Greuvette, Truite, Sauge, Orge…) → retirés de la recette (choix d'Enzo)
+    ings = [(i, q) for i, q in ings if i in dropped or i in recipes]
     recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': ings}
 
 # les objets des panoplies rencontrées (pour afficher la panoplie complète)

@@ -9,7 +9,7 @@ import { MID_SHAPES } from './shapes';
 import { ARCHI_CHANCE, flatDist, STEP, World } from './world';
 
 const strong = () => ({ ...startingHero(), hp: 5000 });
-const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange'];
+const ASTRUB = ['cite', 'souterrains', 'champsAstrub', 'prairies', 'grange', 'lisiere', 'dunes', 'calanques', 'plage', 'chateau'];
 
 describe('Astrub, branche A', () => {
   it('cartes valides : monstres, élites, boss et archimonstres existent', () => {
@@ -25,13 +25,42 @@ describe('Astrub, branche A', () => {
     }
     expect(AREAS.grange.boss?.id).toBe('tournesolAffame');
     expect(DUNGEON_KEYS.grange).toBe(8143);
+    expect(AREAS.chateau.boss?.id).toBe('mobEponge');
+    expect(DUNGEON_KEYS.chateau).toBe(8437);
   });
 
-  it('Clef des Champs fabricable : chaque ingrédient tombe sur un monstre du jeu (Greuvette retirée)', () => {
-    const r = RECIPE_DATA.find((x) => x.id === 8143)!;
+  it('branche C : la Côte s’ouvre après le Donjon des Champs, le Château après ses 4 cartes', () => {
+    const z = ZONES.find((q) => q.id === 'astrub')!;
+    const node = (id: string) => z.nodes.find((n) => n.id === id)!;
+    expect(isUnlocked(node('lisiere'), ['crypte', 'cite'])).toBe(false);
+    expect(isUnlocked(node('lisiere'), ['grange'])).toBe(true);
+    expect(isUnlocked(node('calanques'), ['grange', 'lisiere', 'dunes'])).toBe(true);
+    expect(isUnlocked(node('chateau'), ['grange', 'lisiere', 'dunes', 'calanques'])).toBe(false);
+    expect(isUnlocked(node('chateau'), ['grange', 'lisiere', 'dunes', 'calanques', 'plage'])).toBe(true);
+  });
+
+  it('clés des Champs et du Château fabricables : chaque ingrédient tombe sur un monstre du jeu (Greuvette, Truite, Sauge, Orge retirées)', () => {
     const dropped = new Set(Object.values(MONSTERS).flatMap((d) => (DUNGEON_DROPS[d.dofusId] ?? []).map(([id]) => id)));
-    expect(r.ingredients.map(([id]) => id)).not.toContain(598);
-    for (const [id] of r.ingredients) expect(dropped.has(id), `ingrédient ${id}`).toBe(true);
+    for (const key of [8143, 8437]) {
+      const r = RECIPE_DATA.find((x) => x.id === key)!;
+      for (const no of [598, 1844, 428, 400]) expect(r.ingredients.map(([id]) => id)).not.toContain(no);
+      for (const [id] of r.ingredients) expect(dropped.has(id), `ingrédient ${id} de ${key}`).toBe(true);
+    }
+  });
+
+  it('Mob l’Éponge : se soigne (Régénération Spontanée) et n’invoque pas', () => {
+    const w = new World(5, { ...startingHero(), hp: 100000 }, AREAS.chateau);
+    w.startRoom(AREAS.chateau.rooms - 1);
+    expect(w.boss?.def.id).toBe('mobEponge');
+    const before = w.monsters.length;
+    let heal = '';
+    for (let t = 0; t < 30; t += STEP) {
+      w.step({ x: 0, y: 0 });
+      if (w.boss && w.boss.hp > w.boss.maxHp * 0.6) w.boss.hp = w.boss.maxHp * 0.6;
+      for (const e of w.drain()) if (e.type === 'monsterHeal' && e.uid === w.boss?.uid) heal = e.spell ?? '';
+    }
+    expect(heal).toBe('Régénération Spontanée');
+    expect(w.monsters.length).toBeLessThanOrEqual(before);
   });
 
   it('arbre : Astrub s’ouvre après la Crypte, la Grange après les 4 cartes', () => {

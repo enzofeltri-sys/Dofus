@@ -116,7 +116,7 @@ export interface BossKit {
   summon: string | string[];
   maxSummons: number;
   /** Soin périodique du boss (PV, toutes les `every` s). */
-  heal?: { every: number; min: number; max: number };
+  heal?: { every: number; min: number; max: number; spell?: string };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -172,6 +172,23 @@ export const MONSTERS: Record<string, MonsterDef> = {
   epouvanteurElite: eliteOf(ASTRUB.epouvanteur, 'epouvanteurElite', 'Épouvanteur d’élite'),
   larveElite: eliteOf(ASTRUB.larveOrange, 'larveElite', 'Larve Orange d’élite'),
   gardienneElite: eliteOf(ASTRUB.gardienne, 'gardienneElite', 'Gardienne Champêtre d’élite'),
+  // branche C (élites : créations, comme celles d'Incarnam)
+  roseElite: eliteOf(ASTRUB.roseDemo, 'roseElite', 'Rose Démoniaque d’élite'),
+  pichonBleuElite: eliteOf(ASTRUB.pichonBleu, 'pichonBleuElite', 'Pichon Bleu d’élite'),
+  pichonVertElite: eliteOf(ASTRUB.pichonVert, 'pichonVertElite', 'Pichon Vert d’élite'),
+  klouneElite: eliteOf(ASTRUB.pichonKloune, 'klouneElite', 'Pichon Kloune d’élite'),
+  /**
+   * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.
+   * Dégraissage : vol de vie Eau 15-20 au contact (valeur réelle, comme les autres boss) ;
+   * Régénération Spontanée : se soigne de 51-75 PV tous les 2 tours → toutes les 8 s. N'invoque pas (comme dans Dofus).
+   */
+  mobEponge: {
+    id: 'mobEponge', name: 'Mob l’Éponge', dofusId: 928,
+    grades: ([[280, 3300], [320, 4200], [350, 5000], [380, 5900], [420, 6720]] as const).map(([hp, xp]) => g(20, hp, 80, [14, 14, 14, 14, 14], xp, 80, 0, 0, 0, { intelligence: 80, chance: 80, agilite: 80 })),
+    behavior: 'boss', speed: 95, radius: 40, art: 'mobEponge', scale: 1.5,
+    attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.75, recover: 0.45, cooldown: [1.3, 1.8], roll: { min: 15, max: 20, critBonus: 4, critBase: 3, element: 'eau' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'pichonOrange', maxSummons: 0, heal: { every: 8, min: 51, max: 75, spell: 'Régénération Spontanée' } },
+  },
   /**
    * Tournesol Affamé (799) : boss de la Grange, niveau 20, 550 à 810 PV, toutes caractéristiques 80, 2 PM.
    * Goinfrage : vol de vie Eau 17-30 au contact (valeur réelle, comme Kardorim) ;
