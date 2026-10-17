@@ -3,7 +3,7 @@ import { AREAS, isUnlocked, ZONES } from './data/areas';
 import { startingHero } from './data/hero';
 import { MONSTERS } from './data/monsters';
 import { ARCHI_OF } from './data/monsters.astrub';
-import { DUNGEON_KEYS } from './data/items.gen';
+import { DUNGEON_DROPS, DUNGEON_KEYS, RECIPE_DATA } from './data/items.gen';
 import { obstacleCore } from './rooms';
 import { MID_SHAPES } from './shapes';
 import { ARCHI_CHANCE, flatDist, STEP, World } from './world';
@@ -25,6 +25,13 @@ describe('Astrub, branche A', () => {
     }
     expect(AREAS.grange.boss?.id).toBe('tournesolAffame');
     expect(DUNGEON_KEYS.grange).toBe(8143);
+  });
+
+  it('Clef des Champs fabricable : chaque ingrédient tombe sur un monstre du jeu (Greuvette retirée)', () => {
+    const r = RECIPE_DATA.find((x) => x.id === 8143)!;
+    const dropped = new Set(Object.values(MONSTERS).flatMap((d) => (DUNGEON_DROPS[d.dofusId] ?? []).map(([id]) => id)));
+    expect(r.ingredients.map(([id]) => id)).not.toContain(598);
+    for (const [id] of r.ingredients) expect(dropped.has(id), `ingrédient ${id}`).toBe(true);
   });
 
   it('arbre : Astrub s’ouvre après la Crypte, la Grange après les 4 cartes', () => {

@@ -213,14 +213,19 @@ recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
 DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143}
+NO_SOURCE = {598}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')
     items[kid] = {'id': kid, 'name': d['name']['fr'], 'level': d['level'], 'type': d['type']['name']['fr'],
                   'slot': None, 'icon': d['iconId'], 'set': None, 'effects': []}
     r = get(f'/recipes?resultId={kid}')['data'][0]
     for ing in r['ingredientIds']:
-        add_item(ing)
-    recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': list(zip(r['ingredientIds'], r.get('quantities', [])))}
+        if ing not in NO_SOURCE:
+            add_item(ing)
+    ings = list(zip(r['ingredientIds'], r.get('quantities', [])))
+    # Clef des Champs : la Greuvette (598) ne vient que de la pêche, absente du jeu → retirée de la recette (choix d'Enzo)
+    ings = [(i, q) for i, q in ings if i not in NO_SOURCE]
+    recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': ings}
 
 # les objets des panoplies rencontrées (pour afficher la panoplie complète)
 for s in list(sets.values()):

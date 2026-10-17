@@ -123,7 +123,7 @@ export const PRAIRIES: AreaDef = {
 };
 
 export const GRANGE: AreaDef = {
-  id: 'grange', name: 'Grange du Tournesol Affamé', kind: 'dungeon', zone: 'astrub', level: 20,
+  id: 'grange', name: 'Donjon des Champs', kind: 'dungeon', zone: 'astrub', level: 20,
   sub: '7 salles · mini-boss · Tournesol Affamé',
   rooms: 7, pool: ['tournesolSauvage', 'roseDemo', 'pissenlitDiabo', 'epouvanteur', 'gardienne', 'gardienne'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
   elite: { room: 3, id: 'gardienneElite', grade: 5, adds: 4, addGrade: 3 },
@@ -150,7 +150,7 @@ export interface Zone {
   nodes: TreeNode[];
 }
 
-/** Arbre des zones. Astrub (après la Crypte) : Cité → Souterrains, Champs d'Astrub → Prairies → Grange (les 4 cartes). Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
+/** Arbre des zones. Astrub (après la Crypte) : Cité → Souterrains, Champs d'Astrub → Prairies → Donjon des Champs (les 4 cartes). Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
 export const ZONES: Zone[] = [
   {
     id: 'incarnam', name: 'Incarnam',
@@ -169,9 +169,9 @@ export const ZONES: Zone[] = [
       { id: 'souterrains', name: 'Souterrains', level: 13, kind: 'map', area: SOUTERRAINS, needs: ['cite'] },
       { id: 'champsAstrub', name: 'Champs d’Astrub', level: 17, kind: 'map', area: CHAMPS_ASTRUB, needs: ['cite'] },
       { id: 'prairies', name: 'Prairies', level: 18, kind: 'map', area: PRAIRIES, needs: ['champsAstrub'] },
-      { id: 'grange', name: 'Grange du Tournesol Affamé', level: 20, kind: 'dungeon', area: GRANGE, needs: ['cite', 'souterrains', 'champsAstrub', 'prairies'] },
-      { id: 'cour', name: 'Cour du Bouftou Royal', level: 30, kind: 'dungeon', needs: ['grange'], soon: true },
-      { id: 'chateau', name: 'Château Ensablé', level: 40, kind: 'dungeon', needs: ['grange'], soon: true },
+      { id: 'grange', name: 'Donjon des Champs', level: 20, kind: 'dungeon', area: GRANGE, needs: ['cite', 'souterrains', 'champsAstrub', 'prairies'] },
+      { id: 'cour', name: 'Donjon des Bouftous', level: 30, kind: 'dungeon', needs: ['grange'], soon: true },
+      { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', needs: ['grange'], soon: true },
     ],
   },
 ];
