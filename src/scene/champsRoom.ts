@@ -12,8 +12,11 @@ import { FLOOR_TOP, GATE_BARS_H, GATE_BARS_W, ROOM_H, ROOM_W } from './cryptRoom
  * Même format que la Crypte (portrait, vue de dessus 3/4).
  */
 
-const EDGE = 54; // bord de falaise sur les côtés
+const EDGE0 = 54; // bord de falaise sur les côtés
+/** Bord de l'île pour la salle en cours (plus étroit dans un couloir). */
+let EDGE = EDGE0;
 import type { Theme } from '../game/data/areas';
+import type { RoomShape } from '../game/shapes';
 
 /** Palette d'une carte d'Incarnam (même île, autres couleurs et détails). */
 interface Look {
@@ -223,8 +226,47 @@ function exitArch(): string {
   return o.join('\n');
 }
 
-export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs'): string {
+/** Trous de vide dans l'île : ciel de nuit au fond, paroi de falaise sur le bord du fond, liseré d'herbe, brume. */
+function holesSvg(shape: RoomShape, r: () => number): string {
+  const o: string[] = [];
+  const P = 0.62;
+  o.push(`<clipPath id="island"><rect x="${EDGE}" y="${FLOOR_TOP - 6}" width="${ROOM_W - 2 * EDGE}" height="${ROOM_H}"/></clipPath>`);
+  shape.holes.forEach((h, i) => {
+    const ry = h.r * P;
+    const stadium = (dy = 0) => `M${f1(h.x - h.hx)},${f1(h.y - ry + dy)} L${f1(h.x + h.hx)},${f1(h.y - ry + dy)} A${f1(h.r)},${f1(ry)} 0 0 1 ${f1(h.x + h.hx)},${f1(h.y + ry + dy)} L${f1(h.x - h.hx)},${f1(h.y + ry + dy)} A${f1(h.r)},${f1(ry)} 0 0 1 ${f1(h.x - h.hx)},${f1(h.y - ry + dy)} Z`;
+    const id = `hole${i}`;
+    o.push(`<clipPath id="${id}"><path d="${stadium()}"/></clipPath>`);
+    o.push(`<g clip-path="url(#island)"><g clip-path="url(#${id})">`);
+    // paroi du fond (roche), puis le vide en dessous
+    o.push(`<path d="${stadium()}" fill="url(#cliffG)"/>`);
+    o.push(`<path d="${stadium(Math.min(60, ry * 0.7))}" fill="url(#voidG)"/>`);
+    for (let k = 0; k < 14; k++) {
+      const x = h.x - h.hx - h.r + r() * (2 * (h.hx + h.r)), y = h.y - ry * 0.2 + r() * ry * 1.2;
+      o.push(`<circle cx="${f1(x)}" cy="${f1(y)}" r="${f1(0.6 + r() * 1.4)}" fill="#fff" opacity="${(0.4 + r() * 0.5).toFixed(2)}"/>`);
+    }
+    o.push(`<ellipse cx="${f1(h.x)}" cy="${f1(h.y + ry * 0.5)}" rx="${f1(h.hx + h.r)}" ry="${f1(ry * 0.4)}" fill="#dff6ff" opacity="0.22" filter="url(#blur8)"/>`);
+    o.push(`</g>`);
+    // liseré d'herbe qui surplombe le vide
+    o.push(`<path d="${stadium()}" fill="none" stroke="${OCHRE}" stroke-width="13"/><path d="${stadium()}" fill="none" stroke="${L.grass[1]}" stroke-width="8"/>`);
+    o.push(`</g>`);
+  });
+  // ponts de corde sur les bandes de vide
+  for (const b of shape.bands) {
+    const x0 = b.gapX - b.gapHalf - 6, x1 = b.gapX + b.gapHalf + 6, y0 = b.y - b.half - 14, y1 = b.y + b.half + 14;
+    for (let y = y0; y < y1; y += 15) {
+      o.push(`<rect x="${f1(x0 + (r() - 0.5) * 3)}" y="${f1(y)}" width="${f1(x1 - x0)}" height="11" rx="2" fill="${shade('#a8743e', (r() - 0.5) * 0.2)}" stroke="#4a2e14" stroke-width="1.8"/>`);
+    }
+    for (const x of [x0 - 2, x1 + 2]) {
+      o.push(`<path d="M${f1(x)},${f1(y0 - 4)} Q${f1(x)},${f1(b.y + 10)} ${f1(x)},${f1(y1 + 4)}" fill="none" stroke="#5a3a1a" stroke-width="4"/>`);
+      for (const y of [y0 - 10, y1 + 2]) o.push(`<rect x="${f1(x - 5)}" y="${f1(y - 14)}" width="10" height="24" rx="2" fill="#8a5a2e" stroke="#3a220c" stroke-width="2"/>`);
+    }
+  }
+  return o.join('\n');
+}
+
+export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs', shape?: RoomShape): string {
   L = LOOKS[theme];
+  EDGE = EDGE0 + (shape?.margin ?? 0);
   const r = rng(seed);
   const defs = `
     <filter id="grain" x="0" y="0" width="100%" height="100%">
@@ -252,6 +294,7 @@ export function champsRoomSvg(seed = 7, theme: Exclude<Theme, 'crypt'> = 'champs
     ground(r),
     `<rect x="${EDGE - 10}" y="${FLOOR_TOP - 6}" width="${ROOM_W - 2 * EDGE + 20}" height="14" fill="${L.grass[1]}"/>`,
     cliffRim(back, 0, 'down'),
+    shape ? holesSvg(shape, r) : '',
     exitArch(),
   ].join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ROOM_W} ${ROOM_H}" width="${ROOM_W}" height="${ROOM_H}"><defs>${defs}</defs>${body}</svg>`;

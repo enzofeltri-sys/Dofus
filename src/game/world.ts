@@ -7,7 +7,8 @@ import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './dat
 import { CRYPTE, type AreaDef } from './data/areas';
 import type { Stats } from './formulas';
 import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
-import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
+import { islandLayout, mirrorLayout, obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
+import { ELITE_SHAPES, FIRST_SHAPES, MID_SHAPES, roomShape, type RoomShape, type ShapeId } from './shapes';
 
 /**
  * Monde de jeu : toute la logique du combat, indépendante de l'affichage.
@@ -53,6 +54,47 @@ export function roomGrade(index: number, r: number, rooms = TOTAL_ROOMS): number
 /** Centre d'une attaque en cercle devant le monstre (sort à distance : là où était le héros). */
 export const attackOffset = (m: { atk: MonsterAttack; aim: number }) => (m.atk.atTarget ? m.aim : m.atk.offset);
 
+/** Salles spéciales (création) : embuscade, coffre gardé, fontaine de soin, vagues à tenir. */
+export type Special = 'embuscade' | 'coffre' | 'fontaine' | 'vagues';
+export const SPECIAL_NAMES: Record<Special, string> = { embuscade: 'Embuscade', coffre: 'Coffre gardé', fontaine: 'Fontaine', vagues: 'Vagues' };
+/** Durée à tenir dans une salle de vagues (s), soin de la fontaine (part des PV max par seconde, et au plus par salle). */
+export const WAVES_TIME = 20;
+/** Vagues : monstres au départ, au plus en même temps, et délai entre deux renforts (s). */
+export const WAVES = { start: 2, maxAlive: 4, every: 3 };
+export const FOUNTAIN_RATE = 0.06;
+export const FOUNTAIN_MAX = 0.5;
+export const FOUNTAIN_REACH = 125;
+
+/** Plan d'une partie : forme, sens et éventuelle salle spéciale de chaque salle (tiré au début de chaque partie). */
+export interface RoomPlan {
+  shape: ShapeId;
+  mirror: boolean;
+  special: Special | null;
+}
+
+/**
+ * Pièges de carte (création) : troupeau qui traverse (Pâturages), feux follets qui explosent (Forêt),
+ * mains de squelette qui agrippent (Cimetière). Dégâts en part des PV max du héros.
+ */
+export type HazardKind = 'herd' | 'wisp' | 'hands';
+export interface Hazard {
+  id: number;
+  kind: HazardKind;
+  x: number;
+  y: number;
+  state: 'idle' | 'windup' | 'active' | 'gone';
+  t: number;
+  /** Sens du troupeau. */
+  dir: 1 | -1;
+  /** Déjà touchés par ce piège (héros = 0, monstres = uid). */
+  hit: number[];
+}
+export const HAZARD = {
+  herd: { every: [8, 11], windup: 1.3, speed: 900, half: 46, damage: 0.1 },
+  wisp: { count: 3, trigger: 95, windup: 0.8, radius: 90, damage: 0.08, respawn: 7 },
+  hands: { every: [5, 7], windup: 1.0, radius: 58, damage: 0.04, root: 1.1, life: 0.6 },
+} as const;
+
 export type MonsterState = 'spawn' | 'chase' | 'windup' | 'recover' | 'dead';
 
 export interface Monster {
@@ -94,6 +136,10 @@ export interface Monster {
   /** Attaque en cours (normale ou charge) et délai avant la prochaine charge. */
   atk: MonsterAttack;
   chargeT: number;
+  /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
+  stuckT: number;
+  detourT: number;
+  detourSide: 1 | -1;
   /** Effets des sorts du Sacrieur (durées restantes, s). */
   markT: number;
   weakT: number;
@@ -153,6 +199,8 @@ export interface Hero {
   eroded: number;
   /** Ralenti par le tacle d'un monstre au contact (0 = libre, pour l'affichage). */
   tackled: number;
+  /** Agrippé (mains du Cimetière) : immobile tant que > 0. */
+  rootT: number;
 }
 
 export type WorldEvent =
@@ -176,7 +224,14 @@ export type WorldEvent =
   | { type: 'coagulation'; shield: number }
   | { type: 'initiative'; hero: boolean }
   | { type: 'xp'; amount: number; x: number; y: number }
-  | { type: 'drop'; items: number[]; x: number; y: number; boss: boolean };
+  | { type: 'drop'; items: number[]; x: number; y: number; boss: boolean }
+  | { type: 'special'; special: Special }
+  | { type: 'ambush' }
+  | { type: 'chest'; items: number[]; x: number; y: number }
+  | { type: 'flee'; uid: number; x: number; y: number }
+  | { type: 'hazard'; id: number; kind: HazardKind; phase: 'warn' | 'strike' }
+  | { type: 'rooted' }
+  | { type: 'wavesOver' };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -202,6 +257,21 @@ export class World {
   boss: Monster | null = null;
   /** Mini-boss (salle du milieu), s'il y en a un. */
   elite: Monster | null = null;
+  /** Plan de la partie, forme et salle spéciale de la salle en cours. */
+  plan: RoomPlan[] = [];
+  shape: RoomShape = roomShape('plaine');
+  special: Special | null = null;
+  /** Gardien du coffre, position du coffre (ouvert ou non), fontaine et soin déjà rendu. */
+  guard: Monster | null = null;
+  chest: { x: number; y: number; open: boolean } | null = null;
+  fountain: { x: number; y: number; healed: number; acc: number } | null = null;
+  /** Salle de vagues : temps restant à tenir. */
+  wavesT = 0;
+  private waveSpawnT = 0;
+  private ambush = false;
+  hazards: Hazard[] = [];
+  private hazardT = 0;
+  private hazardUid = 1;
   /** Dernière salle de la carte ou du donjon. */
   get lastRoom() {
     return this.roomIndex >= this.area.rooms - 1;
@@ -221,6 +291,34 @@ export class World {
       attackCd: 0, swing: null, hurtT: 0, invulnT: 0, ...freshCombat(),
     };
     this.run = freshRun(def.level);
+    this.planRun();
+  }
+
+  /** Tire le plan de la partie : formes des salles (sans répétition), sens, salles spéciales. */
+  private planRun() {
+    const r = rng(this.seed * 31 + 7);
+    const A = this.area, island = A.theme !== 'crypt';
+    const shuffle = <T>(a: T[]) => {
+      const b = [...a];
+      for (let i = b.length - 1; i > 0; i--) {
+        const j = Math.floor(r() * (i + 1));
+        [b[i], b[j]] = [b[j], b[i]];
+      }
+      return b;
+    };
+    const pick = <T>(a: T[]) => a[Math.floor(r() * a.length)];
+    const fixed = (i: number) => (A.elite && i === A.elite.room) || (A.boss && i === A.rooms - 1);
+    const mids = shuffle(MID_SHAPES);
+    const eligible = [...Array(A.rooms).keys()].filter((i) => i > 0 && !fixed(i));
+    const nSpecial = Math.min(eligible.length, A.rooms >= 8 ? 2 : r() < 0.4 ? 2 : 1);
+    const where = shuffle(eligible).slice(0, nSpecial);
+    const kinds = shuffle<Special>(['embuscade', 'coffre', 'fontaine', 'vagues']);
+    let k = 0;
+    this.plan = [...Array(A.rooms)].map((_, i) => ({
+      shape: !island ? 'plaine' : i === 0 ? pick(FIRST_SHAPES) : fixed(i) ? pick(ELITE_SHAPES) : mids[k++ % mids.length],
+      mirror: r() < 0.5,
+      special: where.includes(i) ? kinds[where.indexOf(i)] : null,
+    }));
   }
 
   /** Le rendu indique jusqu'où le sol est visible au-dessus de la barre d'interface. */
@@ -241,6 +339,9 @@ export class World {
     Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
     this.run = freshRun(def.level);
     this.stats = freshStats();
+    // nouvelle partie : autres monstres, autres salles
+    this.seed = (this.seed * 48271 + 11) % 2147483647;
+    this.planRun();
     this.startRoom(0);
   }
 
@@ -249,11 +350,46 @@ export class World {
     this.phase = 'fight';
     this.gate = 0;
     this.rnd = rng(this.seed * 977 + index * 131);
-    this.layout = roomLayout(index, this.area.theme);
-    this.obstacles = roomObstacles(this.layout);
+    const plan = this.plan[index] ?? { shape: 'plaine', mirror: false, special: null };
+    const theme = this.area.theme;
+    this.shape = roomShape(plan.shape, plan.mirror);
+    this.bounds.x0 = 76 + this.shape.margin;
+    this.bounds.x1 = ROOM_W - 76 - this.shape.margin;
+    this.special = plan.special;
     this.hero.x = ROOM_W / 2;
     this.hero.y = this.bounds.y1 - 240; // au-dessus du joystick
     this.hero.swing = null;
+    this.hero.rootT = 0;
+    this.guard = null;
+    this.chest = null;
+    this.fountain = null;
+    this.wavesT = 0;
+    this.ambush = false;
+    this.hazards = [];
+    this.hazardT = 4;
+    // objets de la salle spéciale, posés là où il y a de la place
+    const extra: PropPlacement[] = [];
+    if (this.special === 'coffre') {
+      const c = this.freeSpot(plan.mirror ? this.bounds.x1 - 80 : this.bounds.x0 + 80, this.bounds.y0 + 190, 40);
+      this.chest = { ...c, open: false };
+      extra.push({ kind: 'chest', x: c.x, y: c.y });
+    } else if (this.special === 'fontaine') {
+      const c = this.freeSpot(ROOM_W / 2 + (plan.mirror ? 90 : -90), (this.bounds.y0 + this.bounds.y1) / 2, 60);
+      this.fountain = { ...c, healed: 0, acc: 0 };
+      extra.push({ kind: 'fountain', x: c.x, y: c.y });
+    }
+    if (theme !== 'crypt') {
+      const keep = [{ x: this.hero.x, y: this.hero.y, r: 150 }];
+      for (const b of this.shape.bands) for (const sd of [-1, 1]) keep.push({ x: b.gapX, y: b.y + sd * (b.half + 40), r: 90 });
+      const blockers = this.shape.id === 'couloir' || this.shape.id === 'archipel' ? 2 : this.shape.id === 'pont' ? 3 : 4;
+      this.layout = islandLayout(theme, { ...this.bounds, holes: this.shape.holes, keep }, this.rnd, blockers, extra);
+    } else {
+      // Crypte : une des dispositions, au hasard et parfois retournée ; les objets spéciaux remplacent ce qui les gêne
+      const base = roomLayout(Math.floor(this.rnd() * 4), theme);
+      const l = plan.mirror ? mirrorLayout(base) : base;
+      this.layout = [...l.filter((p) => extra.every((e) => flatDist(p.x, p.y, e.x, e.y) > 170)), ...extra];
+    }
+    this.obstacles = [...roomObstacles(this.layout), ...this.shape.holes];
     // l'érosion dure le temps d'un combat
     this.hero.maxHp += this.hero.eroded;
     this.hero.eroded = 0;
@@ -291,13 +427,34 @@ export class World {
     }
     // monstres de plus en plus nombreux ; à partir de `waveFrom`, une partie arrive en deuxième vague
     const count = Math.min(A.count.max, A.count.base + Math.floor(index * A.count.perRoom));
-    const defs = [...Array(count)].map(() => ({ def: pick(), grade: roomGrade(index, this.rnd(), A.rooms) }));
-    const second = index >= A.waveFrom ? Math.round(count * 0.4) : 0;
-    this.reserve = defs.splice(defs.length - second, second);
-    for (const { def, grade } of defs) {
-      const p = this.findSpawn();
-      this.monsters.push(this.makeMonster(def, grade, p.x, p.y));
+    const roll = () => ({ def: pick(), grade: roomGrade(index, this.rnd(), A.rooms) });
+    if (this.special === 'embuscade') {
+      // la salle a l'air vide… puis tout le monde surgit autour du héros
+      this.reserve = [...Array(count)].map(roll);
+      this.ambush = true;
+    } else if (this.special === 'vagues') {
+      this.reserve = [];
+      this.wavesT = WAVES_TIME;
+      this.waveSpawnT = WAVES.every;
+      for (let i = 0; i < WAVES.start; i++) this.spawnRoll(roll());
+    } else {
+      const n = this.special === 'fontaine' ? Math.max(2, count - 2) : this.special === 'coffre' ? Math.max(2, count - 2) : count;
+      const defs = [...Array(n)].map(roll);
+      const second = index >= A.waveFrom && this.special !== 'fontaine' ? Math.round(n * 0.4) : 0;
+      this.reserve = defs.splice(defs.length - second, second);
+      for (const d of defs) this.spawnRoll(d);
+      if (this.chest) {
+        // gardien du coffre : un monstre de la carte au grade 5, deux fois plus résistant
+        const g = this.makeMonster(pick(), 5, this.chest.x + (this.chest.x < ROOM_W / 2 ? 90 : -90), this.chest.y + 60);
+        g.maxHp *= 2;
+        g.hp = g.maxHp;
+        g.xp *= 2;
+        this.guard = g;
+        this.monsters.push(g);
+      }
     }
+    if (this.special) this.events.push({ type: 'special', special: this.special });
+    if (theme !== 'crypt') this.initHazards();
     this.rollInitiative();
     this.events.push({ type: 'roomStart', index });
   }
@@ -314,6 +471,54 @@ export class World {
     if (first) for (const m of this.monsters) m.cd += INITIATIVE_DELAY;
     else h.castCd = Math.max(h.castCd, INITIATIVE_DELAY);
     this.events.push({ type: 'initiative', hero: first });
+  }
+
+  private spawnRoll({ def, grade }: { def: MonsterDef; grade: number }) {
+    const p = this.findSpawn();
+    this.monsters.push(this.makeMonster(def, grade, p.x, p.y));
+  }
+
+  /** Point libre (hors du vide et des obstacles) le plus proche de (x, y). */
+  freeSpot(x: number, y: number, r: number): Vec {
+    for (let k = 0; k < 400; k++) {
+      const a = k * 2.4, d = k * 3;
+      const px = Math.max(this.bounds.x0 + r, Math.min(this.bounds.x1 - r, x + Math.cos(a) * d));
+      const py = Math.max(this.bounds.y0 + 80, Math.min(this.bounds.y1 - 300, y + Math.sin(a) * d * PERSP));
+      if (this.shape.holes.every((o) => flatDist(px, py, obstacleCore(o, px), o.y) > o.r + r + 20)) return { x: Math.round(px), y: Math.round(py) };
+    }
+    return { x, y };
+  }
+
+  /** Apparition autour du héros (embuscade), hors du vide et des obstacles. */
+  private findSpawnAround(cx: number, cy: number): Vec {
+    for (let tries = 0; tries < 200; tries++) {
+      const a = this.rnd() * Math.PI * 2, d = 260 + this.rnd() * 110;
+      const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * PERSP;
+      if (x < this.bounds.x0 + 20 || x > this.bounds.x1 - 20 || y < this.bounds.y0 + 30 || y > this.bounds.y1 - 20) continue;
+      if (this.obstacles.some((o) => flatDist(x, y, obstacleCore(o, x), o.y) < o.r + 40)) continue;
+      if (this.monsters.some((m) => m.state !== 'dead' && flatDist(x, y, m.x, m.y) < 90)) continue;
+      return { x, y };
+    }
+    return this.findSpawn();
+  }
+
+  /**
+   * Navigation : point vers lequel marcher pour aller de (x, y) à (tx, ty).
+   * Si une bande de vide les sépare, on passe par son pont (entrée, puis traversée).
+   */
+  navPoint(x: number, y: number, tx: number, ty: number): Vec {
+    let best: RoomShape['bands'][number] | null = null, bd = Infinity;
+    for (const b of this.shape.bands) {
+      const inBand = Math.abs(y - b.y) < b.half + 12;
+      if (inBand && Math.abs(ty - b.y) < b.half + 12) continue;
+      if (!inBand && Math.sign(y - b.y) === Math.sign(ty - b.y)) continue;
+      if (Math.abs(y - b.y) < bd) { bd = Math.abs(y - b.y); best = b; }
+    }
+    if (!best) return { x: tx, y: ty };
+    const side = Math.sign(ty - best.y) || 1;
+    const inBand = Math.abs(y - best.y) < best.half + 12;
+    if (inBand || Math.abs(x - best.gapX) < best.gapHalf * 0.5) return { x: best.gapX, y: best.y + side * (best.half + 40) };
+    return { x: best.gapX, y: best.y - side * (best.half + 26) };
   }
 
   private findSpawn(): Vec {
@@ -335,7 +540,7 @@ export class World {
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
       hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
-      markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0,
+      markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
     };
   }
 
@@ -356,8 +561,23 @@ export class World {
     this.separate();
     this.roomT += STEP;
 
+    this.stepSpecial();
+    this.stepHazards();
+    // embuscade : les monstres surgissent tout autour du héros
+    if (this.ambush && this.phase === 'fight' && this.roomT >= 1.6) {
+      this.ambush = false;
+      // ils surgissent les uns après les autres (0,3 s d'écart), pour laisser le temps de réagir
+      this.reserve.forEach(({ def, grade }, i) => {
+        const p = this.findSpawnAround(this.hero.x, this.hero.y);
+        const m = this.makeMonster(def, grade, p.x, p.y);
+        m.t = -0.3 * i;
+        this.monsters.push(m);
+      });
+      this.reserve = [];
+      this.events.push({ type: 'ambush' });
+    }
     // deuxième vague : quand il ne reste que 2 monstres, ou au bout de 10 s
-    if (this.reserve.length && this.phase === 'fight') {
+    if (this.reserve.length && !this.ambush && this.phase === 'fight') {
       const alive = this.monsters.filter((m) => m.state !== 'dead').length;
       if (alive <= 2 || this.roomT >= 10) {
         for (const { def, grade } of this.reserve) {
@@ -369,8 +589,9 @@ export class World {
       }
     }
 
-    if (this.phase === 'fight' && !this.reserve.length && this.monsters.every((m) => m.state === 'dead')) {
+    if (this.phase === 'fight' && !this.reserve.length && this.wavesT <= 0 && this.monsters.every((m) => m.state === 'dead')) {
       this.phase = 'cleared';
+      this.openChest();
       this.events.push({ type: this.lastRoom ? 'victory' : 'roomCleared' });
     }
     // la grille de la dernière salle reste fermée : la carte ou le donjon est fini
@@ -396,7 +617,7 @@ export class World {
     // Déplacement (la vitesse verticale est réduite par la perspective).
     let ix = input.x, iy = input.y;
     const m = Math.hypot(ix, iy);
-    h.moving = m > 0.05;
+    h.moving = m > 0.05 && h.rootT <= 0;
     h.tackled = 1;
     if (h.moving) {
       if (m > 1) { ix /= m; iy /= m; }
@@ -776,7 +997,29 @@ export class World {
         } else if (d > a.trigger * 0.8) want = 1;
         if (want !== 0) {
           const sp = m.def.speed * (m.hasteT > 0 ? m.def.boss?.haste ?? 1.6 : 1) * want * STEP;
-          const [nx, ny] = this.slideMove(m.x, m.y, (dx / d) * sp, (dy / d) * sp * PERSP, m.def.radius);
+          // de l'autre côté du vide : on passe par le pont
+          const nav = want > 0 ? this.navPoint(m.x, m.y, h.x, h.y) : h;
+          let ndx = nav.x - m.x, ndy = (nav.y - m.y) / PERSP;
+          const nd = Math.hypot(ndx, ndy) || 1;
+          ndx /= nd;
+          ndy /= nd;
+          // bloqué contre un obstacle : on le contourne franchement par un côté
+          if (m.detourT > 0) {
+            m.detourT -= STEP;
+            [ndx, ndy] = [ndx * 0.35 - ndy * m.detourSide, ndy * 0.35 + ndx * m.detourSide];
+            const n = Math.hypot(ndx, ndy) || 1;
+            ndx /= n;
+            ndy /= n;
+          }
+          const [nx, ny] = this.slideMove(m.x, m.y, ndx * sp, ndy * sp * PERSP, m.def.radius);
+          const moved = flatDist(nx, ny, m.x, m.y);
+          if (want > 0 && moved < Math.abs(sp) * 0.25) m.stuckT += STEP;
+          else m.stuckT = Math.max(0, m.stuckT - STEP * 2);
+          if (m.stuckT > 0.35 && m.detourT <= 0) {
+            m.detourT = 0.7;
+            m.stuckT = 0;
+            m.detourSide = m.detourSide === 1 ? -1 : 1;
+          }
           m.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, nx));
           m.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, ny));
           m.moving = true;
@@ -866,6 +1109,161 @@ export class World {
     }
   }
 
+  /** Vagues (minuteur, renforts continus), fontaine (soin à proximité). */
+  private stepSpecial() {
+    if (this.phase !== 'fight') return;
+    const h = this.hero;
+    if (this.wavesT > 0) {
+      this.wavesT = Math.max(0, this.wavesT - STEP);
+      this.waveSpawnT -= STEP;
+      const alive = this.monsters.filter((m) => m.state !== 'dead').length;
+      if (this.wavesT > 0 && this.waveSpawnT <= 0 && alive < WAVES.maxAlive) {
+        const A = this.area;
+        this.spawnRoll({ def: MONSTERS[A.pool[Math.floor(this.rnd() * A.pool.length)]], grade: roomGrade(this.roomIndex, this.rnd(), A.rooms) });
+        this.waveSpawnT = WAVES.every;
+      }
+      if (this.wavesT <= 0) {
+        // temps tenu : les derniers monstres s'enfuient (sans butin)
+        for (const m of this.monsters) if (m.state !== 'dead') {
+          m.state = 'dead';
+          m.t = 0;
+          m.hidden = false;
+          this.events.push({ type: 'flee', uid: m.uid, x: m.x, y: m.y });
+        }
+        this.events.push({ type: 'wavesOver' });
+      }
+    }
+    const f = this.fountain;
+    if (f && h.alive && h.hp < h.maxHp && f.healed < h.maxHp * FOUNTAIN_MAX && flatDist(h.x, h.y, f.x, f.y) < FOUNTAIN_REACH) {
+      f.acc += h.maxHp * FOUNTAIN_RATE * STEP;
+      if (f.acc >= 1 && (this.roomT % 0.5 < STEP || f.acc >= h.maxHp * 0.03)) {
+        const amount = Math.min(Math.floor(f.acc), h.maxHp - h.hp, Math.ceil(h.maxHp * FOUNTAIN_MAX - f.healed));
+        f.acc -= amount;
+        f.healed += amount;
+        h.hp += amount;
+        h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
+        if (amount > 0) this.events.push({ type: 'heal', x: h.x, y: h.y, amount });
+      }
+    }
+  }
+
+  /** Coffre gardé : s'ouvre quand la salle est vidée ; butin de 3 monstres de la carte (comme une élite). */
+  private openChest() {
+    const c = this.chest;
+    if (!c || c.open) return;
+    c.open = true;
+    const items: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const def = MONSTERS[this.area.pool[Math.floor(this.lootRnd() * this.area.pool.length)]];
+      items.push(...rollDrops({ dofusId: def.dofusId, boss: false, elite: true, prospection: prospectionOf(this.heroStats()) }, this.lootRnd));
+    }
+    for (const id of items) this.stats.loot[id] = (this.stats.loot[id] ?? 0) + 1;
+    this.events.push({ type: 'chest', items, x: c.x, y: c.y });
+  }
+
+  /** Pièges de la carte (pas dans la salle de l'élite ni dans le donjon). */
+  private initHazards() {
+    const t = this.area.theme;
+    if (this.elite || this.boss) return;
+    if (t === 'foret') {
+      for (let i = 0; i < HAZARD.wisp.count; i++) {
+        const p = this.freeSpot(this.bounds.x0 + 60 + this.rnd() * (this.bounds.x1 - this.bounds.x0 - 120), this.bounds.y0 + 150 + this.rnd() * 560, 40);
+        this.hazards.push({ id: this.hazardUid++, kind: 'wisp', x: p.x, y: p.y, state: 'idle', t: 0, dir: 1, hit: [] });
+      }
+    }
+  }
+
+  private stepHazards() {
+    const t = this.area.theme, h = this.hero;
+    if (h.rootT > 0) h.rootT = Math.max(0, h.rootT - STEP);
+    // salle vidée : les pièges annoncés s'éteignent (un troupeau déjà lancé finit sa course)
+    if (this.phase !== 'fight') this.hazards = this.hazards.filter((z) => z.kind === 'herd' && z.state === 'active');
+    if (!this.hazards.length && (this.phase !== 'fight' || t === 'crypt' || t === 'champs')) return;
+    this.hazardT -= STEP;
+    const span = (e: readonly [number, number] | readonly number[]) => e[0] + this.rnd() * (e[1] - e[0]);
+    if (this.phase === 'fight' && h.alive && this.hazardT <= 0 && !this.elite && !this.boss) {
+      if (t === 'paturages') {
+        const dir: 1 | -1 = this.rnd() < 0.5 ? 1 : -1;
+        const y = Math.max(this.bounds.y0 + 60, Math.min(this.bounds.y1 - 40, h.y + (this.rnd() - 0.5) * 60));
+        this.hazards.push({ id: this.hazardUid++, kind: 'herd', x: dir > 0 ? -90 : ROOM_W + 90, y, state: 'windup', t: 0, dir, hit: [] });
+        this.events.push({ type: 'hazard', id: this.hazardUid - 1, kind: 'herd', phase: 'warn' });
+        this.hazardT = span(HAZARD.herd.every);
+      } else if (t === 'cimetiere') {
+        this.hazards.push({ id: this.hazardUid++, kind: 'hands', x: h.x, y: h.y, state: 'windup', t: 0, dir: 1, hit: [] });
+        this.events.push({ type: 'hazard', id: this.hazardUid - 1, kind: 'hands', phase: 'warn' });
+        this.hazardT = span(HAZARD.hands.every);
+      } else this.hazardT = 5;
+    }
+    for (const z of this.hazards) {
+      z.t += STEP;
+      if (z.kind === 'herd') {
+        const H = HAZARD.herd;
+        if (z.state === 'windup' && z.t >= H.windup) { z.state = 'active'; z.t = 0; this.events.push({ type: 'hazard', id: z.id, kind: z.kind, phase: 'strike' }); }
+        if (z.state === 'active') {
+          z.x += z.dir * H.speed * STEP;
+          if (h.alive && !z.hit.includes(0) && Math.abs(h.y - z.y) < H.half && Math.abs(h.x - z.x) < 50) {
+            z.hit.push(0);
+            if (h.invulnT <= 0) {
+              this.hazardHurt(H.damage);
+              h.y += Math.sign(h.y - z.y || 1) * 30;
+            }
+          }
+          for (const m of this.monsters) {
+            if (m.state === 'dead' || m.state === 'spawn' || z.hit.includes(m.uid) || Math.abs(m.y - z.y) >= H.half || Math.abs(m.x - z.x) >= 50) continue;
+            z.hit.push(m.uid);
+            this.damageMonster(m, Math.round(m.maxHp * 0.15), false);
+          }
+          if (z.x < -200 || z.x > ROOM_W + 200) z.state = 'gone';
+        }
+      } else if (z.kind === 'wisp') {
+        const W = HAZARD.wisp;
+        if (z.state === 'idle' && this.phase === 'fight' && h.alive && flatDist(h.x, h.y, z.x, z.y) < W.trigger) {
+          z.state = 'windup'; z.t = 0;
+          this.events.push({ type: 'hazard', id: z.id, kind: z.kind, phase: 'warn' });
+        } else if (z.state === 'windup' && z.t >= W.windup) {
+          z.state = 'gone'; z.t = 0;
+          this.events.push({ type: 'hazard', id: z.id, kind: z.kind, phase: 'strike' });
+          if (h.alive && h.invulnT <= 0 && flatDist(h.x, h.y, z.x, z.y) < W.radius) this.hazardHurt(W.damage);
+        } else if (z.state === 'gone' && z.t >= W.respawn && this.phase === 'fight') {
+          const p = this.freeSpot(this.bounds.x0 + 60 + this.rnd() * (this.bounds.x1 - this.bounds.x0 - 120), this.bounds.y0 + 150 + this.rnd() * 560, 40);
+          Object.assign(z, { x: p.x, y: p.y, state: 'idle', t: 0 });
+        }
+      } else {
+        const M = HAZARD.hands;
+        if (z.state === 'windup' && z.t >= M.windup) {
+          z.state = 'active'; z.t = 0;
+          this.events.push({ type: 'hazard', id: z.id, kind: z.kind, phase: 'strike' });
+          if (h.alive && h.invulnT <= 0 && flatDist(h.x, h.y, z.x, z.y) < M.radius) {
+            this.hazardHurt(M.damage);
+            h.rootT = M.root;
+            this.events.push({ type: 'rooted' });
+          }
+        } else if (z.state === 'active' && z.t >= M.life) z.state = 'gone';
+      }
+    }
+    this.hazards = this.hazards.filter((z) => z.state !== 'gone' || z.kind === 'wisp');
+  }
+
+  /** Dégâts d'un piège : part des PV max (le bouclier absorbe ; pas de résistance). */
+  private hazardHurt(frac: number) {
+    const h = this.hero;
+    const dmg = Math.max(1, Math.round((h.maxHp + h.eroded) * frac));
+    const absorbed = Math.min(h.shield, dmg);
+    h.shield -= absorbed;
+    h.hp = Math.max(0, h.hp - (dmg - absorbed));
+    this.stats.taken += dmg - absorbed;
+    h.souffrance = souffranceFor(h.hp, h.maxHp + h.eroded);
+    h.hurtT = 0.25;
+    h.invulnT = 0.35;
+    this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: dmg, crit: false });
+    if (h.hp <= 0) {
+      h.alive = false;
+      h.swing = null;
+      this.phase = 'dead';
+      this.events.push({ type: 'heroDied' });
+    }
+  }
+
   /**
    * Déplacement avec glissement : la part du mouvement qui rentre dans un obstacle est convertie
    * en mouvement le long de son bord (on contourne les colonnes au lieu de s'y coller).
@@ -932,7 +1330,7 @@ export class World {
 }
 
 function freshCombat() {
-  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1 };
+  return { pa: PA_MAX, castCd: 0, souffrance: 0, mutStage: 0, mutT: 0, shield: 0, shieldT: 0, eroded: 0, tackled: 1, rootT: 0 };
 }
 
 /** Charges de Souffrance : 1 par tranche de 10 % de PV perdus, sur les PV max avant érosion. */

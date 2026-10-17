@@ -428,3 +428,9 @@ export const CRITTER_SVG: Record<CritterKind, (part?: CritterPart) => string> = 
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
 };
+
+/** Feu follet seul (piège de la Forêt) : cadre 60 × 70, centre en (30, 44). */
+export function wispSvg(col = '#7ff0b0'): string {
+  begin();
+  return svg(60, 70, '', glowOrb(30, 44, 13, col));
+}

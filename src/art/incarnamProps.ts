@@ -81,3 +81,49 @@ export function lanternPillar(): PropArt {
     `<path d="M21,62 v70" stroke="#e8e4d4" stroke-width="2.4" opacity="0.4"/>`;
   return { svg: svg(60, 160, defs, b), foot: [30, 148] };
 }
+
+/** Coffre gardé (salle spéciale) : bois cerclé d'or ; `open` : couvercle relevé, butin qui brille. */
+export function chest(open = false): PropArt {
+  const defs = lg('chW', '#b8743a', '#6a3a16') + lg('chL', '#c8844a', '#7a4420') + `<radialGradient id="chGlow"><stop offset="0" stop-color="#fff6c0"/><stop offset="0.5" stop-color="#ffd84a" stop-opacity="0.7"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>`;
+  const box = `<path d="M10,84 L10,52 L90,52 L90,84 Q50,92 10,84 Z" fill="url(#chW)" stroke="#2a1606" stroke-width="2.8" stroke-linejoin="round"/>` +
+    `<path d="M10,62 L90,62 M10,76 L90,76" stroke="#4a2a10" stroke-width="1.4" opacity="0.7"/>` +
+    `<path d="M24,52 L24,88 M76,52 L76,88" stroke="#6a4808" stroke-width="7"/><path d="M24,52 L24,88 M76,52 L76,88" stroke="#f0b42a" stroke-width="4"/>`;
+  const lid = open
+    ? `<path d="M12,52 L18,18 Q50,8 82,18 L88,52 Z" fill="url(#chL)" stroke="#2a1606" stroke-width="2.8" stroke-linejoin="round"/><path d="M26,50 L30,16 M74,50 L70,16" stroke="#f0b42a" stroke-width="4"/>` +
+      `<circle cx="50" cy="52" r="34" fill="url(#chGlow)"/><path d="M26,54 Q50,40 74,54" fill="#ffd84a" stroke="#a87010" stroke-width="2"/>` +
+      `<circle cx="38" cy="50" r="5" fill="#ffe46a" stroke="#a87010" stroke-width="1.4"/><circle cx="58" cy="47" r="5" fill="#ffe46a" stroke="#a87010" stroke-width="1.4"/><path d="M48,44 l6,-8 l6,8 l-6,6 Z" fill="#7fe0ff" stroke="#2a6a8a" stroke-width="1.4"/>`
+    : `<path d="M8,54 Q8,26 50,24 Q92,26 92,54 Z" fill="url(#chL)" stroke="#2a1606" stroke-width="2.8" stroke-linejoin="round"/>` +
+      `<path d="M24,54 Q24,30 26,28 M76,54 Q76,30 74,28" stroke="#6a4808" stroke-width="7" fill="none"/><path d="M24,54 Q24,30 26,28 M76,54 Q76,30 74,28" stroke="#f0b42a" stroke-width="4" fill="none"/>` +
+      `<rect x="42" y="46" width="16" height="16" rx="3" fill="#f0b42a" stroke="#6a4808" stroke-width="2"/><circle cx="50" cy="53" r="2.4" fill="#2a1606"/>` +
+      `<path d="M18,40 Q34,30 50,30" fill="none" stroke="#f4c890" stroke-width="2.6" stroke-linecap="round" opacity="0.6"/>`;
+  const b = shadow(50, 88, 46, 9) + (open ? lid + box : box + lid);
+  return { svg: svg(100, 100, defs, b), foot: [50, 86] };
+}
+
+/** Fontaine d'Incarnam (salle spéciale) : vasque de grès, eau lumineuse, petit jet. */
+export function fountain(): PropArt {
+  const defs = lg('ftS', '#fbf0cc', '#c4ac74') + `<radialGradient id="ftW" cx="0.5" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#9ff0ff"/><stop offset="1" stop-color="#3fb8d8"/></radialGradient>`;
+  const b = shadow(80, 104, 76, 16) +
+    `<path d="M8,74 Q8,104 80,106 Q152,104 152,74 L148,66 Q80,84 12,66 Z" fill="url(#ftS)" stroke="#7a6440" stroke-width="2.8" stroke-linejoin="round"/>` +
+    `<ellipse cx="80" cy="66" rx="70" ry="20" fill="#d6c08a" stroke="#7a6440" stroke-width="2.8"/>` +
+    `<ellipse cx="80" cy="67" rx="60" ry="15" fill="url(#ftW)"/>` +
+    `<path d="M76,64 L76,30 Q80,24 84,30 L84,64 Z" fill="url(#ftS)" stroke="#7a6440" stroke-width="2.4"/>` +
+    `<path d="M80,28 Q70,8 58,30 M80,28 Q90,8 102,30" fill="none" stroke="#bff6ff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>` +
+    `<path d="M40,64 Q60,58 72,62 M90,72 Q108,70 120,66" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.7"/>` +
+    `<path d="M24,84 h14 v8 h-10 M120,84 h14 v8 h-10" fill="none" stroke="#8a6a3a" stroke-width="2.2"/>`;
+  return { svg: svg(160, 114, defs, b), foot: [80, 96] };
+}
+
+/** Mains de squelette qui sortent de terre (piège du Cimetière). Pied en (50, 78). */
+export function boneHands(): PropArt {
+  const BONE = '#efe6cf', INK = '#4a3a26';
+  const hand = (x: number, lean: number) => {
+    const fingers = [-12, -5, 2, 9].map((dx, i) => `<path d="M${x + dx * 0.6},${40} L${x + dx + lean},${14 + Math.abs(i - 1.5) * 4} L${x + dx * 1.2 + lean * 1.3},${4 + Math.abs(i - 1.5) * 5}" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M${x + dx * 0.6},${40} L${x + dx + lean},${14 + Math.abs(i - 1.5) * 4} L${x + dx * 1.2 + lean * 1.3},${4 + Math.abs(i - 1.5) * 5}" fill="none" stroke="${BONE}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`).join('');
+    return `<path d="M${x - 2},78 L${x},40" stroke="${INK}" stroke-width="12" stroke-linecap="round"/><path d="M${x - 2},78 L${x},40" stroke="${BONE}" stroke-width="7.5" stroke-linecap="round"/>` +
+      `<ellipse cx="${x}" cy="40" rx="11" ry="8" fill="${BONE}" stroke="${INK}" stroke-width="2.4"/>` + fingers +
+      `<path d="M${x - 14},34 Q${x - 22},26 ${x - 20},18" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M${x - 14},34 Q${x - 22},26 ${x - 20},18" fill="none" stroke="${BONE}" stroke-width="3.6" stroke-linecap="round"/>`;
+  };
+  const b = `<ellipse cx="50" cy="78" rx="44" ry="10" fill="#2a2018" opacity="0.6"/>` + hand(30, -4) + hand(70, 5) +
+    `<path d="M10,80 q10,-8 20,-2 q10,-6 18,0 q12,-7 22,0 q10,-6 20,2" fill="#5a4e2a" stroke="#2a2214" stroke-width="2"/>`;
+  return { svg: svg(100, 90, '', b), foot: [50, 80] };
+}

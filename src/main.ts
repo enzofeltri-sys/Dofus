@@ -6,13 +6,13 @@ import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column,
 import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
 import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
-import { attackOffset, GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
+import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { CATS, CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, type CritterKind } from './art/champs-chibi';
+import { CATS, CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
-import { darkBlock, deadTree, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
+import { boneHands, chest, darkBlock, deadTree, fountain, ivoryHorns, lanternPillar, redBush, tomb } from './art/incarnamProps';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
@@ -79,7 +79,7 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
 
 const PROP_ART: Record<PropKind, () => PropArt> = {
   column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers,
-  redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar,
+  redbush: redBush, block: darkBlock, horns: ivoryHorns, tomb, deadtree: deadTree, lantern: lanternPillar, chest: () => chest(), fountain,
 };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
@@ -130,6 +130,12 @@ async function main() {
     }),
   );
   const glow = glowTexture();
+  // salles spéciales et pièges de carte
+  const [herdTex, herdTex2, wispTex, handsTex, chestOpenTex] = await Promise.all([
+    svgTexture(CRITTER_SVG.palichon(), CR * 0.7), svgTexture(CRITTER_SVG.orageux(), CR * 0.7), svgTexture(wispSvg(), RES),
+    svgTexture(boneHands().svg, RES), svgTexture(chest(true).svg, RES),
+  ]);
+  const handsFoot = boneHands().foot, chestFoot = chest(true).foot;
 
   // ---------- Calques ----------
   const world = new Container();
@@ -195,6 +201,11 @@ async function main() {
   await Assets.load(allItemIconUrls()).catch(() => {});
   hud.setLevel(game.hero.def.level);
   (window as unknown as { __game: World }).__game = game;
+  // tests navigateur : aller directement à une salle (avec son décor)
+  (window as unknown as { __room: (i: number) => Promise<void> }).__room = async (i: number) => {
+    game.startRoom(i);
+    await buildRoom(i);
+  };
   const playBottom = () => Math.min(ROOM_H - 70, ROOM_H - hud.bottomInset() / zoom - 30);
   game.setPlayBottom(playBottom());
 
@@ -259,6 +270,7 @@ async function main() {
     floaters.push({ t, life: 1.2, vy: -55, x, y });
   };
   let shake = 0;
+  let bossBarShown = false;
 
   // ---------- Décor de la salle (reconstruit à chaque salle) ----------
   type Glow = { s: Sprite; base: number; ph: number; spd: number };
@@ -266,6 +278,9 @@ async function main() {
   let roomGlows: Glow[] = [];
   let roomFlames: Flame[] = [];
   let roomProps: Container[] = [];
+  /** Coffre de la salle (pour l'ouvrir), vues des pièges. */
+  let chestSprite: Sprite | null = null;
+  const hazardViews = new Map<number, Container>();
   let gateBars: Sprite;
   let gateGlow: Sprite;
   let dust: { s: Sprite; x: number; y: number; vx: number; vy: number; ph: number }[] = [];
@@ -293,7 +308,7 @@ async function main() {
     const theme = game.area.theme;
     // les cartes d'Incarnam partagent la même île (herbe, falaises, ciel du vide) : seule la palette et le décor changent
     const champs = theme !== 'crypt';
-    const newBg = await svgTexture(theme !== 'crypt' ? champsRoomSvg(2000 + index * 23, theme) : cryptRoomSvg(1000 + index * 17), RES);
+    const newBg = await svgTexture(theme !== 'crypt' ? champsRoomSvg(2000 + index * 23, theme, game.shape) : cryptRoomSvg(1000 + index * 17), RES);
     // 2) puis remplacement synchrone de l'ancienne salle
     // nettoyage
     for (const g of roomGlows) g.s.destroy();
@@ -304,6 +319,9 @@ async function main() {
     roomGlows = [];
     roomFlames = [];
     roomProps = [];
+    chestSprite = null;
+    for (const v of hazardViews.values()) v.destroy({ children: true });
+    hazardViews.clear();
     dust = [];
     for (const v of monsterViews.values()) v.c.destroy({ children: true });
     monsterViews.clear();
@@ -345,6 +363,8 @@ async function main() {
       actors.addChild(c);
       roomProps.push(c);
       if (p.kind === 'lantern') addGlow(p.x, p.y - 104 * sc, 0xffd870, 1.5, 0.3);
+      if (p.kind === 'chest') chestSprite = s;
+      if (p.kind === 'fountain') addGlow(p.x, p.y - 30, 0x9ff0ff, 2.6, 0.35, 0.6);
       if (p.kind === 'brazier') {
         addFlame(c, BRAZIER_FIRE[0], BRAZIER_FIRE[1] + 30, 1.5);
         addGlow(p.x, p.y - 46, 0xffb040, 2.4, 0.3);
@@ -609,6 +629,44 @@ async function main() {
       case 'roomCleared':
         hud.toast('Salle terminée !');
         break;
+      case 'special':
+        if (ev.special === 'coffre') later(1.0, () => hud.toast('Coffre gardé : bats son gardien !', 1800));
+        else if (ev.special === 'fontaine') later(1.0, () => hud.toast('Fontaine : approche-toi pour te soigner', 1800));
+        else if (ev.special === 'vagues') later(1.0, () => hud.toast(`Vagues : tiens ${WAVES_TIME} secondes !`, 1800));
+        break;
+      case 'ambush':
+        hud.toast('Embuscade !', 1200);
+        shake = Math.max(shake, 8);
+        break;
+      case 'chest':
+        if (chestSprite) {
+          chestSprite.texture = chestOpenTex;
+          chestSprite.anchor.set(chestFoot[0] / chestOpenTex.width, chestFoot[1] / chestOpenTex.height);
+        }
+        hud.toast('Coffre ouvert !', 1400);
+        for (let i = 0; i < 24; i++) emit(ev.x, ev.y - 40, 0xffd84a, { vx: rand(-160, 160), vy: rand(-260, -80), life: 0.7, size: 0.08, grav: 300 });
+        ev.items.forEach((id, i) => later(0.3 + i * 0.14, () => flyLoot(id, ev.x, ev.y - 30, false)));
+        break;
+      case 'flee':
+        for (let i = 0; i < 10; i++) emit(ev.x, ev.y - 40, 0xd8d0c0, { vx: rand(-90, 90), vy: rand(-140, -30), life: 0.5, size: 0.1, add: false });
+        break;
+      case 'wavesOver':
+        hud.toast('Tenu ! Ils s’enfuient', 1400);
+        break;
+      case 'rooted':
+        hud.toast('Agrippé !', 800);
+        shake = Math.max(shake, 4);
+        break;
+      case 'hazard': {
+        const z = game.hazards.find((q) => q.id === ev.id);
+        if (ev.kind === 'herd' && ev.phase === 'warn') hud.toast('Troupeau !', 900);
+        if (z && ev.kind === 'wisp' && ev.phase === 'strike') {
+          shake = Math.max(shake, 5);
+          for (let i = 0; i < 22; i++) emit(z.x, z.y - 40, 0x7ff0b0, { vx: rand(-220, 220), vy: rand(-220, 40), life: 0.5, size: 0.1 });
+        }
+        if (z && ev.kind === 'hands' && ev.phase === 'strike') for (let i = 0; i < 12; i++) emit(z.x, z.y - 6, 0x6a5a3a, { vx: rand(-120, 120), vy: rand(-160, -40), life: 0.5, size: 0.08, add: false, grav: 380 });
+        break;
+      }
       case 'wave':
         hud.toast('Renforts !', 1200);
         shake = Math.max(shake, 6);
@@ -1008,6 +1066,88 @@ async function main() {
     }
     void GATE_BARS_W;
 
+    // Pièges de carte
+    const seen = new Set<number>();
+    for (const z of game.hazards) {
+      seen.add(z.id);
+      let v = hazardViews.get(z.id);
+      if (!v) {
+        v = new Container();
+        if (z.kind === 'herd') {
+          // un petit troupeau de Bouftons, en file serrée
+          for (let i = 0; i < 6; i++) {
+            const sp = new Sprite(i % 2 ? herdTex2 : herdTex);
+            sp.anchor.set(0.5, 0.95);
+            sp.scale.set(z.dir * -0.55, 0.55);
+            sp.position.set(-z.dir * (i * 46 + (i % 3) * 10), ((i * 37) % 70) - 35);
+            v.addChild(sp);
+          }
+        } else if (z.kind === 'wisp') {
+          const sp = new Sprite(wispTex);
+          sp.anchor.set(0.5, 0.63);
+          v.addChild(sp);
+        } else {
+          const sp = new Sprite(handsTex);
+          sp.anchor.set(handsFoot[0] / handsTex.width, handsFoot[1] / handsTex.height);
+          v.addChild(sp);
+        }
+        actors.addChild(v);
+        hazardViews.set(z.id, v);
+      }
+      if (z.kind === 'herd') {
+        const H = HAZARD.herd;
+        if (z.state === 'windup') {
+          const k = Math.min(1, z.t / H.windup);
+          ground.rect(game.bounds.x0 - 20, z.y - H.half, game.bounds.x1 - game.bounds.x0 + 40, H.half * 2).fill({ color: 0xff5030, alpha: 0.22 + 0.2 * k }).stroke({ width: 4, color: 0xff5030, alpha: 0.85 });
+          for (let i = 0; i < 5; i++) {
+            const ax = game.bounds.x0 + ((i + 0.5) / 5) * (game.bounds.x1 - game.bounds.x0) + z.dir * ((time * 120) % 60);
+            ground.poly([ax - z.dir * 18, z.y - 20, ax + z.dir * 14, z.y, ax - z.dir * 18, z.y + 20]).fill({ color: 0xfff0d0, alpha: 0.4 + 0.5 * k });
+          }
+        }
+        v.visible = z.state === 'active';
+        v.position.set(z.x, z.y + 20);
+        v.zIndex = z.y + 20;
+        if (z.state === 'active') v.children.forEach((c, i) => (c.y = ((i * 37) % 70) - 35 - Math.abs(Math.sin(time * 18 + i)) * 8));
+        if (z.state === 'active' && Math.random() < 0.6) emit(z.x - z.dir * 30, z.y + 10, 0xd8c890, { vx: -z.dir * rand(60, 160), vy: rand(-60, -10), life: 0.5, size: 0.08, add: false });
+      } else if (z.kind === 'wisp') {
+        const W = HAZARD.wisp;
+        v.visible = z.state !== 'gone';
+        v.position.set(z.x, z.y - 46 + Math.sin(time * 3 + z.id) * 6);
+        v.zIndex = z.y;
+        const k = z.state === 'windup' ? Math.min(1, z.t / W.windup) : 0;
+        v.scale.set(1 + k * 0.5 + (k > 0 ? Math.sin(time * 40) * 0.08 : 0));
+        if (z.state === 'windup') {
+          ground.ellipse(z.x, z.y, W.radius, W.radius * PERSP).fill({ color: 0x3fe0a0, alpha: 0.12 }).stroke({ width: 2.5, color: 0x3fe0a0, alpha: 0.7 });
+          ground.ellipse(z.x, z.y, W.radius * k, W.radius * k * PERSP).fill({ color: 0x3fe0a0, alpha: 0.28 });
+        } else if (z.state === 'idle') ground.ellipse(z.x, z.y, 18, 18 * PERSP).fill({ color: 0x2a6a4a, alpha: 0.25 });
+      } else {
+        const M = HAZARD.hands;
+        v.position.set(z.x, z.y);
+        v.zIndex = z.y + 8; // devant le héros qu'elles agrippent
+        v.visible = z.state === 'active';
+        if (z.state === 'windup') {
+          const k = Math.min(1, z.t / M.windup);
+          ground.ellipse(z.x, z.y, M.radius, M.radius * PERSP).fill({ color: 0x3a1a5a, alpha: 0.3 }).stroke({ width: 4, color: 0xb88aff, alpha: 0.9 });
+          ground.ellipse(z.x, z.y, M.radius * k, M.radius * k * PERSP).fill({ color: 0x3a1a5a, alpha: 0.5 });
+        } else if (z.state === 'active') {
+          const k = Math.min(1, z.t / 0.15);
+          v.scale.set(1.15, 1.15 * k);
+          ground.ellipse(z.x, z.y, M.radius * 0.9, M.radius * 0.9 * PERSP).fill({ color: 0x1a1210, alpha: 0.45 });
+        }
+      }
+    }
+    for (const [id, v] of hazardViews) if (!seen.has(id)) {
+      v.destroy({ children: true });
+      hazardViews.delete(id);
+    }
+    // fontaine : léger halo au sol quand on s'y soigne
+    const fo = game.fountain;
+    if (fo) {
+      const near = flatDist(h.x, h.y, fo.x, fo.y) < FOUNTAIN_REACH && fo.healed < h.maxHp * FOUNTAIN_MAX;
+      ground.ellipse(fo.x, fo.y, FOUNTAIN_REACH, FOUNTAIN_REACH * PERSP).fill({ color: 0x9ff0ff, alpha: near ? 0.16 : 0.07 });
+      if (near && h.hp < h.maxHp && Math.random() < 0.3) emit(h.x + rand(-20, 20), h.y - rand(10, 60), 0x9ff0ff, { vx: rand(-20, 20), vy: rand(-90, -40), life: 0.6, size: 0.06 });
+    }
+
     // Flammes, halos, poussière
     for (const fl of roomFlames) {
       fl.ph += dt * 12;
@@ -1082,9 +1222,12 @@ async function main() {
     void refreshWeapon(h.def.weapon.itemId);
     // taclé : poussière grise aux pieds quand un monstre au contact freine le Sacrieur
     if (h.alive && h.moving && h.tackled < 0.95 && Math.random() < 0.35) emit(h.x + rand(-18, 18), h.y - 6, 0x9a8f80, { vx: rand(-40, 40), vy: rand(-60, -20), life: 0.35, size: 0.06, add: false });
-    const big = game.boss ?? game.elite;
-    if (big && game.phase === 'fight') hud.setBoss(big.def.name, big.hp, big.maxHp);
-    else if (game.elite && game.phase === 'cleared') hud.setBoss(null);
+    const guard = game.guard && game.guard.state !== 'dead' ? game.guard : null;
+    const big = game.boss ?? game.elite ?? guard;
+    if (big && game.phase === 'fight') hud.setBoss(big === guard ? `${big.def.name} (gardien)` : big.def.name, big.hp, big.maxHp);
+    else if (game.wavesT > 0 && game.phase === 'fight') hud.setBoss('Tiens bon !', Math.ceil(game.wavesT), WAVES_TIME, '');
+    else if ((game.elite || game.guard || game.special === 'vagues') && bossBarShown) hud.setBoss(null);
+    bossBarShown = !!(big && game.phase === 'fight') || (game.wavesT > 0 && game.phase === 'fight');
     hud.setPa(h.pa);
     hud.setSlots(slotViews());
     game.run.slots.forEach((sl, i) => {

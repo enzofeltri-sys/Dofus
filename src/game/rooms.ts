@@ -7,7 +7,7 @@
 import type { Theme } from './data/areas';
 
 export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
-  | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern';
+  | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -27,7 +27,7 @@ export interface Obstacle {
 
 /** Rayon d'obstacle de chaque objet (0 = décor traversable). */
 const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
-  redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22 };
+  redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -175,6 +175,60 @@ const THEME_TEMPLATES: Record<Theme, PropPlacement[][]> = {
 export function roomLayout(index: number, theme: Theme = 'crypt'): PropPlacement[] {
   const t = THEME_TEMPLATES[theme];
   return t[index % t.length];
+}
+
+/** Retourne une disposition de gauche à droite. */
+export const mirrorLayout = (l: PropPlacement[]): PropPlacement[] => l.map((p) => ({ ...p, x: 720 - p.x }));
+
+/** Objets de chaque île : obstacles (avec tailles) et petits décors traversables. */
+const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, number][]; decor: PropKind[] }> = {
+  champs: { block: [['blossom', 1.25, 1.4], ['blossom', 1.25, 1.4], ['stone', 0.85, 1], ['stele', 1, 1]], decor: ['flowers'] },
+  paturages: { block: [['redbush', 0.9, 1.2], ['redbush', 0.9, 1.2], ['block', 0.8, 1], ['blossom', 1.25, 1.35], ['stone', 0.85, 1]], decor: ['flowers'] },
+  foret: { block: [['blossom', 1.25, 1.4], ['blossom', 1.25, 1.4], ['blossom', 1.25, 1.4], ['horns', 0.9, 1.1]], decor: ['flowers'] },
+  cimetiere: { block: [['tomb', 0.85, 1], ['tomb', 0.85, 1], ['deadtree', 1, 1.25], ['lantern', 1, 1]], decor: ['bones'] },
+};
+
+/** Zone de la salle et formes à éviter pour poser un décor. */
+export interface Room {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  /** Trous de vide et autres obstacles déjà posés. */
+  holes: Obstacle[];
+  /** Points de passage à laisser libres (ponts, départ du héros…). */
+  keep: { x: number; y: number; r: number }[];
+}
+
+const flat = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, (ay - by) / 0.62);
+
+/** Pose d'objets au hasard dans une salle d'île : jamais dans le vide, ni sur les passages, ni trop serrés. */
+export function islandLayout(theme: Exclude<Theme, 'crypt'>, room: Room, rnd: () => number, blockers: number, extra: PropPlacement[] = []): PropPlacement[] {
+  const P = ISLAND_PROPS[theme];
+  const out: PropPlacement[] = [...extra];
+  const free = (x: number, y: number, r: number, gap: number) =>
+    room.holes.every((o) => flat(x, y, Math.max(o.x - o.hx, Math.min(o.x + o.hx, x)), o.y) > o.r + r + 30) &&
+    room.keep.every((k) => flat(x, y, k.x, k.y) > k.r + r) &&
+    out.every((p) => flat(x, y, p.x, p.y) > gap + (BLOCK[p.kind] ? BLOCK[p.kind] * (p.scale ?? 1) : 0)) &&
+    !(Math.abs(x - 360) < 100 && y < room.y0 + 220); // allée de la sortie
+  const place = (kind: PropKind, scale: number, gap: number) => {
+    const r = BLOCK[kind] * scale;
+    for (let t = 0; t < 120; t++) {
+      const x = room.x0 + 30 + rnd() * (room.x1 - room.x0 - 60), y = room.y0 + 160 + rnd() * (room.y1 - room.y0 - 260);
+      if (free(x, y, r, gap)) {
+        out.push({ kind, x: Math.round(x), y: Math.round(y), scale: +scale.toFixed(2) });
+        return;
+      }
+    }
+  };
+  // les objets défilent dans un ordre mélangé : pas trois fois le même dans une salle
+  const order = P.block.map((x) => [rnd(), x] as const).sort((u, v) => u[0] - v[0]).map((u) => u[1]);
+  for (let i = 0; i < blockers; i++) {
+    const [kind, a, b] = order[i % order.length];
+    place(kind, a + rnd() * (b - a), 150);
+  }
+  for (let i = 0; i < 4; i++) place(P.decor[Math.floor(rnd() * P.decor.length)], 1, 70);
+  return out;
 }
 
 export function roomObstacles(layout: PropPlacement[]): Obstacle[] {
