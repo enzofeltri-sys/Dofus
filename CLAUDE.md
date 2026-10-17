@@ -9,6 +9,7 @@ Jeu privé (jamais publié publiquement) : roguelite d'action en temps réel, po
 - **Être professionnel** : tester avant de montrer (tests unitaires, parcours dans le navigateur, captures regardées).
 - **Toujours demander avant de publier** quelque chose de nouveau. Déjà autorisé en routine : republier l'artifact https://claude.ai/artifact/HvZapFdxVMQneBQzFV7mtV et pousser sur `claude/test-de-style` puis `main` (déploiement Cloudflare).
 - **Pas d'invention quand Dofus a la vraie chose** : vrais monstres, objets, recettes, runes, armes (DofusDB). Si une valeur n'est pas vérifiable, le dire.
+- **Références visuelles** (à regarder, jamais copier dans le jeu) : rendus des cartes du jeu `https://api.dofusdb.fr/img/maps/1/<mapId>.jpg` (identifiants via `api.dofusdb.fr/map-positions?subAreaId=<sous-zone>`), illustrations des monstres `api.dofusdb.fr/img/monsters/<gfxId>.png`, archives publiques dofusdude (`github.com/dofusdude/dofus3-main/releases/latest/download/<archive>.tar.gz`). Toujours partir de ces références avant de dessiner un décor ou un monstre.
 - Ne pas contourner le blocage sur le téléchargement des ressources graphiques Ankama (CDN cytrus) ; les icônes DofusDB (`api.dofusdb.fr/img/...`) sont utilisées.
 
 ## Où trouver quoi
