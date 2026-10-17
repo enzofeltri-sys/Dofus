@@ -11,6 +11,7 @@ import { addItem, averageRolls, emptyInventory, equip, starterInventory, type In
 import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import type { KeyState } from './keys';
+import { mergeBestiary, type Bestiary } from './bestiary';
 
 export interface SaveData {
   v: 5;
@@ -40,6 +41,8 @@ export interface SaveData {
   area: string;
   /** Clés gratuites du jour (donjons déjà vaincus). */
   keys?: KeyState;
+  /** Bestiaire : monstres vus et vaincus. */
+  bestiary?: Bestiary;
 }
 
 /** Ce qu'une partie rapporte. */
@@ -64,6 +67,9 @@ export interface RunResult {
   bossLoot: Loot;
   /** Carte ou donjon joué. */
   area?: string;
+  /** Bestiaire : monstres croisés et vaincus (par fiche). */
+  seen?: Record<string, number>;
+  slain?: Record<string, number>;
 }
 
 const KEY = 'dofus-enzo-save';
@@ -145,6 +151,7 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
   out.runs++;
   out.bestRoom = Math.max(out.bestRoom, r.room);
   const fresh = addLoot(out, r.loot, rnd, 'monster');
+  if (r.seen || r.slain) out.bestiary = mergeBestiary(out.bestiary, r.seen ?? {}, r.slain ?? {});
   if (r.won) {
     out.wins++;
     if (r.area && !out.done.includes(r.area)) out.done = [...out.done, r.area];

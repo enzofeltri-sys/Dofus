@@ -7,6 +7,8 @@ import type { InvView, ItemDetail, Mark } from './inv-view';
 import { activeCount, applyFilters, emptyFilters, focusStat, focusValue, STAT_OPTIONS, type Filters, type SortKey } from '../game/search';
 import { item, SETS, type ItemSlot } from '../game/data/items';
 import type { BreakView, CraftView, FmRuneBtn, FmView, ForgeRow, FusionView } from './craft-view';
+import type { BeastCard } from './bestiary-view';
+import type { BeastKind } from '../game/bestiary';
 import type { AtlasView } from './atlas-view';
 import { RARITIES } from '../game/forge';
 
@@ -92,6 +94,7 @@ export class Hud {
         <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipements</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab soon" disabled>${ICONS.pa.svg}<span>Grimoire</span><i>bientôt</i></button>
         <button type="button" class="nav-tab" data-sec="donjons">${ICONS.carte.svg}<span>Donjons</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab" data-sec="bestiaire">${ICONS.os.svg}<span>Bestiaire</span><b class="badge gr-num" hidden></b></button>
       </nav>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
         <h2 class="gr-title"></h2><p class="sum-sub"></p>
@@ -142,6 +145,11 @@ export class Hud {
         <div class="sh-head"><h2 class="gr-h2">Donjons</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <p class="atlas-intro">Chaque zone : 4 cartes de farm (5 salles, une élite à la fin), puis son donjon. Un donjon vaincu ouvre la suite de sa branche.</p>
         <div class="atlas-zones"></div>
+      </div>
+      <div class="bestiary gr-paper" hidden>
+        <div class="sh-head"><h2 class="gr-h2">Bestiaire</h2><span class="gr-chip lvl bs-count"></span><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="bs-kinds"></div>
+        <div class="bs-grid"></div>
       </div>
       <div class="look gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sheet">Caractéristiques</button><button type="button" class="sec-tab" data-panel="look">Apparence</button></div>
@@ -357,13 +365,14 @@ export class Hud {
     look?: { get(): SacriColors; set(c: SacriColors): void },
     work?: CraftHooks,
     zones?: ZoneHooks,
+    beasts?: { get(): BeastCard[]; fresh(): number; seen(): void },
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
     if (look) this.setHeroLook(look.get());
-    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas';
-    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons' };
+    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary';
+    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire' };
     let current: Panel | null = null;
     const open: Record<Panel, () => Promise<void>> = {
       sheet: () => this.charSheet(sheet, act),
@@ -371,6 +380,7 @@ export class Hud {
       inv: () => (inv ? this.inventory(inv) : Promise.resolve()),
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
       atlas: () => (zones ? this.atlas(zones, () => current === 'atlas' && this.root.querySelector<HTMLButtonElement>('.atlas .sh-head .close')?.click()) : Promise.resolve()),
+      bestiary: () => (beasts ? this.bestiary(beasts) : Promise.resolve()),
     };
     /** Carte « Entrer » : l'étape choisie dans l'écran Donjons. */
     const card = () => {
@@ -403,6 +413,7 @@ export class Hud {
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="atelier"]').forEach((t) => t.dataset.n = craftable ? String(craftable) : '');
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="sheet"]').forEach((t) => t.dataset.n = v.free ? String(v.free) : '');
       badge(nav.querySelector('[data-sec="donjons"] .badge'), zones ? zones.fresh() : 0);
+      badge(nav.querySelector('[data-sec="bestiaire"] .badge'), beasts ? beasts.fresh() : 0);
       card();
       nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', !!current && SECTION[current] === t.dataset.sec));
       this.root.querySelectorAll<HTMLElement>('.sec-tab').forEach((t) => t.classList.toggle('on', t.dataset.panel === current));
@@ -426,10 +437,11 @@ export class Hud {
         this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         return;
       }
-      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : 'inv');
+      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : 'inv');
     };
     nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
     nav.querySelector<HTMLElement>('[data-sec="donjons"]')!.hidden = !zones;
+    nav.querySelector<HTMLElement>('[data-sec="bestiaire"]')!.hidden = !beasts;
     refresh();
     const t = rec.bestWinTime;
     el.querySelector('.camp-records')!.innerHTML = [
@@ -946,6 +958,63 @@ export class Hud {
       h.choose(n.dataset.id!);
       render();
       done();
+    };
+    h.seen();
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
+  private bsKind: BeastKind | 'all' = 'all';
+  private bsOpen: string | null = null;
+  /** Bestiaire : tous les monstres (silhouette tant qu'on ne les a pas croisés), filtrés par catégorie ; fiche au toucher. */
+  bestiary(h: { get(): BeastCard[]; seen(): void }): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.bestiary')!;
+    const render = () => {
+      const all = h.get();
+      const known = all.filter((c) => c.known).length;
+      el.querySelector('.bs-count')!.textContent = `${known}/${all.length}`;
+      const kinds: (BeastKind | 'all')[] = ['all', 'normal', 'elite', 'archi', 'boss'];
+      const label = (k: BeastKind | 'all') => (k === 'all' ? 'Tous' : k === 'normal' ? 'Normaux' : k === 'elite' ? 'Élites' : k === 'archi' ? 'Archimonstres' : 'Boss');
+      el.querySelector('.bs-kinds')!.innerHTML = kinds.map((k) => {
+        const n = all.filter((c) => k === 'all' || c.kind === k);
+        return `<button type="button" class="flt-chip ${this.bsKind === k ? 'on' : ''}" data-k="${k}">${label(k)} <i class="gr-num">${n.filter((c) => c.known).length}/${n.length}</i></button>`;
+      }).join('');
+      const list = all.filter((c) => this.bsKind === 'all' || c.kind === this.bsKind);
+      el.querySelector('.bs-grid')!.innerHTML = list.length ? list.map((c) => `
+        <button type="button" class="bs-card ${c.kind} ${c.known ? '' : 'unknown'} ${this.bsOpen === c.id ? 'open' : ''}" data-id="${c.id}">
+          <img src="${c.art}" alt="" draggable="false">
+          <b>${c.known ? c.name : '???'}</b>
+          <small>${c.kindLabel} · ${c.levels}</small>
+          ${c.known ? `<i class="gr-num">${c.slain} vaincu${c.slain > 1 ? 's' : ''}</i>` : ''}
+        </button>
+        ${this.bsOpen === c.id ? `<div class="bs-detail gr-panel">
+          <h3 class="gr-h3">${c.known ? c.name : '???'} <span class="bs-kind ${c.kind}">${c.kindLabel}</span></h3>
+          <p class="bs-where">${c.places.join(' · ')}</p>
+          ${c.known ? `<div class="bs-sheet">${c.sheet.map((s) => `<div><span class="gr-label">${s.label}</span><span>${s.value}</span></div>`).join('')}</div>
+          <div class="bs-drops">${c.drops.map((d) => `<span title="${d.name}">${d.icon}<i class="gr-num">${d.pct}</i></span>`).join('') || '<em>Aucun butin</em>'}</div>
+          <p class="det-note">Vu ${c.seen} fois · vaincu ${c.slain} fois · chances de butin par monstre vaincu (sans Prospection).</p>`
+            : '<p class="det-note">Pas encore croisé : sa fiche se remplit à la première rencontre.</p>'}
+        </div>` : ''}`).join('') : '<p class="inv-empty">Aucun monstre dans cette catégorie pour l’instant.</p>';
+    };
+    el.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      const k = t.closest<HTMLElement>('[data-k]');
+      if (k) {
+        this.bsKind = k.dataset.k as BeastKind | 'all';
+        render();
+        return;
+      }
+      const c = t.closest<HTMLElement>('.bs-card');
+      if (c) {
+        this.bsOpen = this.bsOpen === c.dataset.id ? null : c.dataset.id!;
+        render();
+      }
     };
     h.seen();
     render();

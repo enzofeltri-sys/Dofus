@@ -557,6 +557,7 @@ export class World {
 
   private makeMonster(def: MonsterDef, grade: number, x: number, y: number): Monster {
     const g = gradeStats(def, grade);
+    this.stats.seen[def.id] = (this.stats.seen[def.id] ?? 0) + 1;
     return {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
@@ -910,6 +911,7 @@ export class World {
 
   private kill(m: Monster) {
     this.stats.kills++;
+    this.stats.slain[m.def.id] = (this.stats.slain[m.def.id] ?? 0) + 1;
     const xp = xpGain(m.xp, m.level, this.hero.def.level, this.heroStats().sagesse);
     if (xp > 0) {
       this.stats.xp += xp;
@@ -1385,5 +1387,9 @@ function freshRun(level: number): RunState {
 }
 
 function freshStats() {
-  return { kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0, loot: {} as Record<number, number>, bossLoot: {} as Record<number, number> };
+  return {
+    kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0, loot: {} as Record<number, number>, bossLoot: {} as Record<number, number>,
+    /** Bestiaire : monstres croisés et vaincus pendant la partie (par fiche). */
+    seen: {} as Record<string, number>, slain: {} as Record<string, number>,
+  };
 }

@@ -90,6 +90,8 @@ export interface MonsterDef {
   xpMult?: number;
   /** Invocation (hors boss) : premier appel et intervalle (s), monstre invoqué, nombre maximum en même temps. */
   summons?: { first: number; every: number; id: string; max: number };
+  /** Archimonstre (version rare et nommée d'un monstre de la zone). */
+  archi?: { of: string };
   /** Soin unique : toute sa vie revient la première fois qu'il passe sous `below` de ses PV. */
   selfHeal?: { below: number };
   /** Charge : attaque spéciale en ligne, puis le monstre fonce sur toute la longueur. */

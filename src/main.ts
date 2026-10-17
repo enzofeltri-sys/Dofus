@@ -29,6 +29,7 @@ import { fmtLine, item, statLabel, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
+import { bestiaryView } from './ui/bestiary-view';
 import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
 import { CHAMPS, isUnlocked, ZONES } from './game/data/areas';
@@ -214,6 +215,9 @@ async function main() {
       seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
     },
   };
+  /** Bestiaire : monstres découverts déjà vus dans l'onglet (pour la pastille). */
+  const knownBeasts = () => Object.values(save.bestiary ?? {}).filter((r) => r.seen > 0).length;
+  let beastsShown = knownBeasts();
   const game = new World(Math.floor(Math.random() * 1e6), heroFromSave(), areaOf());
   // icônes des objets (butin qui vole vers le Sacrieur)
   await Assets.load(allItemIconUrls()).catch(() => {});
@@ -903,7 +907,13 @@ async function main() {
       const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
       return `${n} rune${n > 1 ? 's' : ''} : ${Object.entries(res.runes).map(([id, k]) => `${k} ${item(Number(id)).name}`).join(', ') || 'aucune'} · +${res.xp} XP${up}`;
     },
-  }, zoneHooks).then(refreshHeroLook);
+  }, zoneHooks, {
+    get: () => bestiaryView(save.bestiary),
+    fresh: () => Math.max(0, knownBeasts() - beastsShown),
+    seen() {
+      beastsShown = knownBeasts();
+    },
+  }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
   const resSeen = new Set<string>();
 
@@ -913,6 +923,7 @@ async function main() {
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
       cards: [...cardsTaken], loot: { xp: st.xp, items: { ...st.loot } }, bossLoot: { xp: 0, items: { ...st.bossLoot } }, area: game.area.id,
+      seen: { ...st.seen }, slain: { ...st.slain },
     };
     const levelBefore = levelForXp(save.profile.xp);
     const openBefore = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).map((n) => n.name);

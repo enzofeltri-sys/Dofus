@@ -29,16 +29,21 @@ export interface DropContext {
   prospection: number;
 }
 
+/** Chance (0-1) qu'un objet de la table tombe, avec les multiplicateurs du jeu (prospection 100). */
+export function dropChance(id: number, pct: number, ctx: { boss?: boolean; elite?: boolean }): number {
+  const mult = ctx.boss
+    ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1)
+    : (isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource) * (ctx.elite ? DROP_MULT.elite : 1);
+  return Math.min(1, (pct / 100) * mult);
+}
+
 /** Objets lâchés par un monstre vaincu (identifiants, avec répétitions possibles). */
 export function rollDrops(ctx: DropContext, rnd: () => number): number[] {
   const out: number[] = [];
   const pp = Math.max(0, ctx.prospection) / 100;
   for (const [id, pct] of DUNGEON_DROPS[ctx.dofusId] ?? []) {
     // boss : taux réels (équipement : moitié) ; autres monstres : multiplicateurs de rythme
-    const mult = ctx.boss
-      ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1)
-      : (isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource) * (ctx.elite ? DROP_MULT.elite : 1);
-    if (rnd() < Math.min(1, (pct / 100) * mult * pp)) out.push(id);
+    if (rnd() < Math.min(1, dropChance(id, pct, ctx) * pp)) out.push(id);
   }
   if (!ctx.boss && REGION_DROPS.length && rnd() < Math.min(1, REGION_CHANCE * pp * (ctx.elite ? DROP_MULT.elite : 1))) {
     const w = (id: number, pct: number) => pct * (isEquipment(id) ? REGION_EQUIP_WEIGHT : 1);

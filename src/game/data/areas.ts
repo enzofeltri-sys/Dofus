@@ -27,6 +27,8 @@ export interface AreaDef {
   /** Élite (mini-boss) : salle, monstre, grade, accompagnants. */
   elite?: { room: number; id: string; grade: number; adds: number; addGrade: number };
   boss?: { id: string; grade: number; adds: number };
+  /** Archimonstres de la zone (1 % des monstres, plus forts, meilleur butin). */
+  archis?: string[];
   /** Monstres errants possibles (rencontres) : nom affiché et monstres du groupe. */
   wanderers?: { name: string; pool: string[] }[];
   theme: Theme;
