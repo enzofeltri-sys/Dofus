@@ -269,13 +269,17 @@ export const SET_DATA: Record<number, ItemSetData> = {
   867: { id: 867, name: "Panoplie de Khan Karkass", items: [17487, 17502], bonus: [[], [['vitalite', 10], ['dommagesElem.terre', 4]]] },
 };
 
-/** Tables de drop réelles des monstres de la Crypte, par identifiant DofusDB (% moyen sur les grades). */
+/** Tables de drop réelles des monstres des donjons et des cartes de farm, par identifiant DofusDB (% moyen sur les grades). */
 export const DUNGEON_DROPS: Record<number, [number, number][]> = {
   4046: [[310, 58.0], [2474, 20.0], [16524, 58.0], [16663, 58.0]],
   4047: [[310, 58.0], [2474, 20.0], [16524, 58.0], [16663, 58.0]],
   4049: [[310, 58.0], [2474, 20.0], [16524, 58.0], [16663, 58.0]],
   4050: [[310, 58.0], [2474, 20.0], [16524, 58.0], [16663, 58.0]],
   4051: [[310, 57.0], [16500, 20.0], [16501, 20.0], [16502, 20.0], [16524, 57.0], [16525, 57.0], [17421, 0.57]],
+  970: [[289, 50.0], [519, 59.0], [2478, 20.0], [16503, 20.0], [16512, 59.0], [16663, 59.0], [28256, 59.0]],
+  979: [[289, 50.0], [519, 59.0], [2478, 20.0], [16503, 20.0], [16513, 59.0], [16663, 59.0]],
+  980: [[289, 50.0], [519, 59.0], [2478, 20.0], [16503, 20.0], [16513, 59.0], [16663, 59.0]],
+  981: [[289, 50.0], [519, 59.0], [2478, 20.0], [16503, 20.0], [16513, 59.0], [16663, 59.0]],
 };
 
 /** Butin de la région Incarnam : drops des monstres du monde ouvert de niveau ±10 (objet, %, monstre). */
@@ -310,31 +314,6 @@ export const REGION_DROPS: [number, number, string][] = [
   [2475, 20.0, "Tigrimas"],
   [16515, 58.0, "Tigrimas"],
   [16663, 58.0, "Tigrimas"],
-  [289, 50.0, "Tofu Chimérique"],
-  [519, 59.0, "Tofu Chimérique"],
-  [2478, 20.0, "Tofu Chimérique"],
-  [16503, 20.0, "Tofu Chimérique"],
-  [16512, 59.0, "Tofu Chimérique"],
-  [16663, 59.0, "Tofu Chimérique"],
-  [28256, 59.0, "Tofu Chimérique"],
-  [289, 50.0, "Pissenlit Miroitant"],
-  [519, 59.0, "Pissenlit Miroitant"],
-  [2478, 20.0, "Pissenlit Miroitant"],
-  [16503, 20.0, "Pissenlit Miroitant"],
-  [16513, 59.0, "Pissenlit Miroitant"],
-  [16663, 59.0, "Pissenlit Miroitant"],
-  [289, 50.0, "Rose Vaporeuse"],
-  [519, 59.0, "Rose Vaporeuse"],
-  [2478, 20.0, "Rose Vaporeuse"],
-  [16503, 20.0, "Rose Vaporeuse"],
-  [16513, 59.0, "Rose Vaporeuse"],
-  [16663, 59.0, "Rose Vaporeuse"],
-  [289, 50.0, "Tournesol Nébuleux"],
-  [519, 59.0, "Tournesol Nébuleux"],
-  [2478, 20.0, "Tournesol Nébuleux"],
-  [16503, 20.0, "Tournesol Nébuleux"],
-  [16513, 59.0, "Tournesol Nébuleux"],
-  [16663, 59.0, "Tournesol Nébuleux"],
   [385, 58.0, "Bouftou Nuageux"],
   [421, 50.0, "Bouftou Nuageux"],
   [2476, 20.0, "Bouftou Nuageux"],

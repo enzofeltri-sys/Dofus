@@ -15,7 +15,7 @@ for (const [id, name] of [[30828, 'bounihimee'], [1942, 'arc'], [null, 'mains_nu
     const inv = await import('/src/game/inventory.ts');
     let i = inv.emptyInventory();
     if (id) { i = inv.addItem(i, id, []); i = inv.equip(i, 1, 200); }
-    localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 4, runs: 1, wins: 0, bestRoom: 1, bestWinTime: null, xp: 0, jobXp: 0, resources: {}, profile: { xp: 0, carac: {} }, inventory: i }));
+    localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 1, wins: 0, bestRoom: 1, bestWinTime: null, xp: 0, jobXp: 0, resources: {}, profile: { xp: 0, carac: {} }, inventory: i }));
   }, id);
   await p.reload();
   await ready();

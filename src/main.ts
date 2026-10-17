@@ -6,9 +6,12 @@ import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column,
 import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
 import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
-import { GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
-import { poseChafer, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
+import { attackOffset, GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type Monster, type WorldEvent } from './game/world';
+import { poseChafer, poseCritter, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
+import { CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
+import { bush, flowers, rock, stump } from './art/champsProps';
+import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
@@ -24,6 +27,8 @@ import { fmtLine, item, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, forgeRows, fusionView } from './ui/craft-view';
+import { atlasView } from './ui/atlas-view';
+import { CHAMPS, isUnlocked, ZONES } from './game/data/areas';
 import { breakItem, fuse, RARITIES } from './game/forge';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
@@ -71,7 +76,7 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
   return new Texture({ source: new ImageSource({ resource: c }) });
 }
 
-const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles };
+const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles, bush, rock, stump, flowers };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
 interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
@@ -95,16 +100,21 @@ async function main() {
   // ---------- Textures ----------
   let save = loadSave();
   hud.setHeroLook(save.appearance);
-  const [sacriTex, gateTex, ...chaferFlat] = await Promise.all([
+  const [sacriTex, gateTex, champsGateTex, ...chaferFlat] = await Promise.all([
     Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
     svgTexture(gateBarsSvg(), RES),
+    svgTexture(champsGateSvg(), RES),
     ...(['debutant', 'furtif', 'piquier', 'sergent'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
+  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol'];
+  const critterTex = await Promise.all(CRITTERS.map((k) => Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * (k === 'tournesol' ? 1.3 : 1))))));
   const chaferTex: Record<MonsterArt, Texture[]> = {
     debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], kardorim: chaferFlat[4], kardorib: chaferFlat[5],
+    tofu: critterTex[0], pissenlit: critterTex[1], rose: critterTex[2], tournesol: critterTex[3],
   };
+  const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
     (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
@@ -151,7 +161,29 @@ async function main() {
     return uid !== undefined ? inv.items.find((i) => i.uid === uid)?.id ?? null : null;
   };
   const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory), weaponOf(save.inventory));
-  const game = new World(Math.floor(Math.random() * 1e6), heroFromSave());
+  /** Carte ou donjon choisi au camp (s'il est débloqué ; sinon les Champs). */
+  const areaOf = () => {
+    const node = ZONES.flatMap((z) => z.nodes).find((n) => n.id === save.area);
+    return node?.area && isUnlocked(node, save.done) ? node.area : CHAMPS;
+  };
+  /** Étapes débloquées déjà vues dans l'écran Donjons (pour la pastille). */
+  let seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
+  const zoneHooks = {
+    view: () => atlasView(save.done, areaOf().id),
+    choose(id: string) {
+      save = { ...save, area: id };
+      storeSave(save);
+    },
+    current: () => {
+      const a = areaOf();
+      return { kind: a.kind, name: a.name, level: a.level, sub: a.sub };
+    },
+    fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length - seenOpen),
+    seen() {
+      seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
+    },
+  };
+  const game = new World(Math.floor(Math.random() * 1e6), heroFromSave(), areaOf());
   // icônes des objets (butin qui vole vers le Sacrieur)
   await Assets.load(allItemIconUrls()).catch(() => {});
   hud.setLevel(game.hero.def.level);
@@ -251,7 +283,8 @@ async function main() {
 
   async function buildRoom(index: number) {
     // 1) la partie lente d'abord (la boucle d'affichage continue de tourner pendant ce temps)
-    const newBg = await svgTexture(cryptRoomSvg(1000 + index * 17), RES);
+    const champs = game.area.theme === 'champs';
+    const newBg = await svgTexture(champs ? champsRoomSvg(2000 + index * 23) : cryptRoomSvg(1000 + index * 17), RES);
     // 2) puis remplacement synchrone de l'ancienne salle
     // nettoyage
     for (const g of roomGlows) g.s.destroy();
@@ -274,14 +307,16 @@ async function main() {
     bg.texture = newBg;
     if (old && old !== Texture.EMPTY) old.destroy(true);
 
-    for (const l of LIGHTS) {
+    bg.tint = champs ? 0xffffff : 0xe6d6c4;
+    vignette.alpha = champs ? 0.35 : 1;
+    if (!champs) for (const l of LIGHTS) {
       addFlame(wallFx, l.x, l.y, 1.0);
       addGlow(l.x, l.y - 6, 0xffa040, 2.2, 0.24);
       addGlow(l.x, l.y + 80, 0xff9030, 2.6, 0.06, 0.6);
     }
-    gateGlow = addGlow(EXIT.x, EXIT.y, 0xffc060, 3.0, 0.2).s;
-    addGlow(EXIT.x, EXIT.y + 120, 0xffb050, 3.2, 0.08, 0.5);
-    gateBars = new Sprite(gateTex);
+    gateGlow = addGlow(EXIT.x, EXIT.y, champs ? 0xffffff : 0xffc060, 3.0, 0.2).s;
+    addGlow(EXIT.x, EXIT.y + 120, champs ? 0xf0f8ff : 0xffb050, 3.2, 0.08, 0.5);
+    gateBars = new Sprite(champs ? champsGateTex : gateTex);
     gateBars.anchor.set(0.5, 1);
     gateBars.position.set(GATE.x, FLOOR_TOP + 2);
     const gateMask = new Graphics().rect(GATE.x - 80, FLOOR_TOP - 200, 160, 202).fill(0xffffff);
@@ -321,7 +356,8 @@ async function main() {
       dust.push({ s, x: rand(60, ROOM_W - 60), y: rand(200, ROOM_H), vx: rand(-6, 6), vy: rand(-10, -3), ph: rand(0, 10) });
     }
     for (const m of game.monsters) monsterViews.set(m.uid, makeMonsterView(m));
-    hud.setRooms(index + 1, TOTAL_ROOMS);
+    hud.setArea(game.area.name, game.area.boss ? 'Boss' : 'Élite');
+    hud.setRooms(index + 1, game.area.rooms);
     heroView.anim.dead = null;
   }
 
@@ -416,13 +452,12 @@ async function main() {
   const monsterViews = new Map<number, MonsterView>();
   function makeMonsterView(m: Monster): MonsterView {
     const kind = m.def.art;
-    const rig = new Rig(
-      CHAFER_PARTS.map((p, i) => ({ name: p, tex: chaferTex[kind][i], pivot: CHAFER_PIVOTS[p] })),
-      CHAFER_FOOT, CHAR_SCALE * (m.def.scale ?? 1), true,
-    );
+    const rig = isCritter(kind)
+      ? new Rig(partsOf(kind).map((p, i) => ({ name: p, tex: chaferTex[kind][i], pivot: CRITTER_PIVOTS[kind][p]! })), CRITTER_FOOT, CHAR_SCALE * (m.def.scale ?? 1), true)
+      : new Rig(CHAFER_PARTS.map((p, i) => ({ name: p, tex: chaferTex[kind][i], pivot: CHAFER_PIVOTS[p] })), CHAFER_FOOT, CHAR_SCALE * (m.def.scale ?? 1), true);
     const c = new Container();
     const hpBar = new Graphics();
-    const height = 150 * CHAR_SCALE * (m.def.scale ?? 1);
+    const height = (isCritter(kind) ? 128 : 150) * CHAR_SCALE * (m.def.scale ?? 1);
     hpBar.position.set(0, -height);
     c.addChild(shadowOf(m.def.radius * 1.2), rig.root, hpBar);
     actors.addChild(c);
@@ -759,7 +794,7 @@ async function main() {
       const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
       return `${n} rune${n > 1 ? 's' : ''} : ${Object.entries(res.runes).map(([id, k]) => `${k} ${item(Number(id)).name}`).join(', ') || 'aucune'} · +${res.xp} XP${up}`;
     },
-  }).then(refreshHeroLook);
+  }, zoneHooks).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
   const resSeen = new Set<string>();
 
@@ -768,9 +803,10 @@ async function main() {
     const st = game.stats;
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
-      cards: [...cardsTaken], loot: { xp: st.xp, items: { ...st.loot } }, bossLoot: { xp: 0, items: { ...st.bossLoot } },
+      cards: [...cardsTaken], loot: { xp: st.xp, items: { ...st.loot } }, bossLoot: { xp: 0, items: { ...st.bossLoot } }, area: game.area.id,
     };
     const levelBefore = levelForXp(save.profile.xp);
+    const openBefore = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).map((n) => n.name);
     const applied = applyRun(save, result);
     save = applied.save;
     for (const uid of applied.fresh) freshItems.add(uid);
@@ -778,6 +814,7 @@ async function main() {
     const best = new Map<number, number>();
     for (const it of save.inventory.items) if (applied.fresh.includes(it.uid)) best.set(it.id, Math.max(best.get(it.id) ?? 0, it.rarity ?? 0));
     const rares = save.inventory.items.filter((it) => applied.fresh.includes(it.uid) && (it.rarity ?? 0) > 0);
+    const unlocked = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done) && !openBefore.includes(n.name)).map((n) => n.name);
     const lootList = [
       ...Object.entries(st.loot).map(([k, n]) => ({ id: Number(k), count: n, boss: false })),
       ...Object.entries(st.bossLoot).map(([k, n]) => ({ id: Number(k), count: n, boss: true })),
@@ -789,17 +826,17 @@ async function main() {
     hud.setBoss(null);
     const t = Math.round(st.time);
     await hud.summary(won, [
-      ['Salle atteinte', `${result.room} / ${TOTAL_ROOMS}`],
+      ['Salle atteinte', `${result.room} / ${game.area.rooms}`],
       ['Durée', `${Math.floor(t / 60)} min ${String(t % 60).padStart(2, '0')}`],
       ['Monstres vaincus', String(st.kills)],
       ['Dégâts infligés', String(st.dealt)],
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
-    ], result.cards, [rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.'].filter(Boolean).join(' '),
+    ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.'].filter(Boolean).join(' '),
     { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList);
     if (SHOW_CAMP) await openCamp();
     await transition(() => {
-      game.restart(heroFromSave());
+      game.restart(heroFromSave(), areaOf());
       hud.setLevel(game.hero.def.level);
       cardsTaken.length = 0;
       return buildRoom(0);
@@ -834,11 +871,11 @@ async function main() {
 
   async function nextRoom() {
     const next = game.roomIndex + 1;
-    if (next >= TOTAL_ROOMS) return;
+    if (next >= game.area.rooms) return;
     busy = true;
     await offerCards();
     // le mini-boss rapporte une carte de plus
-    if (game.roomIndex === World.ELITE_ROOM) await offerCards();
+    if (game.roomIndex === game.area.elite?.room) await offerCards();
     await transition(() => {
       game.startRoom(next);
       return buildRoom(next);
@@ -869,7 +906,7 @@ async function main() {
   if (SHOW_CAMP) {
     void openCamp().then(() => {
       // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
-      game.restart(heroFromSave());
+      game.restart(heroFromSave(), areaOf());
       hud.setLevel(game.hero.def.level);
       hud.setSlots(slotViews());
     });
@@ -937,7 +974,8 @@ async function main() {
       a.spawn = m.state === 'spawn' ? m.t / SPAWN_TIME : 1;
       a.dead = m.state === 'dead' ? m.t : null;
       a.hidden = m.hidden;
-      poseChafer(v.rig, a, CHAR_SCALE * (m.def.scale ?? 1));
+      if (isCritter(m.def.art)) poseCritter(v.rig, a, m.def.art === 'tofu');
+      else poseChafer(v.rig, a, CHAR_SCALE * (m.def.scale ?? 1));
       v.hpBar.visible = m !== game.boss && m !== game.elite && m.state !== 'dead' && !m.hidden && m.hp < m.maxHp;
       if (v.hpBar.visible) {
         const w = 46;
@@ -1064,7 +1102,8 @@ async function main() {
     const flat = (pts: number[]) => pts.map((v, i) => (i % 2 ? m.y + v * PERSP : m.x + v));
     const ang = Math.atan2(m.dir.y, m.dir.x);
     if (a.shape === 'circle') {
-      const cx = m.x + m.dir.x * a.offset, cy = m.y + m.dir.y * a.offset * PERSP;
+      const off = attackOffset(m);
+      const cx = m.x + m.dir.x * off, cy = m.y + m.dir.y * off * PERSP;
       ground.ellipse(cx, cy, a.size, a.size * PERSP).fill({ color: col, alpha: 0.12 }).stroke({ width: 2.5, color: col, alpha: 0.6 });
       ground.ellipse(cx, cy, a.size * k, a.size * k * PERSP).fill({ color: col, alpha: 0.28 });
     } else if (a.shape === 'cone') {

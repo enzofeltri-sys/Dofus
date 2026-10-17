@@ -7,6 +7,7 @@ import type { InvView, ItemDetail, Mark } from './inv-view';
 import { activeCount, applyFilters, emptyFilters, focusStat, focusValue, STAT_OPTIONS, type Filters, type SortKey } from '../game/search';
 import { item, SETS, type ItemSlot } from '../game/data/items';
 import type { BreakView, CraftView, ForgeRow, FusionView } from './craft-view';
+import type { AtlasView } from './atlas-view';
 import { RARITIES } from '../game/forge';
 
 /** Une case de sort telle qu'affichée (null = case vide). */
@@ -82,7 +83,7 @@ export class Hud {
         <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
         <div class="camp-records"></div>
         <div class="camp-dj gr-panel gold">
-          <div class="dj-txt"><span class="gr-label">Donjon · niveau 10</span><b>Crypte de Kardorim</b><span class="dj-sub">9 salles · mini-boss · Kardorim</span></div>
+          <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub">5 salles</span></div>
           <button type="button" class="gr-btn enter">Entrer</button>
         </div>
       </div>
@@ -90,7 +91,7 @@ export class Hud {
         <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Caractéristiques</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipements</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab soon" disabled>${ICONS.pa.svg}<span>Grimoire</span><i>bientôt</i></button>
-        <button type="button" class="nav-tab soon" disabled>${ICONS.carte.svg}<span>Donjons</span><i>bientôt</i></button>
+        <button type="button" class="nav-tab" data-sec="donjons">${ICONS.carte.svg}<span>Donjons</span><b class="badge gr-num" hidden></b></button>
       </nav>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
         <h2 class="gr-title"></h2><p class="sum-sub"></p>
@@ -136,6 +137,11 @@ export class Hud {
         <div class="flt at-flt"></div>
         <div class="at-list"></div>
         <div class="inv-detail at-modal" hidden><div class="det-card gr-panel gold"></div></div>
+      </div>
+      <div class="atlas gr-paper" hidden>
+        <div class="sh-head"><h2 class="gr-h2">Donjons</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <p class="atlas-intro">Chaque zone : 4 cartes de farm (5 salles, une élite à la fin), puis son donjon. Un donjon vaincu ouvre la suite de sa branche.</p>
+        <div class="atlas-zones"></div>
       </div>
       <div class="look gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sheet">Caractéristiques</button><button type="button" class="sec-tab" data-panel="look">Apparence</button></div>
@@ -237,6 +243,15 @@ export class Hud {
   }
 
   /** Progression dans le donjon : salle courante (1..n), la dernière est celle du boss. */
+  /** Nom de la carte ou du donjon en cours (plaque du haut) ; `last` : libellé de la dernière salle. */
+  private lastLabel = 'Boss';
+  private areaName = 'Crypte de Kardorim';
+  setArea(name: string, last: string) {
+    this.areaName = name;
+    this.root.querySelector('.plaque .dj')!.textContent = name;
+    this.lastLabel = last;
+  }
+
   setRooms(cur: number, total: number) {
     const el = this.root.querySelector('.rooms')!;
     const pips = [...Array(total)].map((_, i) => {
@@ -244,7 +259,7 @@ export class Hud {
       const cls = [i === total - 1 ? 'boss' : '', n < cur ? 'done' : '', n === cur ? 'cur' : ''].filter(Boolean).join(' ');
       return `<i class="${cls}"></i>`;
     });
-    el.innerHTML = `<span class="pips">${pips.join('')}</span><span class="lbl gr-num">${cur === total ? 'Boss' : `Salle ${cur}/${total}`}</span>`;
+    el.innerHTML = `<span class="pips">${pips.join('')}</span><span class="lbl gr-num">${cur === total ? this.lastLabel : `Salle ${cur}/${total}`}</span>`;
   }
 
   /** Hauteur occupée par la barre du bas (pour cadrer la caméra au-dessus). */
@@ -330,7 +345,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -341,19 +356,29 @@ export class Hud {
     inv?: InvHooks,
     look?: { get(): SacriColors; set(c: SacriColors): void },
     work?: CraftHooks,
+    zones?: ZoneHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
     if (look) this.setHeroLook(look.get());
-    type Panel = 'sheet' | 'look' | 'inv' | 'atelier';
-    const SECTION: Record<Panel, 'perso' | 'equip'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip' };
+    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas';
+    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons' };
     let current: Panel | null = null;
     const open: Record<Panel, () => Promise<void>> = {
       sheet: () => this.charSheet(sheet, act),
       look: () => (look ? this.appearance(look) : Promise.resolve()),
       inv: () => (inv ? this.inventory(inv) : Promise.resolve()),
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
+      atlas: () => (zones ? this.atlas(zones, () => current === 'atlas' && this.root.querySelector<HTMLButtonElement>('.atlas .sh-head .close')?.click()) : Promise.resolve()),
+    };
+    /** Carte « Entrer » : l'étape choisie dans l'écran Donjons. */
+    const card = () => {
+      if (!zones) return;
+      const c = zones.current();
+      el.querySelector('.dj-kind')!.textContent = `${c.kind === 'map' ? 'Carte de farm' : 'Donjon'} · niveau ${c.level}`;
+      el.querySelector('.dj-name')!.textContent = c.name;
+      el.querySelector('.dj-sub')!.textContent = c.sub;
     };
     const badge = (b: HTMLElement | null, n: number) => {
       if (!b) return;
@@ -372,6 +397,8 @@ export class Hud {
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="inv"]').forEach((t) => t.dataset.n = fresh ? String(fresh) : '');
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="atelier"]').forEach((t) => t.dataset.n = craftable ? String(craftable) : '');
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="sheet"]').forEach((t) => t.dataset.n = v.free ? String(v.free) : '');
+      badge(nav.querySelector('[data-sec="donjons"] .badge'), zones ? zones.fresh() : 0);
+      card();
       nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', !!current && SECTION[current] === t.dataset.sec));
       this.root.querySelectorAll<HTMLElement>('.sec-tab').forEach((t) => t.classList.toggle('on', t.dataset.panel === current));
     };
@@ -394,9 +421,10 @@ export class Hud {
         this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         return;
       }
-      void show(sec === 'perso' ? 'sheet' : 'inv');
+      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : 'inv');
     };
     nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
+    nav.querySelector<HTMLElement>('[data-sec="donjons"]')!.hidden = !zones;
     refresh();
     const t = rec.bestWinTime;
     el.querySelector('.camp-records')!.innerHTML = [
@@ -832,6 +860,39 @@ export class Hud {
     });
   }
 
+  /** Écran Donjons : l'arbre des zones ; toucher une étape ouverte la choisit (puis on revient au camp). */
+  atlas(h: ZoneHooks, done: () => void): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.atlas')!;
+    const render = () => {
+      const v = h.view();
+      el.querySelector('.atlas-zones')!.innerHTML = v.zones.map((z) => `
+        <section class="atlas-zone"><h3 class="gr-h3">${z.name}</h3>
+          <ol class="atlas-path">${z.nodes.map((n) => `
+            <li class="atlas-node ${n.state} ${n.kind} ${n.selected ? 'sel' : ''}" data-id="${n.id}">
+              <span class="an-dot">${n.state === 'done' ? '✓' : n.state === 'locked' ? LOCK_SVG : n.kind === 'dungeon' ? '☠' : ''}</span>
+              <span class="an-txt"><b>${n.name}</b><small>${n.kind === 'map' ? 'Carte' : 'Donjon'} · niveau ${n.level}${n.sub ? ` · ${n.sub}` : ''}</small>${n.state === 'locked' ? `<em>${n.need}</em>` : ''}</span>
+              ${n.state === 'open' || n.state === 'done' ? `<span class="an-go">${n.selected ? 'Choisi' : 'Choisir'}</span>` : ''}
+            </li>`).join('')}</ol>
+        </section>`).join('');
+    };
+    el.onclick = (e) => {
+      const n = (e.target as HTMLElement).closest<HTMLElement>('.atlas-node.open, .atlas-node.done');
+      if (!n) return;
+      h.choose(n.dataset.id!);
+      render();
+      done();
+    };
+    h.seen();
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
   private invTab = 0;
   /** Encyclopédie : 0 = objets, 1 = panoplies. */
   private catMode = 0;
@@ -1035,7 +1096,7 @@ export class Hud {
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.summary')!;
     el.querySelector('h2')!.textContent = won ? 'Victoire !' : 'Le Sacrieur est tombé';
-    el.querySelector('.sum-sub')!.textContent = won ? 'Kardorim est vaincu, la Crypte est terminée.' : 'Il reviendra plus fort.';
+    el.querySelector('.sum-sub')!.textContent = won ? `${this.lastLabel === 'Boss' ? 'Le boss est vaincu' : 'L’élite est vaincue'} : ${this.areaName}, terminé !` : 'Il reviendra plus fort.';
     el.querySelector('.sum-stats')!.innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b class="gr-num">${v}</b></div>`).join('');
     el.querySelector('.sum-cards')!.innerHTML = cards.length
       ? `<span class="gr-label">Cartes prises</span><div>${cards.map((c) => `<span class="gr-chip">${c}</span>`).join('')}</div>`
@@ -1088,6 +1149,16 @@ export interface InvHooks {
   catalog(id: number): ItemDetail;
   /** Met / enlève favori ou verrou sur un équipement (uid) ou une ressource (id). */
   mark(kind: 'uid' | 'res', id: number, mark: Mark): void;
+}
+
+/** Ce dont l'écran Donjons a besoin (fourni par le jeu). */
+export interface ZoneHooks {
+  view(): AtlasView;
+  choose(id: string): void;
+  current(): { kind: 'map' | 'dungeon'; name: string; level: number; sub: string };
+  /** Étapes nouvellement débloquées (pastille). */
+  fresh(): number;
+  seen(): void;
 }
 
 /** Réglages d'une barre de filtres. */

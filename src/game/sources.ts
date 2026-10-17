@@ -4,6 +4,7 @@ import { MONSTERS } from './data/monsters';
 import { RECIPES, recipeFor } from './craft';
 import { DROP_MULT } from './loot';
 import { RUNE_STAT } from './forge';
+import { AREAS } from './data/areas';
 
 /** Où obtenir un objet : fabrication, butin du donjon (chance réelle en jeu), butin de région. */
 export interface Source {
@@ -14,6 +15,9 @@ export interface Source {
 /** Boss : taux réels de Dofus (document de design §8). */
 const BOSS_IDS = new Set([4051]);
 const monsterName = (dofusId: number) => Object.values(MONSTERS).find((m) => m.dofusId === dofusId)?.name ?? `Monstre ${dofusId}`;
+/** Carte ou donjon où l'on croise ce monstre. */
+const placeOf = (dofusId: number) => Object.values(AREAS).find((a) =>
+  [...a.pool, a.elite?.id, a.boss?.id].some((id) => id && MONSTERS[id]?.dofusId === dofusId))?.name ?? 'Incarnam';
 const pct = (v: number) => `${v >= 1 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100} %`.replace('.', ',');
 
 export function sourcesOf(id: number): Source[] {
@@ -27,7 +31,7 @@ export function sourcesOf(id: number): Source[] {
     if (!d) continue;
     const boss = BOSS_IDS.has(Number(mid));
     const chance = d[1] * (boss ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1) : isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource);
-    out.push({ kind: 'dungeon', text: `${monsterName(Number(mid))}${boss ? ' (boss)' : ''} · Crypte de Kardorim · ${pct(chance)}` });
+    out.push({ kind: 'dungeon', text: `${monsterName(Number(mid))}${boss ? ' (boss)' : ''} · ${placeOf(Number(mid))} · ${pct(chance)}` });
   }
   const region = [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))];
   if (region.length) out.push({ kind: 'region', text: `Butin de région (Incarnam) · ${region.join(', ')}` });

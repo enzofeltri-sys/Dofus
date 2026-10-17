@@ -12,7 +12,7 @@ import { addNew, rollRarity, type RaritySource } from './forge';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 
 export interface SaveData {
-  v: 4;
+  v: 5;
   runs: number;
   wins: number;
   /** Plus loin atteint (numéro de salle). */
@@ -33,6 +33,10 @@ export interface SaveData {
   jobXp: number;
   /** Ressources marquées : favorites, verrouillées (l'atelier n'y touche pas). */
   resMarks: { fav: number[]; lock: number[] };
+  /** Cartes et donjons terminés au moins une fois (arbre des zones). */
+  done: string[];
+  /** Carte ou donjon choisi au camp. */
+  area: string;
 }
 
 /** Ce qu'une partie rapporte. */
@@ -55,15 +59,14 @@ export interface RunResult {
   loot: Loot;
   /** Butin du boss : seulement en cas de victoire. */
   bossLoot: Loot;
+  /** Carte ou donjon joué. */
+  area?: string;
 }
 
 const KEY = 'dofus-enzo-save';
 
-/**
- * Départ validé par Enzo : niveau 1, sans équipement, à mains nues. Il n'est jouable qu'avec la première carte de farm
- * (Champs d'Incarnam, étape 9a) : d'ici là, un nouveau personnage part encore niveau 10 avec l'équipement de départ.
- */
-export const LEVEL1_START = false;
+/** Départ validé par Enzo (étape 9a) : niveau 1, sans équipement, à mains nues, dans les Champs d'Incarnam. */
+export const LEVEL1_START = true;
 export const newProfile = (): Profile => ({ xp: 0, carac: emptyCarac() });
 
 /** Bounihimée : vraie épée de Dofus 3 (niveau 1), réglée sur l'ancienne épée inventée. */
@@ -75,7 +78,7 @@ const withWeapon = (inv: Inventory): Inventory => {
 };
 
 export const emptySave = (): SaveData => ({
-  v: 4, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {},
+  v: 5, runs: 0, wins: 0, bestRoom: 0, bestWinTime: null, xp: 0, resources: {}, done: [], area: 'champs',
   profile: LEVEL1_START ? newProfile() : defaultProfile(),
   inventory: LEVEL1_START ? emptyInventory() : withWeapon(starterInventory()),
   appearance: { ...SACRI_COLORS }, jobXp: 0,
@@ -88,6 +91,8 @@ export function loadSave(): SaveData {
     if (!raw) return emptySave();
     const d = JSON.parse(raw) as Partial<SaveData> & { v?: number };
     const base = emptySave();
+    // version 5 (étape 9a) : tout le monde repart niveau 1, à mains nues, dans les Champs ; seules les couleurs sont gardées
+    if ((d.v ?? 1) < 5 && LEVEL1_START) return { ...base, appearance: { ...SACRI_COLORS, ...(d.appearance ?? {}) } };
     const old = (d.v ?? 1) < 4;
     const profile = d.profile ? { xp: d.profile.xp ?? base.profile.xp, carac: { ...base.profile.carac, ...d.profile.carac } } : base.profile;
     let inventory = d.inventory?.items ? { ...d.inventory, items: d.inventory.items.filter((i) => ITEMS[i.id]) } : base.inventory;
@@ -97,7 +102,7 @@ export function loadSave(): SaveData {
     const resources = Object.fromEntries(Object.entries(d.resources ?? {}).filter(([k]) => ITEMS[Number(k)]));
     const appearance = { ...SACRI_COLORS, ...(d.appearance ?? {}) };
     const resMarks = { fav: d.resMarks?.fav ?? [], lock: d.resMarks?.lock ?? [] };
-    return { ...base, ...d, profile, inventory, resources, appearance, resMarks, v: 4 };
+    return { ...base, ...d, profile, inventory, resources, appearance, resMarks, done: d.done ?? [], area: d.area ?? base.area, v: 5 };
   } catch {
     return emptySave();
   }
@@ -139,6 +144,7 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
   const fresh = addLoot(out, r.loot, rnd, 'monster');
   if (r.won) {
     out.wins++;
+    if (r.area && !out.done.includes(r.area)) out.done = [...out.done, r.area];
     out.bestWinTime = out.bestWinTime === null ? r.time : Math.min(out.bestWinTime, r.time);
     fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss'));
   }

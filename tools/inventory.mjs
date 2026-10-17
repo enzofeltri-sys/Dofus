@@ -30,7 +30,7 @@ await p.evaluate(() => {
   s.inventory = inv;
   for (const [id, rolls] of [[16500, [14, 2]], [16501, [9, 8]], [16502, [13, 2]], [2474, [5, 5, 5, 5]]]) inv.items.push({ uid: inv.nextUid++, id, rolls });
   s.resources = { 310: 12, 16524: 7, 16663: 5, 16525: 1, 16513: 3 };
-  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 4, runs: 1, wins: 0, bestRoom: 3, bestWinTime: null, xp: 0, ...s }));
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 1, wins: 0, bestRoom: 3, bestWinTime: null, xp: 0, ...s }));
 });
 await p.reload();
 await ready();

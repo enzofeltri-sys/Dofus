@@ -128,16 +128,22 @@ describe('sauvegarde', () => {
     expect(casque.rolls[0]).toBeGreaterThanOrEqual(11);
     expect(won.save.resources['16525']).toBe(1);
   });
-  it('version 4 : une ancienne sauvegarde est gardée et reçoit la Bounihimée équipée', () => {
-    const store: Record<string, string> = { 'dofus-enzo-save': JSON.stringify({ v: 3, runs: 4, wins: 1, bestRoom: 9, bestWinTime: 213, xp: 0, resources: { 310: 4 }, appearance: { hair: '#123456' }, profile: { xp: 99999, carac: { force: 50 } } }) };
+  it('version 5 : une ancienne sauvegarde repart niveau 1, sans équipement, dans les Champs (couleurs gardées)', () => {
+    const store: Record<string, string> = { 'dofus-enzo-save': JSON.stringify({ v: 4, runs: 4, wins: 1, bestRoom: 9, bestWinTime: 213, xp: 0, resources: { 310: 4 }, appearance: { hair: '#123456' }, profile: { xp: 99999, carac: { force: 50 } } }) };
     (globalThis as unknown as { localStorage: Pick<Storage, 'getItem'> }).localStorage = { getItem: (k: string) => store[k] ?? null };
     const s = loadSave();
-    expect(s.v).toBe(4);
-    expect(s.runs).toBe(4);
-    expect(s.profile.xp).toBe(99999);
-    expect(s.resources).toEqual({ 310: 4 });
-    const arme = s.inventory.items.find((i) => i.uid === s.inventory.equipped.arme);
-    expect(arme?.id).toBe(30828);
+    expect(s.v).toBe(5);
+    expect(s.runs).toBe(0);
+    expect(s.profile.xp).toBe(0);
+    expect(s.inventory.items).toHaveLength(0);
+    expect(s.area).toBe('champs');
+    expect(s.done).toEqual([]);
     expect(s.appearance.hair).toBe('#123456');
+  });
+  it('une carte gagnée est marquée terminée (arbre des zones), pas une défaite', () => {
+    const s0 = emptySave();
+    const r = (won: boolean) => ({ won, room: 5, time: 60, kills: 10, dealt: 0, taken: 0, healed: 0, cards: [], loot: { xp: 0, items: {} }, bossLoot: { xp: 0, items: {} }, area: 'champs' });
+    expect(applyRun(s0, r(false)).save.done).toEqual([]);
+    expect(applyRun(s0, r(true)).save.done).toEqual(['champs']);
   });
 });

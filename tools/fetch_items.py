@@ -24,6 +24,8 @@ OUT_ICONS = os.path.join(ROOT, 'src/assets/items')
 
 DUNGEON_LEVEL = 10
 CRYPT = [4046, 4047, 4049, 4050, 4051]
+# cartes de farm (étape 9) : Champs d'Incarnam
+MAP_MONSTERS = [970, 979, 980, 981]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -139,7 +141,7 @@ def drop_table(mon):
 
 # 1) Crypte
 dungeon = {}
-for mid in CRYPT:
+for mid in CRYPT + MAP_MONSTERS:
     dungeon[mid] = drop_table(get(f'/monsters/{mid}'))
 
 # 2) Région : monstres du monde ouvert d'Incarnam (hors Crypte), niveau ±10
@@ -148,7 +150,7 @@ seen = set()
 for sa in REGION_SUBAREAS:
     res = get(f'/monsters?subareas={sa}&$limit=50')
     for m in res['data']:
-        if m['id'] in CRYPT or m['id'] in seen or m.get('isBoss'):
+        if m['id'] in CRYPT + MAP_MONSTERS or m['id'] in seen or m.get('isBoss'):
             continue
         seen.add(m['id'])
         lv = m['grades'][0]['level']
@@ -278,7 +280,7 @@ for s in sets.values():
     out.append(f"  {s['id']}: {{ id: {s['id']}, name: {json.dumps(s['name'], ensure_ascii=False)}, items: {s['items']}, bonus: {bonus} }},")
 out.append('};')
 out.append('')
-out.append('/** Tables de drop réelles des monstres de la Crypte, par identifiant DofusDB (% moyen sur les grades). */')
+out.append('/** Tables de drop réelles des monstres des donjons et des cartes de farm, par identifiant DofusDB (% moyen sur les grades). */')
 out.append('export const DUNGEON_DROPS: Record<number, [number, number][]> = {')
 for k, v in dungeon.items():
     out.append(f"  {k}: {json.dumps(v)},")

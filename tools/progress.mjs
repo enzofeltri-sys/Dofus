@@ -5,9 +5,16 @@ const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFa
 const errors = [];
 p.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('404')) errors.push(m.text()); });
-// sauvegarde « v1 » sans profil, juste sous le niveau 11 après migration : on vérifie la migration et la montée de niveau
+// personnage niveau 10 (début du niveau) dans la Crypte, avec la Bounihimée et l'équipement de départ : on vérifie la montée de niveau
 await p.goto('http://localhost:5173/');
-await p.evaluate(() => localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 1, runs: 3, wins: 1, bestRoom: 9, bestWinTime: 300, xp: 0, resources: {} })));
+await p.evaluate(async () => {
+  const pr = await import('/src/game/progression.ts');
+  const inv = await import('/src/game/inventory.ts');
+  let i = inv.starterInventory();
+  i = inv.addItem(i, 30828, [1]);
+  i = inv.equip(i, i.nextUid - 1, 200);
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 3, wins: 1, bestRoom: 9, bestWinTime: 300, xp: 0, resources: {}, profile: pr.defaultProfile(), inventory: i, done: ['champs'], area: 'crypte' }));
+});
 await p.reload();
 await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
 await p.waitForSelector('.camp:not([hidden]) .enter', { timeout: 20000 });

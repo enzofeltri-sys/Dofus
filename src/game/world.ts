@@ -3,7 +3,8 @@ import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushD
 import { xpGain } from './progression';
 import { rollDrops } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
-import { CRYPT_POOL, gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
+import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
+import { CRYPTE, type AreaDef } from './data/areas';
 import type { Stats } from './formulas';
 import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
@@ -18,6 +19,7 @@ export const STEP = 1 / 60;
 export const PERSP = 0.62;
 export const ROOM_W = 720;
 export const FLOOR_TOP = 300;
+/** Salles de la Crypte de Kardorim (référence des tests et de l'équilibrage). */
 export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
 /** Durée de l'apparition d'un monstre (s). */
@@ -43,10 +45,13 @@ export const flatDist = (ax: number, ay: number, bx: number, by: number) => Math
  * Grade des monstres selon la salle : grade 1-2 au début, 4-5 à la fin du donjon
  * (comme les groupes plus forts au fond d'un donjon de Dofus).
  */
-export function roomGrade(index: number, r: number): number {
-  const base = 1 + Math.floor((index * 4) / (TOTAL_ROOMS - 2));
+export function roomGrade(index: number, r: number, rooms = TOTAL_ROOMS): number {
+  const base = 1 + Math.floor((index * 4) / Math.max(1, rooms - 2));
   return Math.min(5, base + (r < 0.35 ? 1 : 0));
 }
+
+/** Centre d'une attaque en cercle devant le monstre (sort à distance : là où était le héros). */
+export const attackOffset = (m: { atk: MonsterAttack; aim: number }) => (m.atk.atTarget ? m.aim : m.atk.offset);
 
 export type MonsterState = 'spawn' | 'chase' | 'windup' | 'recover' | 'dead';
 
@@ -70,6 +75,8 @@ export interface Monster {
   cd: number;
   /** Direction d'attaque verrouillée pendant l'annonce (repère à plat, normalisée). */
   dir: Vec;
+  /** Sort posé à distance : distance de la zone devant le monstre (fixée au début de l'annonce). */
+  aim: number;
   facing: 1 | -1;
   knock: Vec;
   hurtT: number;
@@ -195,8 +202,10 @@ export class World {
   boss: Monster | null = null;
   /** Mini-boss (salle du milieu), s'il y en a un. */
   elite: Monster | null = null;
-  /** Salle du mini-boss (indice) : on y gagne une carte de plus. */
-  static readonly ELITE_ROOM = 4;
+  /** Dernière salle de la carte ou du donjon. */
+  get lastRoom() {
+    return this.roomIndex >= this.area.rooms - 1;
+  }
   private pending: Monster[] = [];
   private events: WorldEvent[] = [];
   private uid = 1;
@@ -204,7 +213,7 @@ export class World {
   /** Tirages du butin (séparés : le butin ne change pas le déroulé du combat). */
   private lootRnd: () => number;
 
-  constructor(private seed = 1, def: HeroDef = startingHero()) {
+  constructor(private seed = 1, def: HeroDef = startingHero(), public area: AreaDef = CRYPTE) {
     this.rnd = rng(seed);
     this.lootRnd = rng(seed * 7919 + 17);
     this.hero = {
@@ -227,7 +236,8 @@ export class World {
   }
 
   /** Recommence le donjon depuis la première salle, PV pleins (avec le Sacrieur du profil à jour). */
-  restart(def: HeroDef = this.hero.def) {
+  restart(def: HeroDef = this.hero.def, area: AreaDef = this.area) {
+    this.area = area;
     Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
     this.run = freshRun(def.level);
     this.stats = freshStats();
@@ -239,7 +249,7 @@ export class World {
     this.phase = 'fight';
     this.gate = 0;
     this.rnd = rng(this.seed * 977 + index * 131);
-    this.layout = roomLayout(index);
+    this.layout = roomLayout(index, this.area.theme);
     this.obstacles = roomObstacles(this.layout);
     this.hero.x = ROOM_W / 2;
     this.hero.y = this.bounds.y1 - 240; // au-dessus du joystick
@@ -251,39 +261,38 @@ export class World {
     this.roomT = 0;
     this.boss = null;
     this.elite = null;
-    if (index === World.ELITE_ROOM) {
-      // salle du mini-boss : le Sergent d'élite et quatre Chafers
+    const A = this.area;
+    const pick = () => MONSTERS[A.pool[Math.floor(this.rnd() * A.pool.length)]];
+    if (A.elite && index === A.elite.room) {
+      // salle de l'élite (mini-boss) et ses accompagnants
       this.reserve = [];
-      this.elite = this.makeMonster(MONSTERS.sergentElite, 5, ROOM_W / 2, this.bounds.y0 + 200);
+      this.elite = this.makeMonster(MONSTERS[A.elite.id], A.elite.grade, ROOM_W / 2, this.bounds.y0 + 200);
       this.monsters.push(this.elite);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < A.elite.adds; i++) {
         const p = this.findSpawn();
-        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 3, p.x, p.y));
+        this.monsters.push(this.makeMonster(pick(), A.elite.addGrade, p.x, p.y));
       }
       this.rollInitiative();
       this.events.push({ type: 'roomStart', index });
       return;
     }
-    if (index === TOTAL_ROOMS - 1) {
-      // salle du boss : Kardorim (grade 5) et cinq Chafers aguerris
+    if (A.boss && index === A.rooms - 1) {
+      // salle du boss (grade 5) et ses monstres aguerris
       this.reserve = [];
-      this.boss = this.makeMonster(MONSTERS.kardorim, 5, ROOM_W / 2, this.bounds.y0 + 170);
+      this.boss = this.makeMonster(MONSTERS[A.boss.id], A.boss.grade, ROOM_W / 2, this.bounds.y0 + 170);
       this.monsters.push(this.boss);
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < A.boss.adds; i++) {
         const p = this.findSpawn();
-        this.monsters.push(this.makeMonster(MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]], 4 + (i % 2), p.x, p.y));
+        this.monsters.push(this.makeMonster(pick(), 4 + (i % 2), p.x, p.y));
       }
       this.rollInitiative();
       this.events.push({ type: 'roomStart', index });
       return;
     }
-    // 6 monstres en salle 1, jusqu'à 12 ; à partir de la salle 3, une partie arrive en deuxième vague
-    const count = Math.min(12, 6 + Math.floor(index * 0.85));
-    const defs = [...Array(count)].map(() => ({
-      def: MONSTERS[CRYPT_POOL[Math.floor(this.rnd() * CRYPT_POOL.length)]],
-      grade: roomGrade(index, this.rnd()),
-    }));
-    const second = index >= 2 ? Math.round(count * 0.4) : 0;
+    // monstres de plus en plus nombreux ; à partir de `waveFrom`, une partie arrive en deuxième vague
+    const count = Math.min(A.count.max, A.count.base + Math.floor(index * A.count.perRoom));
+    const defs = [...Array(count)].map(() => ({ def: pick(), grade: roomGrade(index, this.rnd(), A.rooms) }));
+    const second = index >= A.waveFrom ? Math.round(count * 0.4) : 0;
     this.reserve = defs.splice(defs.length - second, second);
     for (const { def, grade } of defs) {
       const p = this.findSpawn();
@@ -323,7 +332,7 @@ export class World {
     const g = gradeStats(def, grade);
     return {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
-      cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, facing: -1,
+      cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
       hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
       markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0,
@@ -362,10 +371,10 @@ export class World {
 
     if (this.phase === 'fight' && !this.reserve.length && this.monsters.every((m) => m.state === 'dead')) {
       this.phase = 'cleared';
-      this.events.push({ type: this.boss ? 'victory' : 'roomCleared' });
+      this.events.push({ type: this.lastRoom ? 'victory' : 'roomCleared' });
     }
-    // la grille de la salle du boss reste fermée : le donjon est fini
-    if (this.phase === 'cleared' && !this.boss) {
+    // la grille de la dernière salle reste fermée : la carte ou le donjon est fini
+    if (this.phase === 'cleared' && !this.lastRoom) {
       this.gate = Math.min(1, this.gate + STEP / 0.6);
       const h = this.hero;
       if (this.gate >= 1 && h.alive && Math.abs(h.x - GATE.x) < GATE.halfWidth && h.y <= this.bounds.y0 + 6) {
@@ -760,6 +769,10 @@ export class World {
           // le piquier garde ses distances
           if (d > a.trigger * 0.85) want = 1;
           else if (d < 120) want = -0.7;
+        } else if (m.def.behavior === 'caster') {
+          // les plantes lancent de loin et reculent si on s'approche
+          if (d > a.trigger * 0.85) want = 1;
+          else if (d < 170) want = -0.6;
         } else if (d > a.trigger * 0.8) want = 1;
         if (want !== 0) {
           const sp = m.def.speed * (m.hasteT > 0 ? m.def.boss?.haste ?? 1.6 : 1) * want * STEP;
@@ -772,6 +785,7 @@ export class World {
           m.state = 'windup';
           m.t = 0;
           m.dir = { x: dx / d, y: dy / d };
+          m.aim = Math.min(d, a.trigger);
           m.hidden = false;
           this.events.push({ type: 'telegraph', uid: m.uid });
         }
@@ -781,7 +795,7 @@ export class World {
         this.events.push({ type: 'strike', uid: m.uid });
         if (h.alive && h.invulnT <= 0 && this.inAttack(m)) this.hurtHero(m);
         // fente vers l'avant (la charge traverse toute la ligne)
-        const lunge = m.def.charge && a === m.def.charge.attack ? m.def.charge.dash : 40;
+        const lunge = a.atTarget ? 0 : m.def.charge && a === m.def.charge.attack ? m.def.charge.dash : 40;
         m.knock.x += m.dir.x * lunge;
         m.knock.y += m.dir.y * lunge;
         m.state = 'recover';
@@ -803,7 +817,8 @@ export class World {
     const px = h.x - m.x, py = (h.y - m.y) / PERSP;
     const r = h.def.radius * 0.6;
     if (a.shape === 'circle') {
-      const cx = m.dir.x * a.offset, cy = m.dir.y * a.offset;
+      const off = attackOffset(m);
+      const cx = m.dir.x * off, cy = m.dir.y * off;
       return Math.hypot(px - cx, py - cy) <= a.size + r;
     }
     const along = px * m.dir.x + py * m.dir.y;

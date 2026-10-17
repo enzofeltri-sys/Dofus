@@ -27,7 +27,7 @@ await p.evaluate(async () => {
   const inv = await import('/src/game/inventory.ts');
   let i = inv.starterInventory();
   for (const id of [16500, 16501, 16502, 787, 787, 852]) i = inv.addItem(i, id, inv.rollItem(id, Math.random));
-  const s = { v: 4, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 2000, carac: {} }, inventory: i,
+  const s = { v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 2000, carac: {} }, inventory: i,
     resources: { 310: 14, 16524: 11, 16663: 9, 16525: 5, 303: 22, 312: 12, 16512: 4 } };
   localStorage.setItem('dofus-enzo-save', JSON.stringify(s));
 });

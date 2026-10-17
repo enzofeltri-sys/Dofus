@@ -730,3 +730,41 @@ html, body {
 }
 /* les blocs des panneaux ne rétrécissent pas : le panneau défile (sinon le bas passe sous la barre d'onglets) */
 :is(.sheet, .inv, .atelier, .look) > :not(.inv-detail) { flex-shrink: 0; }
+
+/* ---------- Écran Donjons : arbre des zones ---------- */
+.atlas {
+  position: absolute; inset: 0; z-index: 45; pointer-events: auto; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 18px);
+}
+.atlas[hidden] { display: none; }
+.atlas > * { width: min(440px, 100%); margin: 0 auto; flex-shrink: 0; }
+.atlas-intro { margin: 0; font-size: var(--t-sm); font-weight: 700; color: var(--ink-soft); line-height: 1.35; }
+.atlas-zone h3 { margin: 4px 0 8px; }
+.atlas-path { list-style: none; margin: 0; padding: 0 0 0 18px; position: relative; display: flex; flex-direction: column; gap: 10px; }
+.atlas-path::before { content: ''; position: absolute; left: 33px; top: 20px; bottom: 20px; width: 4px; border-radius: 2px; background: repeating-linear-gradient(var(--ink-soft) 0 8px, transparent 8px 14px); opacity: .5; }
+.atlas-node {
+  position: relative; display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; cursor: default;
+  padding: 8px 10px; border-radius: 14px; background: #fffaf0; box-shadow: inset 0 0 0 2px rgba(59,36,20,.25);
+}
+.atlas-node.open, .atlas-node.done { cursor: pointer; }
+.atlas-node.open { box-shadow: inset 0 0 0 2.5px var(--turquoise), 0 2px 0 rgba(59,36,20,.25); }
+.atlas-node.sel { box-shadow: inset 0 0 0 3px var(--gold), 0 0 0 3px rgba(227,168,56,.35); }
+.atlas-node.locked, .atlas-node.soon { opacity: .55; }
+.atlas-node.dungeon { background: linear-gradient(#fff3dc, #f3dcae); }
+.an-dot {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; z-index: 1;
+  font: 400 18px var(--f-display); color: #fff; background: var(--parchment-3); box-shadow: inset 0 0 0 2.5px var(--ink);
+}
+.an-dot svg { width: 18px; height: 18px; }
+.atlas-node.open .an-dot { background: var(--turquoise); }
+.atlas-node.done .an-dot { background: var(--leaf); }
+.atlas-node.dungeon .an-dot { background: var(--coral); }
+.atlas-node.dungeon.locked .an-dot { background: var(--parchment-3); }
+.an-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.an-txt b { font-weight: 800; }
+.an-txt small { font-size: var(--t-xs); font-weight: 700; color: var(--ink-soft); }
+.an-txt em { font-size: var(--t-xs); font-weight: 800; color: var(--coral-dark); font-style: normal; }
+.an-go { font: 400 var(--t-sm) var(--f-display); padding: 4px 10px; border-radius: 10px; background: var(--turquoise); color: #fff; box-shadow: inset 0 0 0 2px var(--ink); }
+.atlas-node.sel .an-go { background: var(--gold); color: var(--ink); }
+.camp-nav:not([hidden]) ~ .atlas { padding-bottom: calc(var(--safe-bottom) + 96px); }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { startingHero, weaponDef } from './data/hero';
 import { MONSTERS } from './data/monsters';
 import { escapeChance, escapeOf, tackleOf } from './formulas';
+import { CHAMPS, CRYPTE } from './data/areas';
 import { GATE, PERSP, STEP, TACKLE_MIN, TOTAL_ROOMS, World } from './world';
 
 type In = { x: number; y: number } | ((w: World) => { x: number; y: number });
@@ -166,7 +167,7 @@ describe('World', () => {
 
   it('salle 5 : le Sergent d’élite charge en ligne et la salle se termine sans victoire', () => {
     const w = new World(3);
-    w.startRoom(World.ELITE_ROOM);
+    w.startRoom(CRYPTE.elite!.room);
     const e = w.elite!;
     expect(e.def.id).toBe('sergentElite');
     expect(e.maxHp).toBeGreaterThan(200);
@@ -276,5 +277,32 @@ describe('Butin en combat', () => {
     expect(drops).toBeGreaterThan(0);
     expect(Object.values(w.stats.loot).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
     expect(Object.keys(w.stats.bossLoot)).toHaveLength(0);
+  });
+});
+
+describe('cartes de farm (étape 9a)', () => {
+  it('Champs : 5 salles, élite Tournesol en dernière salle, victoire en la nettoyant', () => {
+    const w = new World(4, startingHero(), CHAMPS);
+    w.startRoom(0);
+    expect(w.monsters.every((m) => CHAMPS.pool.includes(m.def.id))).toBe(true);
+    w.startRoom(4);
+    expect(w.elite?.def.id).toBe('tournesol');
+    expect(w.lastRoom).toBe(true);
+    for (const m of w.monsters) { m.hp = 0; m.state = 'dead'; }
+    w.reserve = [];
+    const ev = run(w, 0.1);
+    expect(ev.some((e) => e.type === 'victory')).toBe(true);
+  });
+
+  it('le Pissenlit pose sa zone là où était le héros', () => {
+    const w = new World(5, startingHero(), CHAMPS);
+    w.startRoom(0);
+    const m = w.monsters[0];
+    w.monsters = [m];
+    Object.assign(m, { def: MONSTERS.pissenlit, atk: MONSTERS.pissenlit.attack, state: 'chase', cd: 0, x: w.hero.x, y: w.hero.y - 250 * PERSP });
+    run(w, 0.05);
+    expect(m.state).toBe('windup');
+    expect(m.aim).toBeGreaterThan(200);
+    expect(w.inAttack(m)).toBe(true);
   });
 });

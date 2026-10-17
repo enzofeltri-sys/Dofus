@@ -19,7 +19,7 @@ const NONE: Res5 = [0, 0, 0, 0, 0];
  * Le reste (vitesse, attaque, télégraphe) est l'adaptation au temps réel.
  */
 
-export type Behavior = 'melee' | 'stealth' | 'lancer' | 'brute' | 'boss';
+export type Behavior = 'melee' | 'stealth' | 'lancer' | 'brute' | 'boss' | 'caster';
 export type AttackShape = 'circle' | 'cone' | 'line';
 
 export interface MonsterAttack {
@@ -39,6 +39,8 @@ export interface MonsterAttack {
   /** Délai entre deux attaques (s), tiré entre min et max. */
   cooldown: [number, number];
   roll: DamageRoll;
+  /** Sort lancé à distance : la zone se pose là où se tenait le héros au début de l'annonce (offset = distance au héros). */
+  atTarget?: boolean;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -90,7 +92,7 @@ export interface MonsterDef {
   charge?: { every: number; attack: MonsterAttack; dash: number };
 }
 
-export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'kardorim' | 'kardorib';
+export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'kardorim' | 'kardorib' | 'tofu' | 'pissenlit' | 'rose' | 'tournesol';
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s). */
@@ -106,6 +108,10 @@ export interface BossKit {
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
+const roll = (element: DamageRoll['element'], min: number, max: number): DamageRoll => ({ min, max, critBonus: 1, critBase: 3, element });
+/** Grades DofusDB sans Force (monstres des Champs) : niveau, PV, résistances, XP, autres caractéristiques. */
+const champ = (rows: [number, number, Res5, number][], more: (i: number) => Partial<MonsterGrade> = () => ({})) =>
+  rows.map(([lv, hp, res, xp], i) => g(lv, hp, 0, res, xp, 0, 0, 0, 0, more(i)));
 
 /** Sergent Chafer (DofusDB 4050) : Force et Intelligence, résistance Feu. */
 const SERGENT = [[7, 36, 60, 160, 20, 7], [8, 40, 70, 190, 25, 7], [9, 44, 80, 230, 30, 7], [10, 49, 90, 280, 35, 7], [11, 54, 100, 340, 40, 6]]
@@ -165,6 +171,40 @@ export const MONSTERS: Record<string, MonsterDef> = {
     grades: [1, 2, 3, 4, 5].map(() => g(10, 60, 40, NONE, 0, 0, 20, 4, 15, { agilite: 40 })),
     behavior: 'melee', speed: 165, radius: 26, art: 'kardorib',
     attack: { shape: 'circle', trigger: 100, size: 60, spread: 0, offset: 56, windup: 0.4, recover: 0.26, cooldown: [0.9, 1.4], roll: neutre(4, 8) },
+  },
+
+  /* ---------- Champs d'Incarnam (carte de farm 1) : vraies fiches DofusDB, sorts de grade 1 × 0,25 (comme les Chafers) ---------- */
+
+  /** Tofu Chimérique (970) : niveaux 1-5, Agilité 20-28. Béco du Tofu : Air 13-18, 1-2 cases → coups de bec rapides. */
+  tofu: {
+    id: 'tofu', name: 'Tofu Chimérique', dofusId: 970,
+    grades: champ([[1, 15, [0, -10, -5, 0, 5], 50], [2, 18, [0, -9, -4, 0, 6], 60], [3, 21, [0, -8, -3, 0, 7], 70], [4, 24, [0, -7, -2, 0, 8], 90], [5, 28, [0, -6, -1, 0, 9], 110]], (i) => ({ agilite: 20 + 2 * i })),
+    behavior: 'melee', speed: 200, radius: 22, art: 'tofu',
+    attack: { shape: 'circle', trigger: 90, size: 54, spread: 0, offset: 50, windup: 0.32, recover: 0.22, cooldown: [0.8, 1.2], roll: roll('air', 3, 5) },
+  },
+  /** Pissenlit Miroitant (979) : niveaux 2-6. Herbe Sauvage : Feu 21-30, 0-5 cases → zone posée à distance. */
+  pissenlit: {
+    id: 'pissenlit', name: 'Pissenlit Miroitant', dofusId: 979,
+    grades: champ([[2, 18, [-25, 0, -25, -10, -4], 60], [3, 21, [-20, 0, -20, -8, -3], 70], [4, 24, [-15, 0, -15, -6, -2], 90], [5, 28, [-10, 0, -10, -4, -1], 110], [6, 32, [-5, 0, -5, -2, 0], 130]]),
+    behavior: 'caster', speed: 80, radius: 22, art: 'pissenlit',
+    attack: { shape: 'circle', trigger: 300, size: 62, spread: 0, offset: 0, windup: 0.95, recover: 0.4, cooldown: [2.2, 3.0], roll: roll('feu', 5, 8), atTarget: true },
+  },
+  /** Rose Vaporeuse (980) : niveaux 2-6, Intelligence 10-30. Effleurement : Neutre 11-14 au corps à corps. */
+  rose: {
+    id: 'rose', name: 'Rose Vaporeuse', dofusId: 980,
+    grades: champ([[2, 18, [-4, -10, -3, -10, -4], 60], [3, 21, [-4, -9, -3, -9, -4], 70], [4, 24, [-3, -8, -2, -8, -3], 90], [5, 28, [-2, -7, -1, -7, -2], 110], [6, 32, [-2, -6, -1, -6, -2], 130]], (i) => ({ intelligence: i === 4 ? 30 : 10 })),
+    behavior: 'melee', speed: 125, radius: 22, art: 'rose',
+    attack: { shape: 'circle', trigger: 95, size: 58, spread: 0, offset: 52, windup: 0.4, recover: 0.25, cooldown: [0.9, 1.3], roll: neutre(3, 4) },
+  },
+  /**
+   * Tournesol Nébuleux (981) : niveaux 3-7. Racine Barbelée : Terre 15-20, 1-8 cases.
+   * Élite de fin de carte (création : pas d'élite de ce niveau dans Dofus) : plus grand, PV et XP ×2,5.
+   */
+  tournesol: {
+    id: 'tournesol', name: 'Tournesol Nébuleux', dofusId: 981,
+    grades: champ([[3, 21, [10, 0, -10, 0, -15], 70], [4, 24, [11, 0, -9, 0, -14], 90], [5, 28, [12, 0, -8, 0, -13], 110], [6, 32, [13, 0, -7, 0, -12], 130], [7, 36, [14, 0, -6, 0, -11], 160]]),
+    behavior: 'caster', speed: 70, radius: 30, art: 'tournesol', scale: 1.3, hpMult: 2.5, xpMult: 2.5,
+    attack: { shape: 'circle', trigger: 480, size: 78, spread: 0, offset: 0, windup: 1.0, recover: 0.45, cooldown: [1.8, 2.4], roll: roll('terre', 4, 5), atTarget: true },
   },
 };
 

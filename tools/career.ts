@@ -7,13 +7,17 @@ import { startingHero } from '../src/game/data/hero';
 import { addXp, invest, levelForXp, pointsFree, type Profile } from '../src/game/progression';
 import { newProfile } from '../src/game/save';
 import { rng } from '../src/iso';
-import { STEP, TOTAL_ROOMS, World, type Vec } from '../src/game/world';
+import { STEP, World, type Vec } from '../src/game/world';
+import { AREAS } from '../src/game/data/areas';
 
 const players = Number(process.argv[2] ?? 10);
 const maxRuns = Number(process.argv[3] ?? 40);
 const weaponArg = process.argv.find((a) => a.startsWith('arme='));
 const weapon = weaponArg ? Number(weaponArg.slice(5)) : null;
 const good = process.argv.includes('joueur=bon');
+const areaArg = process.argv.find((a) => a.startsWith('zone='));
+const area = AREAS[areaArg ? areaArg.slice(5) : 'crypte'];
+const TOTAL_ROOMS = area.rooms;
 const score = (c: Card) => (c.kind === 'spell' ? 3 : c.kind === 'upgrade' ? (c.up === 'dmg' ? 2 : 1.5) : c.stat === 'vitalite' ? 1.8 : 1);
 
 const firstWin: number[] = [];
@@ -23,7 +27,7 @@ for (let p = 1; p <= players; p++) {
   let won = false;
   for (let r = 1; r <= maxRuns && !won; r++) {
     prof = invest(prof, 'force', pointsFree(prof));
-    const w = new World(p * 1000 + r, startingHero(prof, {}, weapon));
+    const w = new World(p * 1000 + r, startingHero(prof, {}, weapon), area);
     w.setPlayBottom(1380);
     w.startRoom(0);
     const mem = { lag: { x: 0, y: 0 } as Vec, next: 0 };
@@ -57,8 +61,8 @@ for (let p = 1; p <= players; p++) {
   }
 }
 const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
-console.log(`${players} joueurs ${good ? 'bons' : 'moyens'}, ${weapon ? `arme ${weapon}` : 'mains nues'}, sans équipement`);
-console.log('partie | niveau au départ | salle atteinte (10 = victoire) | durée');
+console.log(`${area.name} — ${players} joueurs ${good ? 'bons' : 'moyens'}, ${weapon ? `arme ${weapon}` : 'mains nues'}, sans équipement`);
+console.log(`partie | niveau au départ | salle atteinte (${TOTAL_ROOMS + 1} = victoire) | durée`);
 for (const [r, row] of byRun) {
   if (r > 12 && r % 4) continue;
   console.log(`${String(r).padStart(6)} | ${avg(row.level).toFixed(1).padStart(16)} | ${avg(row.room).toFixed(1).padStart(30)} | ${avg(row.min).toFixed(1)} min  (${row.room.length} joueurs)`);

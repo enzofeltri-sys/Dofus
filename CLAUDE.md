@@ -16,6 +16,6 @@ Jeu privé (jamais publié publiquement) : roguelite d'action en temps réel, po
 - Données : `python3 tools/fetch_items.py` → `src/game/data/items.gen.ts` (objets, panoplies, drops, recettes, runes, armes) + icônes.
 - Logique : `src/game/` (world, formulas, loot, inventory, craft, forge, search, save…), tests Vitest à côté (`npx vitest run`).
 - Interface : `src/ui/hud.ts` (+ vues `*-view.ts`), rendu PixiJS dans `src/main.ts`, dessins SVG dans `src/art/`.
-- Navigateur : serveur `npx vite --port 5173`, parcours `node tools/{flow,inventory,progress,artisan,search,forge,weapon}.mjs` (captures dans `shots/`).
-- Équilibrage : `npx vite-node tools/balance.ts`, `npx vite-node tools/career.ts` (carrière d'un nouveau joueur).
+- Navigateur : serveur `npx vite --port 5173`, parcours `node tools/{flow,inventory,progress,artisan,search,forge,weapon,champs}.mjs` (captures dans `shots/`).
+- Équilibrage : `npx vite-node tools/balance.ts`, `npx vite-node tools/career.ts [joueurs] [parties] zone=champs|crypte [arme=<id>] [joueur=bon]` (carrière d'un nouveau joueur).
 - Publication : `npm run build:single` → `dist-single/dofus.html` (artifact).

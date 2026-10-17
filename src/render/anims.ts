@@ -138,3 +138,58 @@ export function poseChafer(r: Rig, a: ChaferAnim, scale: number) {
   r.root.alpha = a.baseAlpha * sp * (a.hidden ? 0.16 : 1);
   r.flash(a.hurt);
 }
+
+/**
+ * Bestioles des Champs (Tofu, plantes) : animations sans os.
+ * Tofu : sautille, bat des ailes, coup de bec ; plantes : trottinent sur leurs pieds-racines, la tête se balance,
+ * se penche en arrière pour préparer un sort et pique du nez en le lançant. Mort : elles s'affaissent et s'effacent.
+ */
+export function poseCritter(r: Rig, a: ChaferAnim, tofu: boolean) {
+  if (a.dead !== null) {
+    const k = ease.out(clamp01(a.dead / 0.5));
+    for (const name of r.parts.keys()) r.pose(name, { rot: name === 'head' ? 0.9 * k : name.startsWith('leaf') || name.startsWith('wing') ? -0.6 * k : 0 });
+    r.body.rotation = r.fwd(-0.5 * k);
+    r.body.scale.y = 1 - 0.45 * k;
+    r.body.y = 0;
+    r.body.x = 0;
+    r.root.alpha = a.baseAlpha * Math.max(0, 1 - Math.max(0, a.dead - 0.35) * 1.6);
+    r.flash(clamp01(1 - a.dead / 0.2));
+    return;
+  }
+  const w = a.moving ? Math.sin(a.walkPh) : 0;
+  const breath = Math.sin(a.t * 2.4 + a.seed);
+  const hop = a.moving ? Math.abs(Math.sin(a.walkPh)) * (tofu ? 9 : 3) : 0;
+  let lean = 0, head = 0;
+  if (a.windup !== null) {
+    lean = -0.18 * ease.out(a.windup);
+    head = -0.35 * ease.out(a.windup);
+  } else if (a.strike !== null) {
+    const s = a.strike;
+    lean = s < 0.3 ? lerp(-0.18, 0.28, ease.out(s / 0.3)) : lerp(0.28, 0, ease.inOut((s - 0.3) / 0.7));
+    head = s < 0.3 ? lerp(-0.35, 0.45, ease.out(s / 0.3)) : lerp(0.45, 0, ease.inOut((s - 0.3) / 0.7));
+  }
+  if (tofu) {
+    r.pose('legB', { rot: w * 0.55 });
+    r.pose('legF', { rot: -w * 0.55 });
+    const flap = a.moving ? Math.sin(a.walkPh * 2) * 0.5 : breath * 0.12;
+    r.pose('wingB', { rot: -flap });
+    r.pose('wingF', { rot: flap });
+    r.pose('body', { rot: head * 0.5, dy: breath * 0.8 });
+    r.pose('crest', { rot: head * 0.5 - (a.moving ? 0.15 : 0) + breath * 0.06, dy: breath * 0.8 });
+  } else {
+    r.pose('legB', { rot: w * 0.4 });
+    r.pose('legF', { rot: -w * 0.4 });
+    r.pose('stem', { rot: lean * 0.6 + breath * 0.03 });
+    r.pose('leafB', { rot: breath * 0.12 - (a.moving ? 0.2 : 0) });
+    r.pose('leafF', { rot: -breath * 0.12 + (a.moving ? 0.2 : 0) });
+    r.pose('head', { rot: head + lean * 0.5 + breath * 0.05 + w * 0.06, dy: breath * 0.8 });
+  }
+  r.body.x = a.windup !== null ? Math.sin(a.t * 60) * 1 : 0;
+  r.body.y = -hop;
+  r.body.rotation = r.fwd(lean * 0.4 - 0.25 * a.hurt);
+  const sp = ease.out(clamp01(a.spawn));
+  // squash & stretch du saut (tofu)
+  r.body.scale.y = (0.4 + 0.6 * sp) * (tofu && a.moving ? 1 + Math.sin(a.walkPh * 2) * 0.06 : 1);
+  r.root.alpha = a.baseAlpha * sp * (a.hidden ? 0.16 : 1);
+  r.flash(a.hurt);
+}
