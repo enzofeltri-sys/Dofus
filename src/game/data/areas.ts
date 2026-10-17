@@ -27,8 +27,15 @@ export interface AreaDef {
   /** Élite (mini-boss) : salle, monstre, grade, accompagnants. */
   elite?: { room: number; id: string; grade: number; adds: number; addGrade: number };
   boss?: { id: string; grade: number; adds: number };
+  /** Monstres errants possibles (rencontres) : nom affiché et monstres du groupe. */
+  wanderers?: { name: string; pool: string[] }[];
   theme: Theme;
 }
+
+/** Monstres errants d'Incarnam : Lac, Mine et Route des âmes (pas de carte à eux, ils passent dans les autres). */
+const LAC = { name: 'Des gelées du Lac !', pool: ['plikplok', 'gloot', 'gloot', 'splatch'] };
+const MINE = { name: 'Des Aminites de la Mine !', pool: ['aminite'] };
+const ROUTE = { name: 'Des Feux de la Route des âmes !', pool: ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'] };
 
 export const CRYPTE: AreaDef = {
   id: 'crypte', name: 'Crypte de Kardorim', kind: 'dungeon', zone: 'incarnam', level: 10,
@@ -44,6 +51,7 @@ export const CHAMPS: AreaDef = {
   sub: '5 salles · élite : Tournesol Nébuleux',
   rooms: 5, pool: ['tofu', 'tofu', 'pissenlit', 'rose'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
   elite: { room: 4, id: 'tournesol', grade: 3, adds: 3, addGrade: 2 },
+  wanderers: [ROUTE, LAC],
   theme: 'champs',
 };
 
@@ -52,6 +60,7 @@ export const PATURAGES: AreaDef = {
   sub: '5 salles · élite : Bouftor Éthéré',
   rooms: 5, pool: ['palichon', 'orageux', 'palichon', 'orageux', 'nuageux'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
   elite: { room: 4, id: 'bouftor', grade: 3, adds: 3, addGrade: 2 },
+  wanderers: [LAC],
   theme: 'paturages',
 };
 
@@ -60,6 +69,7 @@ export const FORET: AreaDef = {
   sub: '5 salles · élite : Ronronchon',
   rooms: 5, pool: ['chakrobat', 'chakrobat', 'tigrimas'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
   elite: { room: 4, id: 'ronronchon', grade: 3, adds: 3, addGrade: 2 },
+  wanderers: [ROUTE, MINE],
   theme: 'foret',
 };
 
@@ -68,6 +78,7 @@ export const CIMETIERE: AreaDef = {
   sub: '5 salles · élite : Chafer Piquier',
   rooms: 5, pool: ['chaferDebutant', 'chaferDebutant', 'chaferFurtif', 'chaferEclaireur', 'chaferPiquier'], count: { base: 4, perRoom: 0.8, max: 8 }, waveFrom: 2,
   elite: { room: 4, id: 'piquierElite', grade: 3, adds: 3, addGrade: 2 },
+  wanderers: [MINE],
   theme: 'cimetiere',
 };
 

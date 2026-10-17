@@ -25,7 +25,8 @@ OUT_ICONS = os.path.join(ROOT, 'src/assets/items')
 DUNGEON_LEVEL = 10
 CRYPT = [4046, 4047, 4049, 4050, 4051]
 # cartes de farm (étape 9) : Champs, Pâturages, Forêt et Cimetière d'Incarnam
-MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048]
+MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
+                4108, 4109, 4110, 4107, 3270, 3271, 3272, 3273]  # errants : Lac, Mine, Route des âmes
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus

@@ -178,3 +178,52 @@ describe('pièges de carte', () => {
     expect(c.hazards.length).toBe(0);
   });
 });
+
+describe('fin d’Incarnam : monstres errants et sorts manquants', () => {
+  it('environ 20 % des salles normales accueillent des monstres errants (Lac, Mine, Route des âmes)', () => {
+    let rooms = 0, hits = 0;
+    for (let seed = 1; seed <= 300; seed++) {
+      const w = new World(seed, strong(), AREAS.champs);
+      w.plan[1] = { shape: 'plaine', mirror: false, special: null };
+      w.startRoom(1);
+      rooms++;
+      if (w.drain().some((e) => e.type === 'wanderers')) {
+        hits++;
+        expect(w.monsters.some((m) => ['plikplok', 'gloot', 'splatch', 'feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'].includes(m.def.id))).toBe(true);
+      }
+    }
+    expect(hits / rooms).toBeGreaterThan(0.14);
+    expect(hits / rooms).toBeLessThan(0.26);
+  });
+
+  it('le Ronronchon invoque des Feux de Joie (2 au plus), qui ne lâchent rien', () => {
+    const w = new World(3, strong(), AREAS.foret);
+    w.startRoom(4);
+    expect(w.elite?.def.id).toBe('ronronchon');
+    for (const m of w.monsters) m.cd = 999;
+    w.hero.x = 360;
+    w.hero.y = w.bounds.y1 - 20;
+    run(w, 50);
+    const fires = w.monsters.filter((m) => m.def.id === 'feuJoie' && m.summoner === w.elite!.uid);
+    expect(fires.length).toBeGreaterThan(0);
+    expect(fires.filter((m) => m.state !== 'dead').length).toBeLessThanOrEqual(2);
+  });
+
+  it('le Tigrimas récupère toute sa vie une seule fois, sous 30 %', () => {
+    const w = new World(5, strong(), AREAS.foret);
+    w.plan[1] = { shape: 'plaine', mirror: false, special: null };
+    w.startRoom(1);
+    const t = w.monsters.find((m) => m.def.id === 'tigrimas') ?? (() => {
+      w.startRoom(2);
+      return w.monsters.find((m) => m.def.id === 'tigrimas')!;
+    })();
+    if (!t) return;
+    t.state = 'chase';
+    t.hp = Math.ceil(t.maxHp * 0.35);
+    (w as unknown as { damageMonster: (m: unknown, d: number, c: boolean) => void }).damageMonster(t, Math.ceil(t.maxHp * 0.1), false);
+    expect(t.hp).toBe(t.maxHp);
+    t.hp = Math.ceil(t.maxHp * 0.35);
+    (w as unknown as { damageMonster: (m: unknown, d: number, c: boolean) => void }).damageMonster(t, Math.ceil(t.maxHp * 0.1), false);
+    expect(t.hp).toBeLessThan(t.maxHp * 0.3);
+  });
+});

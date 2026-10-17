@@ -145,7 +145,7 @@ export function poseChafer(r: Rig, a: ChaferAnim, scale: number) {
  * se penche en arrière pour préparer un sort et pique du nez en le lançant. Mort : elles s'affaissent et s'effacent.
  */
 /** Famille de dessin : tofu (ailes, sauts), plante (tige, feuilles), mouton (toison, cornes), chat (queue, feu follet). */
-export type CritterFamily = 'tofu' | 'plant' | 'sheep' | 'cat';
+export type CritterFamily = 'tofu' | 'plant' | 'sheep' | 'cat' | 'jelly' | 'flame' | 'shroom';
 
 export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
   const tofu = family === 'tofu';
@@ -188,6 +188,22 @@ export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
     r.pose('tail', { rot: (a.moving ? Math.sin(a.walkPh * 2) * 0.35 : breath * 0.1), dy: breath * 0.9 });
     r.pose('head', { rot: head * 0.8 + breath * 0.04, dy: breath * 0.6 });
     r.pose('horn', { rot: head * 0.8 + breath * 0.04, dy: breath * 0.6 });
+  } else if (family === 'jelly') {
+    // gelée : elle ondule et rebondit (le visage suit le corps)
+    const wob = a.moving ? Math.sin(a.walkPh * 2) * 2.5 : breath * 1.2;
+    r.pose('body', { dy: wob, rot: head * 0.25 });
+    r.pose('face', { dy: wob, rot: head * 0.25 });
+  } else if (family === 'flame') {
+    // feu : flotte au-dessus du sol en vacillant
+    const fl = Math.sin(a.t * 7 + a.seed) * 0.05;
+    r.pose('body', { dy: Math.sin(a.t * 3 + a.seed) * 4 - 4, rot: fl + head * 0.3 });
+    r.pose('face', { dy: Math.sin(a.t * 3 + a.seed) * 4 - 4, rot: head * 0.3 });
+  } else if (family === 'shroom') {
+    // champignon : petits pas, le chapeau se dandine
+    r.pose('legB', { rot: w * 0.5 });
+    r.pose('legF', { rot: -w * 0.5 });
+    r.pose('body', { dy: breath * 0.8 });
+    r.pose('head', { rot: head * 0.6 + breath * 0.04 + w * 0.06, dy: breath * 0.8 });
   } else if (family === 'cat') {
     // le bloc respire, la queue ondule, le feu follet flotte
     r.pose('legB', { rot: w * 0.3 });
@@ -209,7 +225,7 @@ export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
   r.body.rotation = r.fwd(lean * 0.4 - 0.25 * a.hurt);
   const sp = ease.out(clamp01(a.spawn));
   // squash & stretch du saut (tofu)
-  r.body.scale.y = (0.4 + 0.6 * sp) * (tofu && a.moving ? 1 + Math.sin(a.walkPh * 2) * 0.06 : 1);
+  r.body.scale.y = (0.4 + 0.6 * sp) * ((tofu || family === 'jelly') && a.moving ? 1 + Math.sin(a.walkPh * 2) * 0.06 : 1);
   r.root.alpha = a.baseAlpha * sp * (a.hidden ? 0.16 : 1);
   r.flash(a.hurt);
 }

@@ -102,13 +102,11 @@ describe('butin', () => {
     expect(casques / 10000).toBeCloseTo(0.1, 1);
   });
 
-  it('butin de région : environ 10 % des monstres lâchent un objet d’Incarnam', () => {
+  it('monstres errants : leurs vrais butins (Peau de Gloot sur le Petit Gloot)', () => {
     const r = rng(9);
-    let region = 0;
-    const own = new Set([310, 2474, 16524, 16663]);
-    for (let i = 0; i < 10000; i++) if (rollDrops({ dofusId: 4046, prospection: 100 }, r).some((id) => !own.has(id))) region++;
-    expect(region / 10000).toBeGreaterThan(0.06);
-    expect(region / 10000).toBeLessThan(0.11);
+    let peaux = 0;
+    for (let i = 0; i < 2000; i++) if (rollDrops({ dofusId: 4109, prospection: 100 }, r).includes(16522)) peaux++;
+    expect(peaux / 2000).toBeGreaterThan(0.05); // 59 % réels × le multiplicateur de ressources du jeu
   });
 });
 

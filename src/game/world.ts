@@ -61,6 +61,8 @@ export const SPECIAL_NAMES: Record<Special, string> = { embuscade: 'Embuscade', 
 /** Chances qu'une salle soit spéciale (le reste : salle normale). Le coffre est très rare. */
 export const SPECIAL_ODDS: [Special, number][] = [['embuscade', 0.12], ['vagues', 0.12], ['fontaine', 0.1], ['coffre', 0.02]];
 export const WAVES_TIME = 20;
+/** Chance qu'une salle normale accueille des monstres errants (Lac, Mine, Route des âmes). */
+export const WANDER_CHANCE = 0.2;
 /** Vagues : monstres au départ, au plus en même temps, et délai entre deux renforts (s). */
 export const WAVES = { start: 2, maxAlive: 4, every: 3 };
 export const FOUNTAIN_RATE = 0.06;
@@ -138,6 +140,8 @@ export interface Monster {
   /** Attaque en cours (normale ou charge) et délai avant la prochaine charge. */
   atk: MonsterAttack;
   chargeT: number;
+  /** Soin unique déjà utilisé. */
+  healed: boolean;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -233,7 +237,9 @@ export type WorldEvent =
   | { type: 'flee'; uid: number; x: number; y: number }
   | { type: 'hazard'; id: number; kind: HazardKind; phase: 'warn' | 'strike' }
   | { type: 'rooted' }
-  | { type: 'wavesOver' };
+  | { type: 'wavesOver' }
+  | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number }
+  | { type: 'wanderers'; name: string };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -450,6 +456,14 @@ export class World {
       const defs = [...Array(n)].map(roll);
       const second = index >= A.waveFrom && this.special !== 'fontaine' ? Math.round(n * 0.4) : 0;
       this.reserve = defs.splice(defs.length - second, second);
+      // rencontre : un petit groupe venu d'une autre zone d'Incarnam remplace une partie des monstres
+      const W = A.wanderers;
+      if (W?.length && !this.special && this.rnd() < WANDER_CHANCE) {
+        const grp = W[Math.floor(this.rnd() * W.length)];
+        const n = Math.max(2, Math.ceil(defs.length / 2));
+        defs.splice(0, n, ...[...Array(n)].map(() => ({ def: MONSTERS[grp.pool[Math.floor(this.rnd() * grp.pool.length)]], grade: roomGrade(index, this.rnd(), A.rooms) })));
+        this.events.push({ type: 'wanderers', name: grp.name });
+      }
       for (const d of defs) this.spawnRoll(d);
       if (this.chest) {
         // gardien du coffre : un monstre de la carte au grade 5, deux fois plus résistant
@@ -547,7 +561,7 @@ export class World {
       uid: this.uid++, def, grade, level: g.level, maxHp: g.maxHp, xp: g.xp, stats: g.stats, x, y, hp: g.maxHp, state: 'spawn', t: 0,
       cd: def.attack.cooldown[0] * (0.5 + this.rnd()), dir: { x: 0, y: 1 }, aim: 0, facing: -1,
       knock: { x: 0, y: 0 }, hurtT: 0, hidden: false, stealthT: this.rnd() * 3, moving: false,
-      hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? 0, summoner: null,
+      hasteT: 0, crackT: def.boss?.crackEvery ?? 0, summonT: def.boss?.summonFirst ?? def.summons?.first ?? 0, summoner: null, healed: false,
       markT: 0, weakT: 0, critDownT: 0, pushT: 0, atk: def.attack, chargeT: def.charge ? def.charge.every * 0.5 : 0, stuckT: 0, detourT: 0, detourSide: this.rnd() < 0.5 ? 1 : -1,
     };
   }
@@ -829,6 +843,15 @@ export class World {
     m.hurtT = 0.18;
     this.events.push({ type: 'hit', target: 'monster', uid: m.uid, x: m.x, y: m.y, damage, crit, element, eff: element && resEffect(m.stats, element), push });
     if (m.hp <= 0) this.kill(m);
+    else this.checkSelfHeal(m);
+  }
+
+  /** Reconstitution Céleste (Tigrimas) : une seule fois, toute sa vie revient quand il passe sous le seuil. */
+  private checkSelfHeal(m: Monster) {
+    if (!m.def.selfHeal || m.healed || m.hp >= m.maxHp * m.def.selfHeal.below) return;
+    m.healed = true;
+    this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount: m.maxHp - m.hp });
+    m.hp = m.maxHp;
   }
 
   private nearestTarget(reach: number): Monster | null {
@@ -877,7 +900,7 @@ export class World {
       this.hitstop = Math.max(this.hitstop, crit ? 0.075 : 0.035);
       if (m.hp <= 0) {
         this.kill(m);
-      } else if (m.state === 'windup' && crit) {
+      } else if (this.checkSelfHeal(m), m.state === 'windup' && crit) {
         // un coup critique interrompt l'attaque en préparation
         m.state = 'recover';
         m.t = 0;
@@ -920,20 +943,23 @@ export class World {
       }
       this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: b.crackRadius });
     }
+    this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons });
+  }
+
+  /** Invocation à intervalle régulier, à côté de l'invocateur. */
+  private stepSummon(m: Monster, k: { every: number; id: string; max: number }) {
     m.summonT -= STEP;
-    if (m.summonT <= 0) {
-      m.summonT = b.summonEvery;
-      const alive = this.monsters.filter((o) => o.summoner === m.uid && o.state !== 'dead').length;
-      if (alive < b.maxSummons) {
-        const side = this.rnd() < 0.5 ? -1 : 1;
-        const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + side * 90));
-        const [sx, sy] = this.pushOut(x, m.y + 30, 26);
-        const s = this.makeMonster(MONSTERS[b.summon], 1, sx, sy);
-        s.summoner = m.uid;
-        this.pending.push(s);
-        this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
-      }
-    }
+    if (m.summonT > 0) return;
+    m.summonT = k.every;
+    const alive = this.monsters.filter((o) => o.summoner === m.uid && o.state !== 'dead').length;
+    if (alive >= k.max) return;
+    const side = this.rnd() < 0.5 ? -1 : 1;
+    const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + side * 90));
+    const [sx, sy] = this.pushOut(x, m.y + 30, 26);
+    const s = this.makeMonster(MONSTERS[k.id], 1, sx, sy);
+    s.summoner = m.uid;
+    this.pending.push(s);
+    this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
   }
 
   private stepMonster(m: Monster) {
@@ -970,6 +996,7 @@ export class World {
     m.weakT = Math.max(0, m.weakT - STEP);
     m.critDownT = Math.max(0, m.critDownT - STEP);
     if (m.def.boss && h.alive) this.stepBoss(m);
+    if (m.def.summons && h.alive) this.stepSummon(m, m.def.summons);
 
     // Chafer Furtif : alterne visible / invisible
     if (m.def.behavior === 'stealth') {

@@ -88,6 +88,10 @@ export interface MonsterDef {
   hpMult?: number;
   /** Multiplicateur d'XP (monstre d'élite). */
   xpMult?: number;
+  /** Invocation (hors boss) : premier appel et intervalle (s), monstre invoqué, nombre maximum en même temps. */
+  summons?: { first: number; every: number; id: string; max: number };
+  /** Soin unique : toute sa vie revient la première fois qu'il passe sous `below` de ses PV. */
+  selfHeal?: { below: number };
   /** Charge : attaque spéciale en ligne, puis le monstre fonce sur toute la longueur. */
   charge?: { every: number; attack: MonsterAttack; dash: number };
 }
@@ -125,6 +129,28 @@ const rows = (r: Row[]) => r.map(([lv, hp, [fo, int, cha, agi, sa], res, xp, tac
 
 const SERGENT = [[7, 36, 60, 160, 20, 7], [8, 40, 70, 190, 25, 7], [9, 44, 80, 230, 30, 7], [10, 49, 90, 280, 35, 7], [11, 54, 100, 340, 40, 6]]
   .map(([lv, hp, f, xp, sa, epa], i) => g(lv, hp, f, feu(10 + i), xp, sa, 10, epa, 5, { intelligence: f }));
+
+/** Les 4 Feux de la Route des âmes (3270-3273) : niveaux 1-5, Brûlure légère : Air 6-10 au contact. */
+function feux(): Record<string, MonsterDef> {
+  const out: Record<string, MonsterDef> = {};
+  const list: [string, string, number, MonsterArt, number, number][] = [
+    ['feuVif', 'Feu Vif', 3270, 'feuVif', 4, 0], ['feuJoie', 'Feu de Joie', 3271, 'feuJoie', 1, 0],
+    ['feuFurieux', 'Feu Furieux', 3272, 'feuFurieux', 3, 0], ['feuFollet', 'Feu Follet', 3273, 'feuFollet', 2, 1],
+  ];
+  for (const [id, name, dofusId, art, el, dodge] of list) {
+    out[id] = {
+      id, name, dofusId,
+      grades: [[1, 15, 10, 50], [2, 18, 11, 60], [3, 21, 12, 70], [4, 24, 13, 90], [5, 28, 15, 110]].map(([lv, hp, r, xp], i) => {
+        const res: Res5 = [0, 0, 0, 0, 0];
+        res[el] = r;
+        return g(lv, hp, 0, res, xp, 0, 0, i >= 2 ? dodge : 0, i >= 2 ? dodge : 0);
+      }),
+      behavior: 'melee', speed: id === 'feuFurieux' ? 175 : 150, radius: 20, art, scale: 0.7,
+      attack: { shape: 'circle', trigger: 85, size: 50, spread: 0, offset: 46, windup: 0.38, recover: 0.24, cooldown: [1.0, 1.4], roll: roll('air', 2, 3) },
+    };
+  }
+  return out;
+}
 
 export const MONSTERS: Record<string, MonsterDef> = {
   chaferDebutant: {
@@ -268,6 +294,8 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'tigrimas', name: 'Tigrimas', dofusId: 4106,
     grades: rows([[5, 28, [10, 0, 20, 10, 10], [2, 0, -10, 2, 0], 110, 20, 7, 8], [6, 32, [20, 0, 25, 20, 20], [4, 0, -8, 4, 0], 130, 20, 10, 12], [7, 36, [30, 0, 30, 30, 30], [6, 0, -6, 6, 0], 160, 20, 12, 16], [8, 40, [40, 0, 35, 40, 40], [8, 0, -4, 8, 0], 190, 20, 15, 20], [9, 44, [50, 0, 40, 50, 50], [10, 0, -2, 10, 0], 230, 20, 17, 24]]),
     behavior: 'lancer', speed: 140, radius: 24, art: 'tigrimas',
+    // Reconstitution Céleste (tous les 15 tours dans Dofus) : une fois par combat, sous 30 % de PV
+    selfHeal: { below: 0.3 },
     attack: { shape: 'line', trigger: 170, size: 180, spread: 22, offset: 0, windup: 0.5, recover: 0.3, cooldown: [1.2, 1.6], roll: neutre(4, 6) },
   },
   /**
@@ -278,12 +306,46 @@ export const MONSTERS: Record<string, MonsterDef> = {
     id: 'ronronchon', name: 'Ronronchon', dofusId: 4105,
     grades: rows([[6, 32, [20, 10, 0, 10, 20], [0, 0, -10, 2, -10], 130, 10, 0, 0], [7, 36, [30, 20, 0, 15, 30], [0, 0, -8, 4, -8], 160, 10, 0, 0], [8, 40, [40, 30, 0, 20, 40], [0, 0, -6, 6, -6], 190, 10, -1, 0], [9, 44, [60, 40, 0, 25, 60], [0, 0, -4, 8, -4], 230, 10, -1, 0], [10, 49, [80, 50, 0, 30, 80], [0, 0, -2, 10, -2], 280, 10, -2, 0]]),
     behavior: 'brute', speed: 105, radius: 36, art: 'ronronchon', scale: 1.3, hpMult: 2.5, xpMult: 2.5,
+    // Invocation de Feu de Joie (tous les 5 tours dans Dofus) : toutes les 20 s, 2 au plus
+    summons: { first: 6, every: 20, id: 'feuJoie', max: 2 },
     attack: { shape: 'cone', trigger: 140, size: 165, spread: 0.7, offset: 0, windup: 0.65, recover: 0.35, cooldown: [1.2, 1.7], roll: neutre(3, 5) },
     charge: {
       every: 7, dash: 200,
       attack: { shape: 'line', trigger: 300, size: 240, spread: 32, offset: 0, windup: 0.9, recover: 0.6, cooldown: [1.2, 1.6], roll: neutre(4, 5) },
     },
   },
+
+  /* ---------- Monstres errants d'Incarnam (Lac, Mine, Route des âmes) : rencontres dans les cartes ---------- */
+
+  /** Plikplok (4108) : niveaux 3-7. Plouf : Eau 6-10 autour de lui. */
+  plikplok: {
+    id: 'plikplok', name: 'Plikplok', dofusId: 4108,
+    grades: rows([[3, 21, [0, 0, 0, 0, 0], [0, 0, -15, 15, 0], 70, 0, 3, 0], [4, 24, [0, 0, 0, 0, 0], [0, 0, -14, 16, 0], 90, 0, 3, 2], [5, 28, [0, 0, 0, 0, 0], [0, 0, -13, 17, 0], 110, 0, 4, 3], [6, 32, [0, 0, 0, 0, 0], [0, 0, -12, 18, 0], 130, 0, 5, 4], [7, 36, [0, 0, 0, 0, 0], [0, 0, -11, 19, 0], 160, 0, 5, 5]]),
+    behavior: 'melee', speed: 120, radius: 24, art: 'plikplok', scale: 0.85,
+    attack: { shape: 'circle', trigger: 85, size: 80, spread: 0, offset: 0, windup: 0.5, recover: 0.3, cooldown: [1.2, 1.6], roll: roll('eau', 2, 3) },
+  },
+  /** Petit Gloot (4109) : niveaux 2-6. Glougloutte : Eau 6-10, 1-2 cases, et repousse. */
+  gloot: {
+    id: 'gloot', name: 'Petit Gloot', dofusId: 4109,
+    grades: rows([[2, 18, [0, 0, 0, 0, 0], [0, 0, 0, 10, -20], 60, 0, 3, 0], [3, 21, [0, 0, 0, 0, 0], [0, 0, 0, 11, -19], 70, 0, 3, 2], [4, 24, [0, 0, 0, 0, 0], [0, 0, 0, 12, -18], 90, 0, 4, 3], [5, 28, [0, 0, 0, 0, 0], [0, 0, 0, 13, -17], 110, 0, 5, 4], [6, 32, [0, 0, 0, 0, 0], [0, 0, 0, 14, -16], 130, 0, 5, 5]]),
+    behavior: 'melee', speed: 125, radius: 22, art: 'gloot', scale: 0.75,
+    attack: { shape: 'circle', trigger: 110, size: 58, spread: 0, offset: 66, windup: 0.42, recover: 0.25, cooldown: [1.0, 1.4], roll: roll('eau', 2, 3) },
+  },
+  /** Grand Splatch (4110) : niveaux 4-8. Splotch : Eau 6-10, 1-3 cases en ligne. */
+  splatch: {
+    id: 'splatch', name: 'Grand Splatch', dofusId: 4110,
+    grades: rows([[4, 24, [0, 0, 0, 0, 0], [0, -10, 0, 20, 0], 90, 0, 3, 0], [5, 28, [0, 0, 0, 0, 0], [0, -9, 0, 21, 0], 110, 0, 3, 2], [6, 32, [0, 0, 0, 0, 0], [0, -8, 0, 22, 0], 130, 0, 4, 3], [7, 36, [0, 0, 0, 0, 0], [0, -7, 0, 23, 0], 160, 0, 5, 4], [8, 40, [0, 0, 0, 0, 0], [0, -6, 0, 24, 0], 190, 0, 5, 5]]),
+    behavior: 'lancer', speed: 100, radius: 26, art: 'splatch',
+    attack: { shape: 'line', trigger: 170, size: 180, spread: 24, offset: 0, windup: 0.55, recover: 0.3, cooldown: [1.2, 1.6], roll: roll('eau', 2, 3) },
+  },
+  /** Aminite (4107) : niveaux 5-9, Intelligence 150-190. Coup de Piléus : Neutre 11-20 au corps à corps. */
+  aminite: {
+    id: 'aminite', name: 'Aminite', dofusId: 4107,
+    grades: rows([[5, 28, [20, 150, 0, 10, 0], [20, 0, -10, 10, -10], 110, 0, 0, 0], [6, 32, [25, 160, 0, 15, 0], [21, 0, -9, 11, -9], 130, 0, 0, 0], [7, 36, [30, 170, 0, 20, 0], [22, 0, -8, 12, -8], 160, 0, 0, 0], [8, 40, [35, 180, 0, 25, 0], [23, 0, -7, 13, -7], 190, 0, 0, 0], [9, 44, [40, 190, 0, 30, 0], [24, 0, -6, 14, -6], 230, 0, 0, 0]]),
+    behavior: 'melee', speed: 110, radius: 26, art: 'aminite',
+    attack: { shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.5, recover: 0.3, cooldown: [1.1, 1.5], roll: neutre(3, 5) },
+  },
+  ...feux(),
 
   /* ---------- Cimetière d'Incarnam (carte 4) ---------- */
 

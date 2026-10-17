@@ -8,7 +8,7 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { CATS, CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, wispSvg, type CritterKind } from './art/champs-chibi';
+import { CATS, CRITTER_FOOT, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, SHEEP, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
@@ -114,7 +114,8 @@ async function main() {
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
     Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
-  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol', 'palichon', 'orageux', 'nuageux', 'bouftor', 'chakrobat', 'tigrimas', 'ronronchon'];
+  const CRITTERS: CritterKind[] = ['tofu', 'pissenlit', 'rose', 'tournesol', 'palichon', 'orageux', 'nuageux', 'bouftor', 'chakrobat', 'tigrimas', 'ronronchon',
+    'plikplok', 'gloot', 'splatch', 'aminite', 'feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
   // résolution de la texture selon la plus grande taille d'affichage du monstre (élites agrandies)
   const artScale = (k: MonsterArt) => Math.max(1, ...Object.values(MONSTERS).filter((d) => d.art === k).map((d) => d.scale ?? 1));
   const critterTex = await Promise.all(CRITTERS.map((k) => Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))))));
@@ -123,7 +124,8 @@ async function main() {
     ...Object.fromEntries(CRITTERS.map((k, i) => [k, critterTex[i]])),
   } as Record<MonsterArt, Texture[]>;
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
-  const familyOf = (k: CritterKind): CritterFamily => (k === 'tofu' ? 'tofu' : SHEEP.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : 'plant');
+  const familyOf = (k: CritterKind): CritterFamily =>
+    k === 'tofu' ? 'tofu' : SHEEP.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly' : FLAMES.includes(k) ? 'flame' : k === 'aminite' ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
     (Object.keys(PROP_ART) as PropKind[]).map(async (k) => {
@@ -649,6 +651,14 @@ async function main() {
         if (ev.special === 'coffre') later(1.0, () => hud.toast('Coffre gardé : bats son gardien !', 1800));
         else if (ev.special === 'fontaine') later(1.0, () => hud.toast('Fontaine : approche-toi pour te soigner', 1800));
         else if (ev.special === 'vagues') later(1.0, () => hud.toast(`Vagues : tiens ${WAVES_TIME} secondes !`, 1800));
+        break;
+      case 'wanderers':
+        later(0.8, () => hud.toast(ev.name, 1500));
+        break;
+      case 'monsterHeal':
+        hud.toast('Reconstitution Céleste !', 1200);
+        numberAt(ev.x + 22, ev.y - 120 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
+        for (let i = 0; i < 16; i++) emit(ev.x, ev.y - 40, 0x9ff0ff, { vx: rand(-90, 90), vy: rand(-200, -60), life: 0.7, size: 0.08 });
         break;
       case 'ambush':
         hud.toast('Embuscade !', 1200);
