@@ -957,10 +957,6 @@ function doaSvg(kind: CritterKind, part?: CritterPart): string {
 function bipedSvg(kind: CritterKind, part?: CritterPart): string {
   begin();
   const P: Parts = {};
-  const legs = (col: string, foot: string, fw = 9) => {
-    push(P, 'legB', tube('M78,116 Q82,130 82,144', 7, col), blob(ellipse(78, 147, fw, 4.5), foot, { w: 1.4, rim: false }));
-    push(P, 'legF', tube('M62,116 Q58,130 58,144', 7, col), blob(ellipse(54, 148, fw, 4.5), foot, { w: 1.4, rim: false }));
-  };
   if (kind === 'milirat' || kind === 'ramane') {
     // rats des Égouts, voûtés et grosse tête : Milirat (capuche à grandes oreilles, armure orange, lance),
     // Ramane (crête violette, crâne de bête sur la tête, bâton à spirale)
@@ -994,17 +990,34 @@ function bipedSvg(kind: CritterKind, part?: CritterPart): string {
         `<path d="M44,28 m-6,0 a6,6 0 1,1 12,0 a3.5,3.5 0 1,1 -7,0" fill="none" stroke="#4a2a10" stroke-width="1.8"/>`, blob(circle(42, 108, 5), G, { ink, w: 1.2 }));
     }
   } else if (kind === 'scelerat') {
-    // Scélérat Strubien : capuche, grosses lunettes vertes, ailes de cuir, queue rayée
-    const G = '#9a9a7a';
-    legs(G, '#6a6a52', 8);
-    push(P, 'leafB', blob('M84,80 Q110,50 136,56 Q120,64 126,74 Q110,72 112,84 Q100,82 92,94 Z', '#8a9a8a', { ink: '#3a4a3a' }),
-      tube('M92,116 Q116,126 122,140', 5, '#7a7a5a'), `<path d="M104,124 l3,-5 M112,130 l4,-4" stroke="#3a3a2a" stroke-width="2"/>`);
-    push(P, 'stem', blob(ellipse(72, 100, 22, 24), G), blob(ellipse(66, 106, 12, 15), '#c8c8a8', { w: 1.2, rim: false }));
-    push(P, 'leafF', blob('M56,84 Q26,56 4,62 Q22,70 16,80 Q30,78 30,90 Q42,88 52,98 Z', '#9aaa9a', { ink: '#3a4a3a' }));
-    push(P, 'head', blob('M42,72 Q40,44 64,40 Q86,40 88,66 Q84,80 64,82 Q46,82 42,72 Z', '#7a8a72', { ink: '#2a3a22' }),
-      blob('M44,64 Q24,66 14,74 Q28,76 44,72 Z', '#c8c8a8', { ink: '#4a4a3a', w: 1.4 }),
-      `<circle cx="56" cy="62" r="10" fill="#2a6a2a" stroke="#1a2a1a" stroke-width="2.4"/><circle cx="56" cy="62" r="6.5" fill="#8ae84a"/><circle cx="54" cy="60" r="2.2" fill="#fff"/>`,
-      `<path d="M64,62 L84,58" stroke="#1a2a1a" stroke-width="2.4"/>`);
+    // Scélérat Strubien : petit corps kaki voûté, casque vert pâle à long bec pointé vers le bas,
+    // grand œil jaune dans une orbite vert sombre, deux ailes en lames vers l'arrière, queue de métal en anneaux
+    const K = '#9a9468', ink = '#2e3424', M = '#8a9aa4';
+    const foot = (x: number, y: number) => blob(`M${x + 6},${y - 4} L${x - 16},${y + 2} L${x + 6},${y + 4} Z`, M, { ink: '#3a4650', w: 1.4 });
+    push(P, 'legB', tube('M82,126 Q86,136 84,142', 7, K, ink), foot(86, 146));
+    push(P, 'legF', tube('M66,128 Q62,138 62,142', 7, K, ink), foot(64, 147));
+    push(P, 'leafB', ...[0, 1, 2, 3, 4].map((i) => blob(ellipse(98 + i * 8, 124 + i * 4, 6 - i * 0.6, 5 - i * 0.5), i % 2 ? shade(M, -0.1) : M, { ink: '#3a4650', w: 1.3, rim: false })),
+      blob('M134,138 L146,146 L132,144 Z', M, { ink: '#3a4650', w: 1.2, rim: false }));
+    push(P, 'stem', blob('M54,100 Q58,86 78,86 Q102,90 102,114 Q102,136 78,138 Q54,136 52,118 Z', K, { ink }),
+      blob(ellipse(68, 116, 11, 13), '#c8c49a', { ink, w: 1.2, rim: false }), blob(circle(92, 96, 4), '#d8e07a', { ink, w: 1.2, rim: false }));
+    push(P, 'leafF', tube('M62,100 Q54,110 60,118', 6, K, ink), blob(circle(62, 120, 4.5), shade(K, -0.1), { ink, w: 1.2, rim: false }),
+      `<path d="M66,112 l4,4 l-4,4 Z" fill="#6a2a1a"/>`);
+    // tête basse posée sur le corps (voûté, sans cou)
+    push(P, 'head', '<g transform="translate(6,18)">',
+      // larges ailes membraneuses rabattues vers l'arrière
+      blob('M58,44 Q94,14 136,22 Q130,40 104,52 Q86,60 68,62 Z', '#b4b49a', { ink: '#3a4032' }),
+      blob('M62,60 Q98,52 134,70 Q118,82 94,80 Q78,78 66,74 Z', '#949684', { ink: '#3a4032' }),
+      `<path d="M74,46 Q100,30 124,26 M80,54 Q102,44 128,36 M76,66 Q102,64 124,72" fill="none" stroke="#6a6a54" stroke-width="1.6" opacity="0.6"/>`,
+      // casque et bec
+      blob('M34,66 Q30,40 54,36 Q80,36 82,60 Q82,80 62,86 Q42,88 34,66 Z', '#d8e8b8', { ink }),
+      blob('M44,40 Q60,30 76,42 Q70,48 58,46 Q48,46 44,40 Z', '#2e5a3a', { ink, w: 1.4, rim: false }),
+      blob('M36,72 Q34,88 22,104 Q18,110 16,116 Q26,108 42,86 Q46,80 46,74 Z', '#c8dca8', { ink }),
+      blob('M22,104 L14,120 L26,108 Z', '#b8c4cc', { ink: '#3a4650', w: 1.3 }),
+      ...[[66, 44, 3], [72, 50, 2.4], [62, 40, 2]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#e8f0c8" stroke="${ink}" stroke-width="0.8"/>`),
+      // orbite sombre et grand œil jaune
+      blob(ellipse(56, 64, 15, 14), '#22442e', { ink, w: 1.6, rim: false }),
+      `<ellipse cx="53" cy="66" rx="9" ry="8.5" fill="#e8f04a" stroke="#6a8a1a" stroke-width="1.4"/><ellipse cx="50" cy="66" rx="2.4" ry="6" fill="#101410"/><circle cx="55" cy="62" r="2.2" fill="#fff"/>`,
+      `<path d="M42,56 Q54,50 68,56" fill="none" stroke="#22442e" stroke-width="4" stroke-linecap="round"/>`, '</g>');
   } else {
     // Mob l'Éponge : éponge jaune carrée, culotte brune, seau et pelle
     const Y = '#f4e04a';
