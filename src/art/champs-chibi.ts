@@ -323,76 +323,100 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
 const f = (n: number) => n.toFixed(1);
 
 /* ---------------------------------------------------------------------------------------- */
-/* Forêt d'Incarnam : chats fantômes bleu pâle, moustaches vertes, feux follets à yeux        */
+/* Forêt d'Incarnam : chats fantômes (Dofus 3) — silhouette d'un seul tenant, blanc en haut,   */
+/* cyan en bas, contour fin ; petits yeux, moustaches vertes ; feux follets lumineux à yeux.   */
 /* ---------------------------------------------------------------------------------------- */
 
-const CAT = '#d4ecf6';
-const WHISKER = '#6fe8a8';
+const CAT_INK = '#5b8ca4';
+const WHISKER = '#4fdc95';
 
-/** Feu follet : flamme lumineuse avec deux petits yeux (regard vers la gauche). */
-function wisp(x: number, y: number, r: number, col: string): string {
-  const d = `M${x - r},${y} Q${x - r},${y + r} ${x},${y + r} Q${x + r},${y + r} ${x + r},${y} Q${x + r * 0.7},${y - r * 0.9} ${x + r * 0.25},${y - r * 2} Q${x - r * 0.05},${y - r} ${x - r * 0.45},${y - r * 1.4} Q${x - r * 0.95},${y - r * 0.7} ${x - r},${y} Z`;
-  const e = (ex: number, s: number) => `<circle cx="${ex}" cy="${y + r * 0.1}" r="${s}" fill="#fff" stroke="#24323a" stroke-width="1.2"/><circle cx="${ex - s * 0.35}" cy="${y + r * 0.15}" r="${s * 0.5}" fill="#101418"/>`;
-  return halo(uid('h'), x, y - r * 0.2, r * 2.3, col) + blob(d, col, { ink: shade(col, -0.45), w: 1.4 }) +
-    `<ellipse cx="${x}" cy="${y + r * 0.2}" rx="${r * 0.55}" ry="${r * 0.45}" fill="#fff" opacity="0.55"/>` +
-    e(x - r * 0.38, r * 0.3) + e(x + r * 0.3, r * 0.26);
+/** Capsule (segment aux bouts ronds) de (x1,y1) à (x2,y2), rayon r. */
+function capsule(x1: number, y1: number, x2: number, y2: number, r: number): string {
+  const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a) * r, ny = Math.cos(a) * r;
+  return `M${f(x1 + nx)},${f(y1 + ny)} L${f(x2 + nx)},${f(y2 + ny)} A${r},${r} 0 0,0 ${f(x2 - nx)},${f(y2 - ny)} L${f(x1 - nx)},${f(y1 - ny)} A${r},${r} 0 0,0 ${f(x1 + nx)},${f(y1 + ny)} Z`;
 }
 
-/** Tête de chat : ronde, deux oreilles pointues, moustaches vertes. */
-function catHead(cx: number, cy: number, r: number): string {
-  const ear = (x0: number, x1: number, tx: number, ty: number) =>
-    blob(`M${x0},${cy - r * 0.55} Q${tx - 2},${ty + 6} ${tx},${ty} Q${tx + 4},${ty + 8} ${x1},${cy - r * 0.62} Z`, CAT, { w: 1.6 }) +
-    `<path d="M${x0 + 4},${cy - r * 0.6} Q${tx},${ty + 10} ${tx + 1},${ty + 6} Q${tx + 3},${ty + 10} ${x1 - 4},${cy - r * 0.64}" fill="#a9d4e6"/>`;
-  return ear(cx + r * 0.05, cx + r * 0.75, cx + r * 0.5, cy - r * 1.35) + ear(cx - r * 0.8, cx - r * 0.1, cx - r * 0.55, cy - r * 1.3) +
-    blob(ellipse(cx, cy, r, r * 0.9), CAT, { hl: [0.3, 0.25] });
+/** Silhouette fusionnée : tous les contours, puis tous les remplissages (même dégradé vertical), puis un reflet. */
+function catBody(shapes: string[], top: number, bottom: number, hl: string[] = []): string {
+  const g = uid('cg');
+  return `<linearGradient id="${g}" gradientUnits="userSpaceOnUse" x1="0" y1="${top}" x2="0" y2="${bottom}"><stop offset="0" stop-color="#ffffff"/><stop offset="0.5" stop-color="#e6f5fb"/><stop offset="1" stop-color="#a6d8ec"/></linearGradient>` +
+    shapes.map((d) => `<path d="${d}" fill="none" stroke="${CAT_INK}" stroke-width="3.2" stroke-linejoin="round"/>`).join('') +
+    shapes.map((d) => `<path d="${d}" fill="url(#${g})" stroke="url(#${g})" stroke-width="0.6" stroke-linejoin="round"/>`).join('') +
+    hl.map((d) => `<path d="${d}" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>`).join('');
 }
-const whiskers = (x: number, y: number) =>
-  `<path d="M${x},${y} l-16,-5 M${x},${y + 4} l-17,1 M${x},${y + 8} l-15,6" stroke="${WHISKER}" stroke-width="1.8" stroke-linecap="round"/>`;
-const paw = (x: number, y0: number, len: number, w = 7) => tube(`M${x},${y0} L${x - 1},${y0 + len}`, w, CAT) + blob(ellipse(x - 2, y0 + len + 3, w * 0.75, w * 0.5), CAT, { rim: false });
+
+/** Feu follet : boule lumineuse (cœur blanc), petite flamme au-dessus, deux yeux ronds. */
+function glowOrb(x: number, y: number, r: number, col: string, look = -0.3): string {
+  const g = uid('og'), h = uid('oh');
+  const flame = `M${x - r * 0.8},${y - r * 0.4} Q${x - r * 0.6},${y - r * 1.5} ${x + r * 0.15},${y - r * 2.1} Q${x},${y - r * 1.3} ${x + r * 0.75},${y - r * 0.9} Q${x + r},${y - r * 0.5} ${x + r * 0.8},${y - r * 0.2} Z`;
+  const eye = (ex: number, s: number) => `<ellipse cx="${f(ex)}" cy="${f(y + r * 0.12)}" rx="${f(s)}" ry="${f(s * 1.15)}" fill="#fff" stroke="#1d2a30" stroke-width="1.1"/><circle cx="${f(ex + look * s)}" cy="${f(y + r * 0.18)}" r="${f(s * 0.5)}" fill="#1d2a30"/>`;
+  return `<radialGradient id="${h}"><stop offset="0.35" stop-color="${col}" stop-opacity="0.6"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="${g}" cx="0.45" cy="0.4" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="${shade(col, 0.55)}"/><stop offset="1" stop-color="${col}"/></radialGradient>` +
+    `<circle cx="${x}" cy="${y - r * 0.3}" r="${r * 2.3}" fill="url(#${h})"/>` +
+    `<path d="${flame}" fill="${shade(col, 0.3)}" stroke="${shade(col, -0.35)}" stroke-width="1"/>` +
+    `<circle cx="${x}" cy="${y}" r="${r}" fill="url(#${g})" stroke="${shade(col, -0.35)}" stroke-width="1"/>` +
+    eye(x - r * 0.38, r * 0.27) + eye(x + r * 0.3, r * 0.23);
+}
+
+const ear = (x0: number, y0: number, tx: number, ty: number, x1: number, y1: number) => `M${x0},${y0} Q${tx - 3},${ty + 8} ${tx},${ty} Q${tx + 5},${ty + 9} ${x1},${y1} Z`;
+const whiskers = (x: number, y: number, dir = -1) =>
+  `<path d="M${x},${y} l${dir * 15},-6 M${x},${y + 3} l${dir * 17},0 M${x},${y + 6} l${dir * 14},6" stroke="${WHISKER}" stroke-width="1.5" stroke-linecap="round"/>`;
+/** Queue effilée qui se termine en pointe cyan. */
+const catTail = (d: string, w: number) => {
+  const g = uid('tg');
+  return `<linearGradient id="${g}" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#e6f5fb"/><stop offset="1" stop-color="#8fcde6"/></linearGradient>` +
+    `<path d="${d}" fill="none" stroke="${CAT_INK}" stroke-width="${w + 3.2}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="url(#${g})" stroke-width="${w}" stroke-linecap="round"/>`;
+};
+const DARK = '#1d2a30';
 
 function catSvg(kind: CritterKind, part?: CritterPart): string {
   begin();
   const P: Parts = {};
   if (kind === 'chakrobat') {
-    // acrobate élancé, debout, bras levés vers le feu follet bleu qui flotte au-dessus de sa tête, bouche grande ouverte
-    push(P, 'tail', tube('M82,126 Q108,148 104,112 Q100,90 116,82', 4.5, CAT));
-    push(P, 'legB', paw(76, 128, 14, 6.5));
-    push(P, 'legF', paw(62, 128, 15, 6.5));
-    push(P, 'body', halo(uid('h'), 70, 100, 52, '#d8f2ff'), blob(ellipse(70, 116, 16, 22), CAT));
-    push(P, 'body', tube('M78,104 Q94,84 70,52', 5, CAT), blob(ellipse(69, 49, 5.5, 4.5), CAT, { rim: false }));
-    push(P, 'head', catHead(64, 86, 22),
-      eyeChibi(60, 82, 7.5, 9, '#3a8ac0', { look: [-0.3, -0.3] }), eyeChibi(44, 83, 8.5, 10, '#3a8ac0', { look: [-0.3, -0.3] }),
-      blob(ellipse(50, 98, 7.5, 8), '#8a1e2a', { rim: false, w: 1.4 }), `<ellipse cx="51" cy="102" rx="4.5" ry="3" fill="#e0606e"/>`,
-      whiskers(40, 92),
-      // bras avant levé le long de la tête, la patte sous le feu follet
-      tube('M62,112 Q18,108 30,58', 5, CAT), blob(ellipse(31, 54, 5.5, 4.5), CAT, { rim: false }));
-    push(P, 'wisp', wisp(56, 36, 12, '#8fd8ff'));
+    // acrobate étiré, dressé sur ses pattes arrière, bras tendus vers le feu follet bleu ; il hurle de joie, yeux plissés
+    push(P, 'tail', catTail('M78,126 Q104,134 100,148 Q97,156 110,154', 5));
+    push(P, 'legB', catBody([capsule(76, 122, 82, 144, 6), ellipse(84, 147, 7.5, 4.5)], 110, 152));
+    push(P, 'legF', catBody([capsule(62, 122, 58, 145, 6), ellipse(56, 148, 8, 4.5)], 110, 152));
+    push(P, 'body', catBody([capsule(80, 96, 66, 44, 4.5)], 40, 100), catBody([ellipse(70, 106, 15, 24)], 82, 132, ['M62,92 Q64,86 70,84']));
+    push(P, 'head',
+      catBody([ear(48, 62, 44, 40, 60, 56), ear(64, 55, 78, 40, 80, 64), ellipse(63, 72, 21, 18)], 38, 92, ['M50,62 Q56,56 64,57']),
+      `<path d="M46,66 q4,-4 8,0 M62,65 q4,-4 8,0" fill="none" stroke="${DARK}" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<path d="M46,76 Q47,92 56,92 Q64,91 63,77 Q55,79 46,76 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M50,88 Q55,85 60,88 Q56,92 50,88 Z" fill="#ea6f7c"/>`,
+      `<path d="M49,77.5 l2,3.2 l2,-2.8 M58,78.5 l1.8,3 l1.8,-3.2" fill="#fff"/>`,
+      whiskers(44, 76), whiskers(80, 74, 1),
+      catBody([capsule(60, 96, 28, 74, 4.5), capsule(28, 74, 44, 44, 4.5)], 40, 96));
+    push(P, 'wisp', glowOrb(56, 34, 12, '#7fd3ff'));
   } else if (kind === 'tigrimas') {
-    // chat rond qui ricane, queue dressée en crochet, feu follet vert qui le suit au ras du sol
-    push(P, 'tail', tube('M100,112 Q130,100 124,60 Q122,38 136,34', 5.5, CAT));
-    push(P, 'legB', paw(92, 126, 12), paw(104, 124, 12));
-    push(P, 'legF', paw(60, 128, 12), paw(74, 130, 12));
-    push(P, 'body', halo(uid('h'), 80, 104, 56, '#d8f2ff'), blob(ellipse(82, 112, 30, 24), CAT));
-    push(P, 'body', `<path d="M66,98 Q80,90 98,94" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity="0.5"/>`);
-    push(P, 'head', catHead(58, 82, 27),
-      eyeChibi(62, 74, 8, 9.5, '#2fae7a', { lid: 1, skin: CAT, look: [-0.35, 0.1] }), eyeChibi(43, 75, 9, 10.5, '#2fae7a', { lid: 1, skin: CAT, look: [-0.35, 0.1] }),
-      blob('M34,90 Q48,108 68,92 Q50,98 34,90 Z', '#8a1e2a', { rim: false, w: 1.4 }),
-      `<path d="M38,92 L41,96 L44,93.5 L47,97 L50,94 L53,97 L56,94 L59,96 L63,93.5" fill="#fff" stroke="#8a1e2a" stroke-width="0.8"/>`,
-      whiskers(36, 84));
-    push(P, 'wisp', wisp(24, 128, 10, '#7ff0b0'));
+    // chat rond en plein bond, la queue dressée en crochet, sourire carnassier ; son feu follet vert roule devant lui
+    push(P, 'tail', catTail('M104,108 Q128,98 124,64 Q120,40 134,32', 6.5));
+    push(P, 'legB', catBody([capsule(104, 120, 112, 138, 7.5), ellipse(114, 141, 9, 5)], 100, 146));
+    push(P, 'legF', catBody([capsule(66, 122, 58, 138, 7), ellipse(55, 141, 9, 5), capsule(80, 124, 78, 141, 7), ellipse(76, 144, 8.5, 5)], 110, 148));
+    push(P, 'body', catBody([ellipse(88, 110, 28, 23)], 86, 134, ['M78,94 Q90,88 102,92']));
+    push(P, 'head',
+      catBody([ear(36, 66, 33, 42, 52, 58), ear(60, 57, 74, 38, 80, 66), ellipse(57, 82, 28, 24)], 40, 106, ['M40,70 Q48,62 60,62']),
+      // yeux plissés de malice
+      `<path d="M38,76 Q43,71 49,75 Q44,79 38,76 Z M58,74 Q64,69 70,74 Q64,78 58,74 Z" fill="${DARK}"/><circle cx="42" cy="75" r="1.1" fill="#fff"/><circle cx="62" cy="73" r="1.1" fill="#fff"/>`,
+      `<path d="M36,70 L49,72 M57,70 L71,69" stroke="${DARK}" stroke-width="2" stroke-linecap="round"/>`,
+      // large sourire ouvert, crocs
+      `<path d="M36,86 Q38,102 54,101 Q68,99 72,85 Q54,92 36,86 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M44,96 Q54,92 64,95 Q55,101 44,96 Z" fill="#ea6f7c"/>`,
+      `<path d="M41,87.5 l2.5,4.5 l2.5,-3.6 Z M62,88.5 l2.5,4.4 l2.4,-4.6 Z" fill="#fff"/>`,
+      whiskers(34, 84), whiskers(84, 80, 1));
+    push(P, 'wisp', glowOrb(24, 128, 11, '#3fe0a0'));
   } else {
-    // gros chat assis, l'air blasé ; sa queue est un esprit bleu à yeux qui s'enroule au-dessus de lui
-    push(P, 'tail', tube('M104,112 Q132,92 120,52 Q110,24 80,30', 7, '#a8dcf4', '#4a8aa8'),
-      wisp(76, 34, 11, '#9ee0ff'), spark(126, 70, 4, 0.8));
-    push(P, 'legB', paw(100, 132, 6, 9));
-    push(P, 'legF', paw(56, 134, 6, 9), paw(74, 136, 6, 9));
-    push(P, 'body', halo(uid('h'), 78, 110, 64, '#d8f2ff'), blob(ellipse(80, 116, 40, 30), CAT, { hl: [0.3, 0.2] }));
-    push(P, 'body', `<path d="M56,100 Q74,88 100,92" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.5"/>`);
-    push(P, 'head', catHead(54, 96, 25),
-      eyeChibi(58, 92, 8, 8.5, '#c0922a', { lid: -1, skin: CAT, look: [-0.3, 0.25] }), eyeChibi(40, 93, 9, 9.5, '#c0922a', { lid: -1, skin: CAT, look: [-0.3, 0.25] }),
-      `<path d="M40,108 Q46,104 52,108" fill="none" stroke="#24323a" stroke-width="2" stroke-linecap="round"/>`,
-      whiskers(34, 100));
-    push(P, 'wisp', wisp(28, 72, 7, '#7ff0b0'), wisp(122, 136, 6, '#b8f070'));
+    // gros chat affalé, l'air blasé ; sa queue devient un esprit bleu à yeux qui s'enroule au-dessus de lui
+    push(P, 'tail', catTail('M110,110 Q136,92 124,56 Q114,30 88,34', 9), glowOrb(80, 36, 12, '#86d8ff', -0.1));
+    push(P, 'legB', catBody([ellipse(110, 142, 11, 6)], 134, 148));
+    push(P, 'legF', catBody([ellipse(50, 141, 10, 6), ellipse(70, 145, 10, 6)], 134, 151));
+    push(P, 'body', catBody([ellipse(82, 118, 40, 28)], 90, 146, ['M66,98 Q84,90 104,96']));
+    push(P, 'head',
+      catBody([ear(34, 92, 32, 66, 48, 84), ear(56, 82, 68, 64, 74, 90), ellipse(52, 102, 26, 21)], 64, 124, ['M36,92 Q44,86 54,86']),
+      // paupières lourdes : demi-yeux sous un trait plat
+      `<path d="M36,98 L48,97 Q47,104 42,104 Q37,103 36,98 Z M56,96 L67,96 Q66,103 61.5,103 Q57,102 56,96 Z" fill="${DARK}"/>`,
+      `<path d="M35,97.5 L49,96.5 M55,95.8 L68,95.8" stroke="${DARK}" stroke-width="2.6" stroke-linecap="round"/>`,
+      `<circle cx="40.5" cy="100.5" r="1" fill="#fff"/><circle cx="60" cy="99.5" r="1" fill="#fff"/>`,
+      `<path d="M44,112 Q49,108 54,112" fill="none" stroke="${DARK}" stroke-width="2" stroke-linecap="round"/>`,
+      whiskers(32, 106), whiskers(78, 104, 1));
+    push(P, 'wisp', glowOrb(24, 74, 7, '#3fe0a0'), glowOrb(128, 132, 7, '#b4f05a'));
   }
   return assemble(kind, P, part);
 }
