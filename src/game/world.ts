@@ -58,6 +58,8 @@ export const attackOffset = (m: { atk: MonsterAttack; aim: number }) => (m.atk.a
 export type Special = 'embuscade' | 'coffre' | 'fontaine' | 'vagues';
 export const SPECIAL_NAMES: Record<Special, string> = { embuscade: 'Embuscade', coffre: 'Coffre gardé', fontaine: 'Fontaine', vagues: 'Vagues' };
 /** Durée à tenir dans une salle de vagues (s), soin de la fontaine (part des PV max par seconde, et au plus par salle). */
+/** Chances qu'une salle soit spéciale (le reste : salle normale). Le coffre est très rare. */
+export const SPECIAL_ODDS: [Special, number][] = [['embuscade', 0.12], ['vagues', 0.12], ['fontaine', 0.1], ['coffre', 0.02]];
 export const WAVES_TIME = 20;
 /** Vagues : monstres au départ, au plus en même temps, et délai entre deux renforts (s). */
 export const WAVES = { start: 2, maxAlive: 4, every: 3 };
@@ -309,15 +311,21 @@ export class World {
     const pick = <T>(a: T[]) => a[Math.floor(r() * a.length)];
     const fixed = (i: number) => (A.elite && i === A.elite.room) || (A.boss && i === A.rooms - 1);
     const mids = shuffle(MID_SHAPES);
-    const eligible = [...Array(A.rooms).keys()].filter((i) => i > 0 && !fixed(i));
-    const nSpecial = Math.min(eligible.length, A.rooms >= 8 ? 2 : r() < 0.4 ? 2 : 1);
-    const where = shuffle(eligible).slice(0, nSpecial);
-    const kinds = shuffle<Special>(['embuscade', 'coffre', 'fontaine', 'vagues']);
+    // chaque salle (hors première, élite et boss) est tirée au hasard : souvent normale, parfois spéciale, très rarement un coffre
+    const special = (i: number): Special | null => {
+      if (i === 0 || fixed(i)) return null;
+      let x = r();
+      for (const [kind, pct] of SPECIAL_ODDS) {
+        if (x < pct) return kind;
+        x -= pct;
+      }
+      return null;
+    };
     let k = 0;
     this.plan = [...Array(A.rooms)].map((_, i) => ({
       shape: !island ? 'plaine' : i === 0 ? pick(FIRST_SHAPES) : fixed(i) ? pick(ELITE_SHAPES) : mids[k++ % mids.length],
       mirror: r() < 0.5,
-      special: where.includes(i) ? kinds[where.indexOf(i)] : null,
+      special: special(i),
     }));
   }
 

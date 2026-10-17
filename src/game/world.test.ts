@@ -6,6 +6,11 @@ import { CHAMPS, CRYPTE } from './data/areas';
 import { GATE, PERSP, STEP, TACKLE_MIN, TOTAL_ROOMS, World } from './world';
 
 type In = { x: number; y: number } | ((w: World) => { x: number; y: number });
+/** Sans salles spéciales (tirées au hasard), pour tester les salles normales. */
+const plain = (w: World) => {
+  for (const p of w.plan) p.special = null;
+  return w;
+};
 const run = (w: World, seconds: number, input: In = { x: 0, y: 0 }) => {
   const ev = [];
   for (let i = 0; i < seconds / STEP; i++) {
@@ -118,7 +123,7 @@ describe('World', () => {
   });
 
   it('les salles successives ont plus de monstres', () => {
-    const w = new World(9);
+    const w = plain(new World(9));
     w.startRoom(0);
     const a = w.monsters.length;
     w.startRoom(7);
@@ -260,7 +265,7 @@ describe('Mécaniques de Dofus en temps réel', () => {
 
 describe('Butin en combat', () => {
   it('les monstres vaincus remplissent le sac de la partie, le boss remplit son propre sac', () => {
-    const w = new World(4);
+    const w = plain(new World(4));
     let drops = 0;
     for (let room = 0; room < 3; room++) {
       w.startRoom(room);

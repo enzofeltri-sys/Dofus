@@ -277,7 +277,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 
 ### 8.3 ter Salles variées (validé par Enzo : « les 3 me vont »)
 - **Formes de salle** (îles d'Incarnam, tirées à chaque partie, sans doublon au milieu, parfois retournées) : plaine, pont de corde (bande de vide), île trouée, arène (coins dans le vide), couloir (île étroite), archipel (2 bandes, 2 ponts), gouffre (grand trou central). 1re salle simple (plaine, trous ou gouffre), salle de l'élite en plaine ou arène. Le vide est un obstacle : on le contourne ; les monstres passent par les ponts. Décors posés au hasard (jamais dans le vide ni sur les passages, pas trois fois le même objet).
-- **Salles spéciales** (1 par carte, 40 % de chances d'une 2e ; 2 dans la Crypte, qui garde ses murs) :
+- **Salles spéciales** : une seule porte, et chaque salle derrière est tirée au hasard (hors 1re salle, élite et boss) : embuscade 12 %, vagues 12 %, fontaine 10 %, **coffre 2 % (très rare, demandé par Enzo)**, sinon salle normale. Aussi dans la Crypte, qui garde ses murs. Choix entre plusieurs portes et carte à embranchements : non retenus (Enzo veut une seule porte).
   - **Embuscade** : salle vide 1,6 s, puis les monstres surgissent autour du héros, un par un (0,3 s d'écart).
   - **Coffre gardé** : un gardien (monstre de la carte, grade 5, PV et XP ×2) ; le coffre s'ouvre quand la salle est vidée : butin de 3 monstres de la carte comme une élite.
   - **Fontaine** : moins de monstres ; près de l'eau, +6 % des PV max par seconde, au plus 50 % par salle.
@@ -286,7 +286,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
   - Pâturages : **troupeau** annoncé 1,3 s en bande sur la ligne du héros, puis traverse la salle (10 %, blesse aussi les monstres), toutes les 8-11 s.
   - Forêt : 3 **feux follets** qui explosent 0,8 s après qu'on s'en approche (8 %, rayon 90), réapparaissent 7 s plus tard.
   - Cimetière : **mains de squelette** sous le héros toutes les 5-7 s, annoncées 1 s (4 % et agrippé 1,1 s).
-- Simulation (joueurs moyens) : Champs ≈ 3 parties, Pâturages ≈ 4, Forêt ≈ 1-2, Cimetière ≈ 1-2 (Épée de Boisaille, niveau 7). Les monstres qui restaient coincés derrière un obstacle le contournent désormais : la Crypte devient plus dure (≈ 25 % de victoires en 12 parties au niveau 10 avec l'Épée, contre ≈ 55 % avant) — à trancher avec Enzo.
+- Simulation (joueurs moyens) : Champs ≈ 3 parties, Pâturages ≈ 4, Forêt ≈ 1-2, Cimetière ≈ 1-2 (Épée de Boisaille, niveau 7). Les monstres qui restaient coincés derrière un obstacle le contournent désormais : la Crypte devient plus dure (≈ 25-35 % de victoires en 12 parties au niveau 10 avec l'Épée, contre ≈ 55 % avant) — Enzo garde cette difficulté.
 
 ### 8.3 bis Idées validées en stock (plus tard)
 - **Boss Rush** : mini-jeu uniquement avec des boss de donjons, par tranches 1-20, 21-30, 31-40… ; 6 salles au plus, chacune avec 1 boss et ses sbires. Quand il y aura 3 ou 4 donjons.

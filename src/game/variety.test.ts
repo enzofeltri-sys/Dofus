@@ -108,10 +108,20 @@ describe('salles spéciales', () => {
     expect(w.phase).toBe('cleared');
   });
 
-  it('la Crypte a aussi ses salles spéciales (2 par partie), mais garde ses murs', () => {
-    const w = new World(1, strong(), AREAS.crypte);
-    expect(w.plan.filter((p) => p.special).length).toBe(2);
-    expect(w.plan.every((p) => p.shape === 'plaine')).toBe(true);
+  it('salles spéciales tirées au hasard, coffre très rare ; la Crypte garde ses murs', () => {
+    const n: Record<string, number> = {};
+    let rooms = 0;
+    for (let seed = 1; seed <= 400; seed++) {
+      const w = new World(seed, strong(), AREAS.crypte);
+      expect(w.plan.every((p) => p.shape === 'plaine')).toBe(true);
+      expect(w.plan[0].special).toBeNull();
+      expect(w.plan[4].special).toBeNull();
+      expect(w.plan[8].special).toBeNull();
+      for (const p of w.plan.slice(1, 8)) if (p !== w.plan[4]) { rooms++; if (p.special) n[p.special] = (n[p.special] ?? 0) + 1; }
+    }
+    expect(n.coffre / rooms).toBeLessThan(0.04);
+    expect(n.embuscade / rooms).toBeGreaterThan(0.08);
+    expect((rooms - Object.values(n).reduce((a, b) => a + b, 0)) / rooms).toBeGreaterThan(0.55);
   });
 });
 
