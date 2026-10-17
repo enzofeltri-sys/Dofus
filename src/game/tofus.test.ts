@@ -6,6 +6,8 @@ import { MONSTERS } from './data/monsters';
 import { ARCHI_OF } from './data/monsters.astrub';
 import { DUNGEON_KEYS } from './data/items.gen';
 import { PERSP, STEP, World, type Monster, type WorldEvent } from './world';
+import { applyRun, emptySave } from './save';
+import { atlasView } from '../ui/atlas-view';
 
 const tough = () => ({ ...startingHero(), hp: 100000 });
 const run = (w: World, seconds: number) => {
@@ -47,6 +49,19 @@ describe('Amakna : Champ des Ingalsse et Donjon des Tofus', () => {
     expect(isUnlocked(node('ingalsse'), ['cour'])).toBe(true);
     expect(isUnlocked(node('tofus'), ['cour'])).toBe(false);
     expect(isUnlocked(node('tofus'), ['cour', 'ingalsse'])).toBe(true);
+  });
+
+  it('Champ des Ingalsse (validé par Enzo) : terminé après 3 victoires, le Donjon des Tofus s’ouvre alors', () => {
+    const win = { won: true, room: 5, time: 60, kills: 10, dealt: 0, taken: 0, healed: 0, cards: [], loot: { xp: 0, items: {} }, bossLoot: { xp: 0, items: {} }, area: 'ingalsse' };
+    let s = { ...emptySave(), done: ['cour'] };
+    for (let i = 1; i <= 3; i++) {
+      s = applyRun(s, win).save;
+      const node = atlasView(s.done, 'ingalsse', s.mapWins).zones.find((z) => z.id === 'amakna')!.nodes.find((n) => n.id === 'ingalsse')!;
+      expect(node.wins).toEqual([i, 3]);
+      expect(s.done.includes('ingalsse')).toBe(i === 3);
+    }
+    // une carte normale reste terminée dès la 1re victoire
+    expect(applyRun(emptySave(), { ...win, area: 'champs' }).save.done).toContain('champs');
   });
 
   it('Tofoune (Picota) : soigne l’allié le plus blessé à côté d’elle', () => {

@@ -11,12 +11,14 @@ export interface AtlasNode {
   /** Ce qu'il faut faire pour la débloquer. */
   need: string;
   selected: boolean;
+  /** Victoires obtenues / demandées, pour les cartes qui en demandent plusieurs. */
+  wins?: [number, number];
 }
 export interface AtlasView {
   zones: { id: string; name: string; nodes: AtlasNode[] }[];
 }
 
-export function atlasView(done: string[], selected: string): AtlasView {
+export function atlasView(done: string[], selected: string, mapWins: Record<string, number> = {}): AtlasView {
   const nameOf = (id: string) => ZONES.flatMap((z) => z.nodes).find((n) => n.id === id)?.name ?? id;
   return {
     zones: ZONES.map((z) => ({
@@ -27,6 +29,7 @@ export function atlasView(done: string[], selected: string): AtlasView {
         state: n.soon ? 'soon' : done.includes(n.id) ? 'done' : isUnlocked(n, done) ? 'open' : 'locked',
         need: n.needs.length ? `Termine : ${n.needs.map(nameOf).join(', ')}` : '',
         selected: n.id === selected,
+        ...(n.area?.winsNeeded && n.area.winsNeeded > 1 ? { wins: [Math.min(mapWins[n.id] ?? 0, n.area.winsNeeded), n.area.winsNeeded] as [number, number] } : {}),
       })),
     })),
   };

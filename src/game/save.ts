@@ -10,6 +10,7 @@ import { addXp, defaultProfile, emptyCarac, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
 import { addItem, averageRolls, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
 import { addNew, rollRarity, type RaritySource } from './forge';
+import { AREAS } from './data/areas';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import type { KeyState } from './keys';
 import { mergeBestiary, type Bestiary } from './bestiary';
@@ -40,6 +41,8 @@ export interface SaveData {
   favSpells?: SpellId[];
   /** Cartes et donjons terminés au moins une fois (arbre des zones). */
   done: string[];
+  /** Victoires par carte (les cartes qui en demandent plusieurs : Champ des Ingalsse, Plaine des Scarafeuilles…). */
+  mapWins?: Record<string, number>;
   /** Carte ou donjon choisi au camp. */
   area: string;
   /** Clés gratuites du jour (donjons déjà vaincus). */
@@ -157,7 +160,11 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
   if (r.seen || r.slain) out.bestiary = mergeBestiary(out.bestiary, r.seen ?? {}, r.slain ?? {});
   if (r.won) {
     out.wins++;
-    if (r.area && !out.done.includes(r.area)) out.done = [...out.done, r.area];
+    if (r.area) {
+      const wins = (out.mapWins?.[r.area] ?? 0) + 1;
+      out.mapWins = { ...out.mapWins, [r.area]: wins };
+      if (!out.done.includes(r.area) && wins >= (AREAS[r.area]?.winsNeeded ?? 1)) out.done = [...out.done, r.area];
+    }
     out.bestWinTime = out.bestWinTime === null ? r.time : Math.min(out.bestWinTime, r.time);
     fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss'));
   }

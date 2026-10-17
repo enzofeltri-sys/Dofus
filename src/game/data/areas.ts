@@ -22,6 +22,8 @@ export interface AreaDef {
   kind: 'map' | 'dungeon';
   /** Zone (branche de l'arbre). */
   zone: string;
+  /** Victoires nécessaires pour terminer la carte (validé par Enzo : 3 dans les zones à une ou deux cartes) ; 1 par défaut. */
+  winsNeeded?: number;
   /** Niveau recommandé. */
   level: number;
   /** Description courte (camp, écran Donjons). */
@@ -249,8 +251,8 @@ export const COUR: AreaDef = {
 const TOFUS = ['tofuJaune', 'tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant'];
 
 export const INGALSSE: AreaDef = {
-  id: 'ingalsse', name: 'Champ des Ingalsse', kind: 'map', zone: 'amakna', level: 32,
-  sub: '5 salles · élite : Tofu Mutant d’élite',
+  id: 'ingalsse', name: 'Champ des Ingalsse', kind: 'map', zone: 'amakna', level: 32, winsNeeded: 3,
+  sub: '5 salles · élite : Tofu Mutant d’élite · 3 victoires',
   rooms: 5, pool: TOFUS, count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
   elite: { room: 4, id: 'tofuMutantElite', grade: 3, adds: 3, addGrade: 2 },
   archis: ['archi2355'],
@@ -273,8 +275,8 @@ const SCARAS = ['scaraRouge', 'scaraBleu', 'scaraVert', 'scaraBlanc'];
 const SCARA_ARCHIS = ['archi2280', 'archi2281', 'archi2282', 'archi2283'];
 
 export const PLAINE_SCARA: AreaDef = {
-  id: 'plaineScara', name: 'Plaine des Scarafeuilles', kind: 'map', zone: 'amakna', level: 36,
-  sub: '5 salles · élite : Scarafeuille Vert d’élite',
+  id: 'plaineScara', name: 'Plaine des Scarafeuilles', kind: 'map', zone: 'amakna', level: 36, winsNeeded: 3,
+  sub: '5 salles · élite : Scarafeuille Vert d’élite · 3 victoires',
   rooms: 5, pool: SCARAS, count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
   elite: { room: 4, id: 'scaraVertElite', grade: 3, adds: 3, addGrade: 2 },
   archis: SCARA_ARCHIS,

@@ -218,7 +218,7 @@ async function main() {
   /** Étapes débloquées déjà vues dans l'écran Donjons (pour la pastille). */
   let seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
   const zoneHooks = {
-    view: () => atlasView(save.done, areaOf().id),
+    view: () => atlasView(save.done, areaOf().id, save.mapWins),
     choose(id: string) {
       save = { ...save, area: id };
       storeSave(save);
