@@ -1,0 +1,27 @@
+// Mode test : bouton « Prêt pour le Donjon des Bouftous » depuis une sauvegarde neuve.
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push(e.message));
+p.on('dialog', (d) => d.accept());
+await p.goto('http://localhost:5173/');
+await p.evaluate(() => localStorage.clear());
+await p.reload();
+await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
+await p.waitForSelector('.camp:not([hidden]) .enter', { timeout: 20000 });
+await p.click('.nav-tab:has-text("Caractéristiques")');
+await p.waitForTimeout(600);
+await p.$eval('.sh-test', (e) => e.scrollIntoView());
+await p.screenshot({ path: 'shots/testmode_panel.png' });
+await Promise.all([p.waitForNavigation(), p.click('.t-bouftous')]);
+await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
+await p.waitForSelector('.camp:not([hidden]) .enter', { timeout: 20000 });
+await p.waitForTimeout(800);
+await p.screenshot({ path: 'shots/testmode_camp.png' });
+console.log('camp :', (await p.textContent('.camp'))?.replace(/\s+/g, ' ').slice(0, 220));
+await p.click('.nav-tab:has-text("Équipements")');
+await p.waitForTimeout(600);
+await p.screenshot({ path: 'shots/testmode_inv.png' });
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();

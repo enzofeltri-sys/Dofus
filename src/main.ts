@@ -39,6 +39,7 @@ import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
 import { installTheme } from './ui/theme';
+import { applyTest } from './game/testmode';
 
 /**
  * Étape 2 — moteur de combat : le monde de jeu (src/game) tourne à pas fixe,
@@ -921,6 +922,11 @@ async function main() {
     reset() {
       save = { ...save, profile: resetCarac(save.profile) };
       storeSave(save);
+    },
+    test(p) {
+      // mode test : on modifie la sauvegarde puis on recharge (tout l'écran repart de la nouvelle sauvegarde)
+      storeSave(applyTest(save, p));
+      location.reload();
     },
   }, invHooks, {
     get: () => save.appearance,

@@ -1,3 +1,4 @@
+import type { TestPreset } from '../game/testmode';
 import './hud.css';
 import { SACRIEUR_FACE_BOX, sacrieurSvg } from '../art/sacrieur';
 import { COLOR_SLOTS, SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
@@ -116,6 +117,12 @@ export class Hud {
         <div class="sh-caracs"></div>
         <div class="gr-tabs sh-tabs"></div>
         <div class="sh-rows"></div>
+        <div class="sh-test">
+          <span class="gr-label">Mode test</span>
+          <div class="row"><label>Niveau <input type="number" inputmode="numeric" min="1" max="200" class="t-lvl"></label><button type="button" class="gr-btn ghost sm t-go">Appliquer</button></div>
+          <div class="row"><button type="button" class="gr-btn ghost sm t-zones">Débloquer toutes les zones</button><button type="button" class="gr-btn sm magic t-bouftous">Prêt pour le Donjon des Bouftous</button></div>
+          <small>Modifie la vraie sauvegarde (niveau, zones, objets).</small>
+        </div>
       </div>
       <div class="inv gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
@@ -361,7 +368,7 @@ export class Hud {
   camp(
     rec: { runs: number; wins: number; bestRoom: number; bestWinTime: number | null },
     sheet: () => SheetView,
-    act: { invest(id: string, n: number): void; reset(): void },
+    act: { invest(id: string, n: number): void; reset(): void; test?(p: TestPreset): void },
     inv?: InvHooks,
     look?: { get(): SacriColors; set(c: SacriColors): void },
     work?: CraftHooks,
@@ -473,7 +480,7 @@ export class Hud {
 
   private sheetTab = 0;
   /** Fiche de caractéristiques : répartition des points, remise à zéro, et toute la fiche Dofus. */
-  charSheet(get: () => SheetView, act: { invest(id: string, n: number): void; reset(): void }): Promise<void> {
+  charSheet(get: () => SheetView, act: { invest(id: string, n: number): void; reset(): void; test?(p: TestPreset): void }): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.sheet')!;
     const render = () => {
       const v = get();
@@ -509,6 +516,14 @@ export class Hud {
       act.reset();
       render();
     };
+    // mode test : chaque bouton demande confirmation (la sauvegarde est modifiée)
+    const test = (p: TestPreset, what: string) => act.test && confirm(`Mode test : ${what} ?`) && act.test(p);
+    const lvIn = el.querySelector<HTMLInputElement>('.t-lvl')!;
+    lvIn.value = String(get().level);
+    el.querySelector<HTMLButtonElement>('.t-go')!.onclick = () => test({ kind: 'niveau', level: Number(lvIn.value) || 1 }, `passer niveau ${Number(lvIn.value) || 1}`);
+    el.querySelector<HTMLButtonElement>('.t-zones')!.onclick = () => test({ kind: 'zones' }, 'débloquer toutes les zones');
+    el.querySelector<HTMLButtonElement>('.t-bouftous')!.onclick = () => test({ kind: 'bouftous' }, 'niveau 30, tout débloqué jusqu’au Donjon des Bouftous, Panoplie du Bouftou et Épée de Boisaille portées');
+    el.querySelector<HTMLElement>('.sh-test')!.hidden = !act.test;
     render();
     el.hidden = false;
     return new Promise((resolve) => {
