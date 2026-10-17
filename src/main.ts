@@ -10,7 +10,7 @@ import { attackOffset, GATE, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, World, type M
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type HeroAnim } from './render/anims';
 import { CRITTER_FOOT, CRITTER_PIVOTS, CRITTER_SVG, partsOf, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
-import { bush, flowers, rock, stump } from './art/champsProps';
+import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
@@ -76,7 +76,7 @@ function vignetteTexture(w: number, h: number, color = '40,20,8', alpha = 0.5): 
   return new Texture({ source: new ImageSource({ resource: c }) });
 }
 
-const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles, bush, rock, stump, flowers };
+const PROP_ART: Record<PropKind, () => PropArt> = { column, sarcophagus, brazier, boneBowl, rubble, bones, candles, blossom: blossomTree, stone: carvedStone, stele, flowers: goldenFlowers };
 
 interface HeroView { rig: Rig; c: Container; sword: Container; anim: HeroAnim; deadT: number }
 interface MonsterView { rig: Rig; c: Container; hpBar: Graphics; anim: ChaferAnim; height: number }
@@ -308,13 +308,13 @@ async function main() {
     if (old && old !== Texture.EMPTY) old.destroy(true);
 
     bg.tint = champs ? 0xffffff : 0xe6d6c4;
-    vignette.alpha = champs ? 0.35 : 1;
+    vignette.alpha = champs ? 0.45 : 1;
     if (!champs) for (const l of LIGHTS) {
       addFlame(wallFx, l.x, l.y, 1.0);
       addGlow(l.x, l.y - 6, 0xffa040, 2.2, 0.24);
       addGlow(l.x, l.y + 80, 0xff9030, 2.6, 0.06, 0.6);
     }
-    gateGlow = addGlow(EXIT.x, EXIT.y, champs ? 0xffffff : 0xffc060, 3.0, 0.2).s;
+    gateGlow = addGlow(EXIT.x, EXIT.y, champs ? 0xc8f8ff : 0xffc060, 3.0, 0.2).s;
     addGlow(EXIT.x, EXIT.y + 120, champs ? 0xf0f8ff : 0xffb050, 3.2, 0.08, 0.5);
     gateBars = new Sprite(champs ? champsGateTex : gateTex);
     gateBars.anchor.set(0.5, 1);
