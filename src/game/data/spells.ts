@@ -24,7 +24,7 @@ export const setSpellPower = (v: number) => (SPELL_POWER = v);
 /** Délai minimal entre deux sorts (temps de l'animation de lancer). */
 export const CAST_DELAY = 0.35;
 
-export type SpellId = 'supplice' | 'hemorragie' | 'absorption' | 'stase' | 'attirance' | 'mutilation';
+export type SpellId = 'supplice' | 'hemorragie' | 'absorption' | 'stase' | 'attirance' | 'mutilation' | 'epeeVorace' | 'ravage' | 'assaut' | 'transposition';
 
 export type SpellKind =
   /** Vol de vie sur une cible ; `debuff` = effet secondaire du sort Dofus. */
@@ -32,7 +32,13 @@ export type SpellKind =
   /** Attire la cible de N cases vers le lanceur. */
   | { type: 'pull'; cells: number }
   /** Posture : sacrifie des PV contre de la Puissance, par paliers ; se transforme en bouclier. */
-  | { type: 'mutilation' };
+  | { type: 'mutilation' }
+  /** Invocation (Épée Vorace) : un allié qui vole de la vie aux monstres proches et soigne le Sacrieur. */
+  | { type: 'summon'; roll: DamageRoll; life: number; every: number }
+  /** Bond vers la cible (Ravage) puis dommages. */
+  | { type: 'dash'; roll: DamageRoll; cells: number }
+  /** Échange de position avec la cible (Assaut : quand on est encerclé, avec dommages ; Transposition : pour fuir, PV bas). */
+  | { type: 'swap'; roll?: DamageRoll; when: 'surrounded' | 'danger' };
 
 export interface SpellDef {
   id: SpellId;
@@ -50,6 +56,8 @@ export interface SpellDef {
   text: string;
 }
 
+const hit = (element: Element, min: number, max: number, critMin: number): DamageRoll =>
+  ({ min, max, critBonus: critMin - min, critBase: 15, element });
 const steal = (element: Element, min: number, max: number, critMin: number): DamageRoll =>
   ({ min, max, critBonus: critMin - min, critBase: 15, element });
 
@@ -90,6 +98,33 @@ export const SPELLS: Record<SpellId, SpellDef> = {
     id: 'mutilation', name: 'Mutilation', element: null, level: 10, pa: 2, range: [0, 0], cooldown: TURN,
     kind: { type: 'mutilation' },
     text: `Sacrifie 10 % de tes PV toutes les ${TURN} s pour +30 Puissance par palier (3 max). Sous 40 % de PV : bouclier.`,
+  },
+  // Épée Vorace (12744) : 3 PA, tous les 4 tours ; invoque une Épée Vorace (Soif de Sang : 2 PA, vol Neutre 8-10, soigne l'invocateur).
+  // Temps réel : une épée toutes les 16 s, qui vit 12 s (dans Dofus, jusqu'à ce qu'on la tue) et frappe 3 fois par tour.
+  epeeVorace: {
+    id: 'epeeVorace', name: 'Épée Vorace', element: 'neutre', level: 15, pa: 3, range: [0, 6 * CELL], cooldown: 4 * TURN,
+    kind: { type: 'summon', roll: steal('neutre', 8, 10, 11), life: 3 * TURN, every: TURN / 3 },
+    text: 'Invoque une épée qui vole de la vie Neutre aux monstres proches et te soigne, pendant 12 s (toutes les 16 s).',
+  },
+  // Ravage (12746) : 3 PA, 1 à 6 cases en ligne, 2/tour ; rapproche le lanceur de la cible (5 cases), dommages Terre 17-20.
+  ravage: {
+    id: 'ravage', name: 'Ravage', element: 'terre', level: 20, pa: 3, range: [MELEE + 20, 6 * CELL], cooldown: TURN / 2,
+    kind: { type: 'dash', roll: hit('terre', 17, 20, 21), cells: 5 },
+    text: 'Bondit sur un ennemi éloigné (jusqu’à 6 cases) et lui inflige des dommages Terre.',
+  },
+  // Assaut (12733) : 2 PA, 1 à 2 cases, 3/tour ; échange de position avec la cible, dommages Air 9-11.
+  // Temps réel : seulement quand on est encerclé (2 monstres au contact), sinon le joueur perdrait le contrôle de sa position.
+  assaut: {
+    id: 'assaut', name: 'Assaut', element: 'air', level: 25, pa: 2, range: [0, 2 * CELL], cooldown: TURN / 3,
+    kind: { type: 'swap', roll: hit('air', 9, 11, 13), when: 'surrounded' },
+    text: 'Quand tu es encerclé : échange ta place avec un ennemi au contact et lui inflige des dommages Air.',
+  },
+  // Transposition (12736) : 3 PA, 1 à 7 cases, tous les 3 tours ; échange de position avec la cible ; Souffrance 6+ : portée +4.
+  // Temps réel : pour fuir, quand les PV sont bas et que des monstres sont au contact → avec le monstre le plus éloigné.
+  transposition: {
+    id: 'transposition', name: 'Transposition', element: null, level: 30, pa: 3, range: [2 * CELL, 7 * CELL], cooldown: 3 * TURN,
+    kind: { type: 'swap', when: 'danger' },
+    text: 'Sous 50 % de PV et au contact d’ennemis : échange ta place avec l’ennemi le plus éloigné (7 cases, +4 en Souffrance 6).',
   },
 };
 

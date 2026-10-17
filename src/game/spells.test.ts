@@ -127,7 +127,7 @@ describe('Cartes entre les salles', () => {
     expect(w.hero.maxHp).toBe(max + 20);
     applyCard(w, { kind: 'upgrade', spell: 'supplice', up: 'dmg' });
     expect(w.run.slots[0]?.dmgBonus).toBeCloseTo(0.05);
-    expect(Object.keys(SPELLS)).toHaveLength(6);
+    expect(Object.keys(SPELLS)).toHaveLength(10); // 6 sorts jusqu'au niveau 10, puis Épée Vorace, Ravage, Assaut, Transposition (15-30)
   });
 
   it('un nouveau donjon remet les cartes à zéro', () => {

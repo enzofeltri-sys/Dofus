@@ -1,5 +1,5 @@
 import { rng } from '../iso';
-import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type Element, type HitContext } from './formulas';
+import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
 import { rollDrops } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
@@ -103,6 +103,9 @@ export const HAZARD = {
 } as const;
 
 export type MonsterState = 'spawn' | 'chase' | 'windup' | 'recover' | 'dead';
+
+/** Épée Vorace : vole vers le monstre le plus proche, lui vole de la vie et soigne le Sacrieur. */
+export interface Sword { id: number; x: number; y: number; life: number; cd: number; roll: DamageRoll; every: number; dmgBonus: number }
 
 export interface Monster {
   uid: number;
@@ -244,7 +247,10 @@ export type WorldEvent =
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
   | { type: 'wanderers'; name: string }
-  | { type: 'archi'; name: string };
+  | { type: 'archi'; name: string }
+  | { type: 'dash'; fx: number; fy: number; x: number; y: number }
+  | { type: 'swap'; uid: number; ax: number; ay: number; bx: number; by: number }
+  | { type: 'swordHit'; id: number; x: number; y: number; tx: number; ty: number };
 
 export type Phase = 'fight' | 'cleared' | 'exiting' | 'dead';
 
@@ -278,6 +284,9 @@ export class World {
   roomTheme: Theme = 'crypt';
   /** Détour : la salle entière appartient à une autre zone (décor et monstres), ex. la Forêt d'Astrub. */
   detour: WanderGroup | null = null;
+  /** Épées Vorace invoquées (alliées : les monstres ne les visent pas). */
+  swords: Sword[] = [];
+  private swordUid = 1;
   /** Gardien du coffre, position du coffre (ouvert ou non), fontaine et soin déjà rendu. */
   guard: Monster | null = null;
   chest: { x: number; y: number; open: boolean } | null = null;
@@ -395,6 +404,7 @@ export class World {
     this.ambush = false;
     this.hazards = [];
     this.hazardT = 4;
+    this.swords = [];
     // objets de la salle spéciale, posés là où il y a de la place
     const extra: PropPlacement[] = [];
     if (this.special === 'coffre') {
@@ -705,6 +715,7 @@ export class World {
     }
 
     this.stepSpells();
+    this.stepSwords();
   }
 
   /**
@@ -819,6 +830,47 @@ export class World {
       this.events.push({ type: 'pull', uid: m.uid, fx, fy, x: m.x, y: m.y });
       return true;
     }
+    if (k.type === 'summon') {
+      if (!this.targets(0, sp.range[1]).length || this.swords.length) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: h.x, ty: h.y });
+      const side = this.rnd() < 0.5 ? -1 : 1;
+      this.swords.push({ id: this.swordUid++, x: h.x + side * 50, y: h.y - 10, life: k.life, cd: 0.4, roll: k.roll, every: k.every, dmgBonus: sl.dmgBonus });
+      return true;
+    }
+    if (k.type === 'dash') {
+      const m = this.targets(sp.range[0], sp.range[1] + this.heroStats().portee * CELL)[0];
+      if (!m) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
+      const fx = h.x, fy = h.y;
+      const dx = m.x - h.x, dy = (m.y - h.y) / PERSP, d = Math.hypot(dx, dy) || 1;
+      const move = Math.min(k.cells * CELL, Math.max(0, d - h.def.radius - m.def.radius - 6));
+      [h.x, h.y] = this.pushOut(h.x + (dx / d) * move, h.y + (dy / d) * move * PERSP, h.def.radius);
+      this.events.push({ type: 'dash', fx, fy, x: h.x, y: h.y });
+      this.spellHit(m, k.roll, sl, true, false);
+      return true;
+    }
+    if (k.type === 'swap') {
+      const near = this.targets(0, MELEE + 10).length;
+      let m: Monster | undefined;
+      if (k.when === 'surrounded') {
+        if (near < 2) return false;
+        m = this.targets(sp.range[0], sp.range[1])[0];
+      } else {
+        if (near < 1 || h.hp / h.maxHp >= 0.5) return false;
+        const bonus = h.souffrance >= SOUFFRANCE.pullBonusAt ? SOUFFRANCE.pullBonusCells * CELL : 0;
+        const far = this.targets(sp.range[0], sp.range[1] + bonus);
+        m = far[far.length - 1];
+      }
+      if (!m) return false;
+      this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: m.x, ty: m.y, uid: m.uid });
+      const ax = h.x, ay = h.y, bx = m.x, by = m.y;
+      [h.x, h.y] = this.pushOut(bx, by, h.def.radius);
+      [m.x, m.y] = this.pushOut(ax, ay, m.def.radius);
+      m.knock.x = m.knock.y = 0;
+      this.events.push({ type: 'swap', uid: m.uid, ax, ay, bx: h.x, by: h.y });
+      if (k.roll) this.spellHit(m, k.roll, sl, true, false);
+      return true;
+    }
     const ranged = sp.range[1] > MELEE;
     const m = this.targets(sp.range[0], sp.range[1] + (ranged ? this.heroStats().portee * CELL : 0))[0];
     if (!m) return false;
@@ -832,6 +884,47 @@ export class World {
     this.damageMonster(m, hit.damage, hit.crit, roll.element);
     this.healHero(Math.floor(hit.damage * (0.5 + this.passive('vampirisme'))));
     return true;
+  }
+
+  /** Dommages d'un sort (puissance des sorts en temps réel, améliorations de la carte) ; vol de vie si `steal`. */
+  private spellHit(m: Monster, base: DamageRoll, sl: { dmgBonus: number }, melee: boolean, steal: boolean) {
+    const mult = SPELL_POWER * (1 + sl.dmgBonus);
+    const roll = { ...base, min: Math.max(1, Math.round(base.min * mult)), max: Math.max(1, Math.round(base.max * mult)), critBonus: Math.round(base.critBonus * mult) };
+    const hit = resolveHit(roll, this.heroStats(), m.stats, this.rnd, { melee, source: 'sort' });
+    this.damageMonster(m, hit.damage, hit.crit, roll.element);
+    if (steal) this.healHero(Math.floor(hit.damage * (0.5 + this.passive('vampirisme'))));
+    return hit.damage;
+  }
+
+  /** Épées Vorace : elles volent vers le monstre le plus proche et frappent (Soif de Sang), puis disparaissent. */
+  private stepSwords() {
+    if (!this.swords.length) return;
+    const h = this.hero;
+    for (const sw of this.swords) {
+      sw.life -= STEP;
+      sw.cd -= STEP;
+      let best: Monster | null = null, bd = Infinity;
+      for (const m of this.monsters) {
+        if (m.state === 'dead' || m.state === 'spawn' || m.hidden) continue;
+        const d = flatDist(m.x, m.y, sw.x, sw.y);
+        if (d < bd) { bd = d; best = m; }
+      }
+      // sans cible : elle revient flotter près du Sacrieur
+      const tx = best ? best.x : h.x + 40, ty = best ? best.y - 4 : h.y - 20;
+      const dx = tx - sw.x, dy = (ty - sw.y) / PERSP, d = Math.hypot(dx, dy);
+      const reach = best ? best.def.radius + 34 : 30;
+      if (d > reach + 2) {
+        const v = Math.min(d - reach, 300 * STEP);
+        sw.x += (dx / d) * v;
+        sw.y += (dy / d) * v * PERSP;
+      } else if (best && sw.cd <= 0 && this.phase === 'fight') {
+        sw.cd = sw.every;
+        this.events.push({ type: 'swordHit', id: sw.id, x: sw.x, y: sw.y, tx: best.x, ty: best.y });
+        // Soif de Sang : vol de vie Neutre ; soigne l'invocateur (50 %)
+        this.spellHit(best, sw.roll, sw, true, true);
+      }
+    }
+    this.swords = this.swords.filter((sw) => sw.life > 0 && this.phase !== 'exiting');
   }
 
   private mutilate(stage: number) {

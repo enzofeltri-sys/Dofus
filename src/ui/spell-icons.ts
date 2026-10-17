@@ -42,6 +42,24 @@ export const SPELL_ICONS: Record<SpellId, string> = {
     `<path d="M32 8l6 6-17 17-6-6Z" fill="#dfe6ec" ${S}/><path d="M13 23l12 12-3 3-12-12Z" fill="#e3a838" ${S}/>` +
     `<path d="M14 34l-5 5" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M14 34l-5 5" stroke="#8a5a2c" stroke-width="2.6" stroke-linecap="round"/>` +
     HI('M33 12L22 23') + DROP(34, 34, 0.75)),
+  // Épée Vorace (Neutre) : épée volante à la lame rougie
+  epeeVorace: badge('#ece4d4', '#8a7a5a',
+    `<path d="M33 7l8 1 1 8-17 17-9-9Z" fill="#e4ecf2" ${S}/><path d="M18 27l9 9-3 3-9-9Z" fill="#b8432c" ${S}/>` +
+    `<path d="M13 35l-5 5" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M13 35l-5 5" stroke="#8a5a2c" stroke-width="2.6" stroke-linecap="round"/>` +
+    `<path d="M35 12L24 23" stroke="#c8303c" stroke-width="2.4" stroke-linecap="round"/>` + `<path d="M7 14c3-2 6-2 9 0M9 20c2-1 4-1 6 0" stroke="${INK}" stroke-width="2" fill="none" stroke-linecap="round"/>`),
+  // Ravage (Terre) : élan vers l'avant et impact au sol
+  ravage: badge('#ead2a4', '#9a6a2c',
+    `<path d="M8 30h14M10 22h10M12 38h8" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M24 34l8-20 8 20Z" fill="#c98f5a" ${S}/><path d="M22 38h20" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>` + HI('M29 22l2-5')),
+  // Assaut (Air) : deux flèches qui échangent leur place
+  assaut: badge('#d7edbf', '#5d8c3a',
+    `<path d="M10 18h22l-5-6M38 30H16l5 6" fill="none" stroke="${INK}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="M10 18h22l-5-6M38 30H16l5 6" fill="none" stroke="#8fd05a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`),
+  // Transposition : deux silhouettes reliées par une boucle d'échange
+  transposition: badge('#e6d5f6', '#8b52c9',
+    `<circle cx="14" cy="16" r="5" fill="#a77ad8" ${S}/><path d="M8 30c0-5 3-8 6-8s6 3 6 8Z" fill="#a77ad8" ${S}/>` +
+    `<circle cx="34" cy="20" r="5" fill="#e3a838" ${S}/><path d="M28 34c0-5 3-8 6-8s6 3 6 8Z" fill="#e3a838" ${S}/>` +
+    `<path d="M18 9c6-4 12-3 16 3M30 38c-6 4-12 3-16-3" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 3"/>`),
 };
 
 /** Icônes des passifs (pastille dorée : un passif est permanent pendant le donjon). */

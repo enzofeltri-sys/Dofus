@@ -1,3 +1,5 @@
+import type { SpellId } from '../game/data/spells';
+import type { GrimoireRow } from './grimoire-view';
 import type { TestPreset } from '../game/testmode';
 import './hud.css';
 import { SACRIEUR_FACE_BOX, sacrieurSvg } from '../art/sacrieur';
@@ -93,7 +95,7 @@ export class Hud {
       <nav class="camp-nav" hidden>
         <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Caractéristiques</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipements</span><b class="badge gr-num" hidden></b></button>
-        <button type="button" class="nav-tab soon" disabled>${ICONS.pa.svg}<span>Grimoire</span><i>bientôt</i></button>
+        <button type="button" class="nav-tab" data-sec="grimoire">${ICONS.pa.svg}<span>Grimoire</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="donjons">${ICONS.carte.svg}<span>Donjons</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="bestiaire">${ICONS.os.svg}<span>Bestiaire</span><b class="badge gr-num" hidden></b></button>
       </nav>
@@ -153,6 +155,11 @@ export class Hud {
         <div class="sh-head"><h2 class="gr-h2">Donjons</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <p class="atlas-intro">Chaque zone : 4 cartes de farm (5 salles, une élite à la fin), puis son donjon. Un donjon vaincu ouvre la suite de sa branche.</p>
         <div class="atlas-zones"></div>
+      </div>
+      <div class="grimoire gr-paper" hidden>
+        <div class="sh-head"><h2 class="gr-h2">Grimoire</h2><span class="gr-chip lvl gm-count"></span><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <p class="det-note">Les sorts débloqués par ton niveau sortent dans les cartes entre les salles. Touche ★ pour un favori : il sort plus souvent.</p>
+        <div class="gm-list"></div>
       </div>
       <div class="bestiary gr-paper" hidden>
         <div class="sh-head"><h2 class="gr-h2">Bestiaire</h2><span class="gr-chip lvl bs-count"></span><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
@@ -361,7 +368,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -374,13 +381,14 @@ export class Hud {
     work?: CraftHooks,
     zones?: ZoneHooks,
     beasts?: { get(): BeastCard[]; fresh(): number; seen(): void },
+    spells?: { get(): GrimoireRow[]; fav(id: SpellId): void },
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
     if (look) this.setHeroLook(look.get());
-    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary';
-    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire' };
+    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary' | 'grimoire';
+    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire' | 'grimoire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire', grimoire: 'grimoire' };
     let current: Panel | null = null;
     const open: Record<Panel, () => Promise<void>> = {
       sheet: () => this.charSheet(sheet, act),
@@ -389,6 +397,7 @@ export class Hud {
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
       atlas: () => (zones ? this.atlas(zones, () => current === 'atlas' && this.root.querySelector<HTMLButtonElement>('.atlas .sh-head .close')?.click()) : Promise.resolve()),
       bestiary: () => (beasts ? this.bestiary(beasts) : Promise.resolve()),
+      grimoire: () => (spells ? this.grimoire(spells) : Promise.resolve()),
     };
     /** Carte « Entrer » : l'étape choisie dans l'écran Donjons. */
     const card = () => {
@@ -445,11 +454,12 @@ export class Hud {
         this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         return;
       }
-      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : 'inv');
+      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : sec === 'grimoire' ? 'grimoire' : 'inv');
     };
     nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
     nav.querySelector<HTMLElement>('[data-sec="donjons"]')!.hidden = !zones;
     nav.querySelector<HTMLElement>('[data-sec="bestiaire"]')!.hidden = !beasts;
+    nav.querySelector<HTMLElement>('[data-sec="grimoire"]')!.hidden = !spells;
     refresh();
     const t = rec.bestWinTime;
     el.querySelector('.camp-records')!.innerHTML = [
@@ -989,6 +999,35 @@ export class Hud {
   private bsKind: BeastKind | 'all' = 'all';
   private bsOpen: string | null = null;
   /** Bestiaire : tous les monstres (silhouette tant qu'on ne les a pas croisés), filtrés par catégorie ; fiche au toucher. */
+  /** Grimoire : les 22 sorts du Sacrieur, débloqués selon le niveau ; favoris (plus souvent dans les cartes). */
+  grimoire(h: { get(): GrimoireRow[]; fav(id: SpellId): void }): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.grimoire')!;
+    const render = () => {
+      const rows = h.get();
+      el.querySelector('.gm-count')!.textContent = `${rows.filter((r) => r.state === 'ok').length}/${rows.length}`;
+      el.querySelector('.gm-list')!.innerHTML = rows.map((r) => `
+        <div class="gm-row ${r.state}">
+          <span class="gm-ico">${r.icon}</span>
+          <div class="gm-txt"><b>${r.name}</b><small>Niveau ${r.level} · ${r.pa} PA${r.state === 'later' ? ' · pas encore dans le jeu' : ''}</small><p>${r.text}</p></div>
+          ${r.id && r.state !== 'later' ? `<button type="button" class="gm-fav ${r.fav ? 'on' : ''}" data-id="${r.id}" aria-label="Favori">★</button>` : ''}
+        </div>`).join('');
+    };
+    el.onclick = (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('.gm-fav');
+      if (!b) return;
+      h.fav(b.dataset.id as SpellId);
+      render();
+    };
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
   bestiary(h: { get(): BeastCard[]; seen(): void }): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.bestiary')!;
     const render = () => {

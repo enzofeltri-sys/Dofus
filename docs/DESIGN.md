@@ -91,8 +91,12 @@ Chaque type d'arme a sa vitesse et sa forme d'attaque. Les stats viennent du jet
   nouveau sort (pris dans le grimoire, donc selon le niveau), amélioration d'un sort, bonus de stats, ou **passif** cumulable
   (Soif de sang, Sang neuf, Épines, Frénésie, Douleur exaltée, Peau de cuir ; 3 fois max chacun).
   Quand les cases sont pleines, un nouveau sort **remplace** celui qu'on choisit. Tout repart à zéro au donjon suivant.
-- **Grimoire** : 22 paires « sort ⇄ variante » du Sacrieur ; pour chaque paire on choisit l'un des deux hors donjon.
-  On peut marquer des **favoris**, qui sortent plus souvent dans les cartes.
+- **Grimoire** (onglet du camp, fait) : les **22 sorts du Sacrieur de Dofus 3** (pas de variantes : c'était Dofus 2), niveau de déblocage réel, débloqués / à venir / pas encore dans le jeu. On marque des **favoris** (★) : ×2,5 de chances de sortir dans les cartes.
+- **Sorts 15-30 (validés par Enzo)**, vraies valeurs DofusDB, puissance des sorts en temps réel comme les autres :
+  - **Épée Vorace** (15) : toutes les 16 s, une épée volante (alliée) pendant 12 s ; elle vole vers le monstre le plus proche et lance Soif de Sang (vol de vie Neutre 8-10, 3 fois par tour), qui soigne le Sacrieur. Dans Dofus elle reste jusqu'à ce qu'on la tue : durée simplifiée.
+  - **Ravage** (20) : bond sur un ennemi à 3-6 cases (jusqu'à 5 cases de déplacement) puis Terre 17-20 ; 2 fois par tour.
+  - **Assaut** (25) : échange de place avec un ennemi au contact et Air 9-11, **seulement quand on est encerclé** (2 monstres au contact), pour ne pas faire perdre au joueur le contrôle de sa position ; 3 fois par tour.
+  - **Transposition** (30) : sous 50 % de PV et au contact d'ennemis, échange de place avec l'ennemi le plus éloigné (2-7 cases, +4 en Souffrance 6) ; tous les 3 tours.
 - **Traduction en temps réel** : 1 tour Dofus = **4 s** (6 PA rechargés par tour) ; « N lancers par tour » → au plus un lancer toutes les 4/N s ;
   « tous les N tours » → toutes les 4N s ; 1 case ≈ 60 px au sol ; vol de vie = 50 % des dégâts infligés ;
   **dégâts des sorts ×0,5** (on lance bien plus de sorts qu'en tour par tour, en plus de l'arme ; réglé après test d'Enzo).

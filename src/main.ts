@@ -40,6 +40,7 @@ import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
 import { installTheme } from './ui/theme';
 import { applyTest } from './game/testmode';
+import { grimoireView } from './ui/grimoire-view';
 
 /**
  * Étape 2 — moteur de combat : le monde de jeu (src/game) tourne à pas fixe,
@@ -333,6 +334,15 @@ async function main() {
   /** Coffre de la salle (pour l'ouvrir), vues des pièges. */
   let chestSprite: Sprite | null = null;
   const hazardViews = new Map<number, Container>();
+  // Épée Vorace : épée volante à la lame rougie, entourée d'une lueur de sang
+  const swordTex = await svgTexture(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 110" width="40" height="110">
+    <path d="M20,4 L28,20 L26,72 L14,72 L12,20 Z" fill="#e4ecf2" stroke="#3b2414" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M20,10 L20,70" stroke="#c8303c" stroke-width="3" stroke-linecap="round"/>
+    <path d="M4,72 L36,72 L36,80 L4,80 Z" fill="#b8432c" stroke="#3b2414" stroke-width="2.4"/>
+    <path d="M16,80 L24,80 L23,100 L17,100 Z" fill="#8a5a2c" stroke="#3b2414" stroke-width="2.2"/>
+    <circle cx="20" cy="104" r="5" fill="#e3a838" stroke="#3b2414" stroke-width="2"/>
+    <path d="M15,22 L15,64" stroke="#fff" stroke-width="2" opacity="0.6" stroke-linecap="round"/></svg>`, CR);
+  const swordViews = new Map<number, Container>();
   let gateBars: Sprite;
   let gateGlow: Sprite;
   let dust: { s: Sprite; x: number; y: number; vx: number; vy: number; ph: number }[] = [];
@@ -375,6 +385,8 @@ async function main() {
     chestSprite = null;
     for (const v of hazardViews.values()) v.destroy({ children: true });
     hazardViews.clear();
+    for (const v of swordViews.values()) v.destroy({ children: true });
+    swordViews.clear();
     dust = [];
     for (const v of monsterViews.values()) v.c.destroy({ children: true });
     monsterViews.clear();
@@ -837,6 +849,33 @@ async function main() {
         }
         break;
       }
+      case 'dash': {
+        // Ravage : traînée de terre de l'ancienne à la nouvelle position
+        const y0 = ev.fy - 50 * CHAR_SCALE, y1 = ev.y - 50 * CHAR_SCALE;
+        addFx(0.3, (g, k) => {
+          g.clear().moveTo(ev.fx, y0).lineTo(ev.x, y1).stroke({ width: 26 * k, color: 0x9a6a2c, alpha: 0.35 * k })
+            .moveTo(ev.fx, y0).lineTo(ev.x, y1).stroke({ width: 6 * k, color: 0xf4e2c0, alpha: k });
+        });
+        for (let i = 0; i < 14; i++) emit(ev.x, ev.y - 10, 0x9a6a2c, { vx: rand(-160, 160), vy: rand(-200, -40), life: 0.4, size: 0.09, add: false, grav: 400 });
+        shake = Math.max(shake, 5);
+        break;
+      }
+      case 'swap': {
+        // Assaut, Transposition : deux éclairs aux deux places échangées
+        for (const [x, y, c] of [[ev.ax, ev.ay, 0x8b52c9], [ev.bx, ev.by, 0xe3a838]] as const) {
+          addFx(0.35, (g, k) => {
+            g.clear().ellipse(x, y, 60 * (1.3 - k), 60 * (1.3 - k) * PERSP).stroke({ width: 7 * k, color: c, alpha: k });
+          });
+          for (let i = 0; i < 10; i++) emit(x, y - 40, c, { vx: rand(-120, 120), vy: rand(-180, -40), life: 0.35, size: 0.08 });
+        }
+        break;
+      }
+      case 'swordHit': {
+        const y0 = ev.y - 50, y1 = ev.ty - 50 * CHAR_SCALE;
+        addFx(0.18, (g, k) => g.clear().moveTo(ev.x, y0).lineTo(ev.tx, y1).stroke({ width: 5 * k, color: 0xc8303c, alpha: k }));
+        for (let i = 0; i < 6; i++) emit(ev.tx, y1, 0xd8303c, { vx: rand(-100, 100), vy: rand(-140, -20), life: 0.3, size: 0.07 });
+        break;
+      }
       case 'pull': {
         // Attirance : traînée violette de l'ancienne à la nouvelle position
         const y0 = ev.fy - 60 * CHAR_SCALE, y1 = ev.y - 60 * CHAR_SCALE;
@@ -987,6 +1026,13 @@ async function main() {
     seen() {
       beastsShown = knownBeasts();
     },
+  }, {
+    get: () => grimoireView(levelForXp(save.profile.xp), save.favSpells ?? []),
+    fav(id) {
+      const f = save.favSpells ?? [];
+      save = { ...save, favSpells: f.includes(id) ? f.filter((x) => x !== id) : [...f, id] };
+      storeSave(save);
+    },
   }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */
   const resSeen = new Set<string>();
@@ -1040,7 +1086,7 @@ async function main() {
 
   /** Entre deux salles : 1 carte parmi 3 (sort, amélioration, bonus), et l'ordre des sorts. */
   async function offerCards() {
-    const cards = drawCards(game, Math.random);
+    const cards = drawCards(game, Math.random, save.favSpells ?? []);
     let i = 0;
     if (DEMO) await new Promise((r) => setTimeout(r, 300));
     else {
@@ -1206,6 +1252,37 @@ async function main() {
       ground.ellipse(GATE.x, game.bounds.y0 + 14, 64 + pulse * 6, 22 + pulse * 2).fill({ color: 0xffd27a, alpha: 0.18 + pulse * 0.12 });
     }
     void GATE_BARS_W;
+
+    // Épées Vorace (alliées)
+    const swordSeen = new Set<number>();
+    for (const sw of game.swords) {
+      swordSeen.add(sw.id);
+      let v = swordViews.get(sw.id);
+      if (!v) {
+        v = new Container();
+        const halo = new Sprite(glow);
+        halo.anchor.set(0.5);
+        halo.tint = 0xd8303c;
+        halo.blendMode = 'add';
+        halo.scale.set(0.9);
+        halo.alpha = 0.55;
+        halo.position.set(0, -60);
+        const sp = new Sprite(swordTex);
+        sp.anchor.set(0.5, 0.95);
+        sp.scale.set(1 / CR * 1.2);
+        sp.rotation = 0.5;
+        v.addChild(shadowOf(14), halo, sp);
+        actors.addChild(v);
+        swordViews.set(sw.id, v);
+      }
+      v.position.set(sw.x, sw.y);
+      v.zIndex = sw.y;
+      const sp = v.children[2] as Sprite;
+      sp.y = -24 - Math.sin(time * 5 + sw.id) * 6;
+      sp.rotation = 0.5 + Math.sin(time * 3 + sw.id) * 0.15;
+      v.alpha = Math.min(1, sw.life / 0.5);
+    }
+    for (const [id, v] of swordViews) if (!swordSeen.has(id)) { v.destroy({ children: true }); swordViews.delete(id); }
 
     // Pièges de carte
     const seen = new Set<number>();

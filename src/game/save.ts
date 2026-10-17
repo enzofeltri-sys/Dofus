@@ -1,3 +1,4 @@
+import type { SpellId } from './data/spells';
 /**
  * Sauvegarde locale (sur l'appareil). Tout ce qui doit survivre d'une partie à l'autre passe par ici :
  * records, niveau et caractéristiques, ressources, inventaire et équipement porté.
@@ -35,6 +36,8 @@ export interface SaveData {
   jobXp: number;
   /** Ressources marquées : favorites, verrouillées (l'atelier n'y touche pas). */
   resMarks: { fav: number[]; lock: number[] };
+  /** Sorts favoris du Grimoire : ils sortent plus souvent dans les cartes. */
+  favSpells?: SpellId[];
   /** Cartes et donjons terminés au moins une fois (arbre des zones). */
   done: string[];
   /** Carte ou donjon choisi au camp. */
