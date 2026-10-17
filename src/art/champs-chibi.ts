@@ -33,9 +33,9 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   rose: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 112], leafF: [66, 114], head: [70, 102] },
   tournesol: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 116], leafF: [66, 118], head: [70, 98] },
   palichon: SHEEP_PIVOTS, orageux: SHEEP_PIVOTS, nuageux: SHEEP_PIVOTS, bouftor: SHEEP_PIVOTS,
-  chakrobat: { tail: [84, 128], legB: [78, 132], body: [70, 140], legF: [64, 132], head: [66, 96], wisp: [56, 34] },
-  tigrimas: { tail: [102, 112], legB: [96, 132], body: [78, 140], legF: [64, 132], head: [62, 100], wisp: [24, 124] },
-  ronronchon: { tail: [104, 110], legB: [100, 140], body: [76, 146], legF: [56, 140], head: [54, 104], wisp: [30, 70] },
+  chakrobat: { tail: [86, 126], legB: [80, 78], body: [70, 148], legF: [64, 140], head: [66, 70], wisp: [58, 82] },
+  tigrimas: { tail: [108, 88], legB: [104, 112], body: [80, 140], legF: [64, 112], head: [68, 90], wisp: [30, 136] },
+  ronronchon: { tail: [118, 108], legB: [104, 146], body: [80, 150], legF: [60, 146], head: [58, 104], wisp: [24, 92] },
 };
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -372,51 +372,55 @@ const DARK = '#1d2a30';
 function catSvg(kind: CritterKind, part?: CritterPart): string {
   begin();
   const P: Parts = {};
+  // Un seul bloc (tête et corps confondus, sans cou) : oreilles et visage posés en haut du bloc.
   if (kind === 'chakrobat') {
-    // acrobate étiré, dressé sur ses pattes arrière, bras tendus vers le feu follet bleu ; il hurle de joie, yeux plissés
-    push(P, 'tail', catTail('M78,126 Q104,134 100,148 Q97,156 110,154', 5));
-    push(P, 'legB', catBody([capsule(76, 122, 82, 144, 6), ellipse(84, 147, 7.5, 4.5)], 110, 152));
-    push(P, 'legF', catBody([capsule(62, 122, 58, 145, 6), ellipse(56, 148, 8, 4.5)], 110, 152));
-    push(P, 'body', catBody([capsule(80, 96, 66, 44, 4.5)], 40, 100), catBody([ellipse(70, 106, 15, 24)], 82, 132, ['M62,92 Q64,86 70,84']));
+    // longue « chaussette » dressée, ventre rond en bas, bras tendus vers le feu follet bleu, bouche grande ouverte
+    push(P, 'tail', catTail('M86,126 Q106,134 98,148 Q94,156 108,154', 5));
+    push(P, 'legB', catBody([capsule(80, 78, 80, 30, 4.5), ellipse(80, 28, 5.5, 4.5)], 24, 90));
+    push(P, 'body', catBody([
+      ear(57, 56, 52, 38, 64, 48), ear(70, 48, 82, 38, 82, 58),
+      'M56,64 C54,52 60,46 68,46 C78,46 84,54 82,66 C80,84 82,98 88,110 C96,126 90,146 72,148 C54,150 48,134 54,116 C58,102 58,82 56,64 Z',
+      ellipse(62, 148, 7, 4.5), ellipse(81, 147, 7, 4.5),
+    ], 40, 150, ['M60,56 Q64,50 70,50', 'M62,118 Q64,110 72,108']));
     push(P, 'head',
-      catBody([ear(48, 62, 44, 40, 60, 56), ear(64, 55, 78, 40, 80, 64), ellipse(63, 72, 21, 18)], 38, 92, ['M50,62 Q56,56 64,57']),
-      `<path d="M46,66 q4,-4 8,0 M62,65 q4,-4 8,0" fill="none" stroke="${DARK}" stroke-width="2.4" stroke-linecap="round"/>`,
-      `<path d="M46,76 Q47,92 56,92 Q64,91 63,77 Q55,79 46,76 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M50,88 Q55,85 60,88 Q56,92 50,88 Z" fill="#ea6f7c"/>`,
-      `<path d="M49,77.5 l2,3.2 l2,-2.8 M58,78.5 l1.8,3 l1.8,-3.2" fill="#fff"/>`,
-      whiskers(44, 76), whiskers(80, 74, 1),
-      catBody([capsule(60, 96, 28, 74, 4.5), capsule(28, 74, 44, 44, 4.5)], 40, 96));
-    push(P, 'wisp', glowOrb(56, 34, 12, '#7fd3ff'));
+      `<path d="M57,57 q3,-3 6,0 M69,56 q3,-3 6,0" fill="none" stroke="${DARK}" stroke-width="2.2" stroke-linecap="round"/>`,
+      `<path d="M55,63 Q56,82 66,82 Q76,81 77,63 Q66,68 55,63 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M59,77 Q66,73 73,77 Q66,83 59,77 Z" fill="#ea6f7c"/>`,
+      `<path d="M58,64.5 l2,3 l2,-2.6 Z M69,65 l2,3 l2,-3.2 Z" fill="#fff"/>`,
+      whiskers(54, 66), whiskers(84, 64, 1));
+    push(P, 'legF', '');
+    push(P, 'wisp', glowOrb(64, 26, 10, '#7fd3ff'), catBody([capsule(52, 90, 47, 32, 4.5), ellipse(47, 30, 5.5, 4.5)], 24, 90));
   } else if (kind === 'tigrimas') {
-    // chat rond en plein bond, la queue dressée en crochet, sourire carnassier ; son feu follet vert roule devant lui
-    push(P, 'tail', catTail('M104,108 Q128,98 124,64 Q120,40 134,32', 6.5));
-    push(P, 'legB', catBody([capsule(104, 120, 112, 138, 7.5), ellipse(114, 141, 9, 5)], 100, 146));
-    push(P, 'legF', catBody([capsule(66, 122, 58, 138, 7), ellipse(55, 141, 9, 5), capsule(80, 124, 78, 141, 7), ellipse(76, 144, 8.5, 5)], 110, 148));
-    push(P, 'body', catBody([ellipse(88, 110, 28, 23)], 86, 134, ['M78,94 Q90,88 102,92']));
+    // boule en plein bond : patte avant tendue vers son feu follet vert, patte arrière lancée, queue dressée en crochet
+    push(P, 'tail', catTail('M108,88 Q122,62 114,42 Q108,24 124,16', 7));
+    push(P, 'legB', catBody([capsule(104, 112, 120, 132, 6.5), ellipse(122, 135, 7.5, 5)], 110, 140));
+    push(P, 'body', catBody([
+      ear(50, 80, 42, 52, 62, 68), ear(70, 66, 80, 44, 88, 70),
+      ellipse(80, 98, 33, 31),
+      capsule(78, 120, 74, 140, 6.5), ellipse(72, 143, 8, 5),
+    ], 50, 146, ['M58,76 Q66,68 78,68', 'M98,110 Q104,104 106,96']));
+    push(P, 'legF', catBody([capsule(64, 112, 40, 122, 6), ellipse(38, 122, 6.5, 5.5)], 108, 128));
     push(P, 'head',
-      catBody([ear(36, 66, 33, 42, 52, 58), ear(60, 57, 74, 38, 80, 66), ellipse(57, 82, 28, 24)], 40, 106, ['M40,70 Q48,62 60,62']),
-      // yeux plissés de malice
-      `<path d="M38,76 Q43,71 49,75 Q44,79 38,76 Z M58,74 Q64,69 70,74 Q64,78 58,74 Z" fill="${DARK}"/><circle cx="42" cy="75" r="1.1" fill="#fff"/><circle cx="62" cy="73" r="1.1" fill="#fff"/>`,
-      `<path d="M36,70 L49,72 M57,70 L71,69" stroke="${DARK}" stroke-width="2" stroke-linecap="round"/>`,
-      // large sourire ouvert, crocs
-      `<path d="M36,86 Q38,102 54,101 Q68,99 72,85 Q54,92 36,86 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M44,96 Q54,92 64,95 Q55,101 44,96 Z" fill="#ea6f7c"/>`,
-      `<path d="M41,87.5 l2.5,4.5 l2.5,-3.6 Z M62,88.5 l2.5,4.4 l2.4,-4.6 Z" fill="#fff"/>`,
-      whiskers(34, 84), whiskers(84, 80, 1));
-    push(P, 'wisp', glowOrb(24, 128, 11, '#3fe0a0'));
+      `<path d="M54,80 Q58,76 63,79 Q58,82 54,80 Z M70,77 Q74,73 79,76 Q74,80 70,77 Z" fill="${DARK}"/>`,
+      `<path d="M53,75 L63,77 M70,73 L80,72" stroke="${DARK}" stroke-width="1.8" stroke-linecap="round"/>`,
+      `<path d="M52,88 Q55,102 68,101 Q80,99 84,86 Q68,92 52,88 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M59,97 Q68,93 77,96 Q69,101 59,97 Z" fill="#ea6f7c"/>`,
+      `<path d="M56,89.4 l2.2,4 l2.2,-3.3 Z M75,89.4 l2.2,4 l2.2,-4.3 Z" fill="#fff"/>`,
+      whiskers(50, 86), whiskers(92, 82, 1));
+    push(P, 'wisp', glowOrb(30, 136, 11, '#3fe0a0'));
   } else {
-    // gros chat affalé, l'air blasé ; sa queue devient un esprit bleu à yeux qui s'enroule au-dessus de lui
-    push(P, 'tail', catTail('M110,110 Q136,92 124,56 Q114,30 88,34', 9), glowOrb(80, 36, 12, '#86d8ff', -0.1));
-    push(P, 'legB', catBody([ellipse(110, 142, 11, 6)], 134, 148));
-    push(P, 'legF', catBody([ellipse(50, 141, 10, 6), ellipse(70, 145, 10, 6)], 134, 151));
-    push(P, 'body', catBody([ellipse(82, 118, 40, 28)], 90, 146, ['M66,98 Q84,90 104,96']));
+    // grosse boule affalée, l'air blasé ; sa queue monte et devient un esprit bleu à yeux au-dessus de lui
+    push(P, 'tail', catTail('M118,108 Q140,84 128,52 Q118,28 96,38', 10), glowOrb(90, 44, 12, '#86d8ff', -0.1));
+    push(P, 'legB', catBody([ellipse(104, 148, 10, 5)], 142, 154));
+    push(P, 'body', catBody([
+      ear(42, 98, 38, 70, 58, 86), ear(64, 84, 74, 64, 84, 88),
+      ellipse(80, 116, 45, 34),
+    ], 64, 150, ['M48,92 Q58,84 72,84', 'M108,96 Q118,104 120,116']));
+    push(P, 'legF', catBody([ellipse(50, 146, 10, 5.5), ellipse(72, 150, 10, 5)], 140, 155));
     push(P, 'head',
-      catBody([ear(34, 92, 32, 66, 48, 84), ear(56, 82, 68, 64, 74, 90), ellipse(52, 102, 26, 21)], 64, 124, ['M36,92 Q44,86 54,86']),
-      // paupières lourdes : demi-yeux sous un trait plat
-      `<path d="M36,98 L48,97 Q47,104 42,104 Q37,103 36,98 Z M56,96 L67,96 Q66,103 61.5,103 Q57,102 56,96 Z" fill="${DARK}"/>`,
-      `<path d="M35,97.5 L49,96.5 M55,95.8 L68,95.8" stroke="${DARK}" stroke-width="2.6" stroke-linecap="round"/>`,
-      `<circle cx="40.5" cy="100.5" r="1" fill="#fff"/><circle cx="60" cy="99.5" r="1" fill="#fff"/>`,
-      `<path d="M44,112 Q49,108 54,112" fill="none" stroke="${DARK}" stroke-width="2" stroke-linecap="round"/>`,
-      whiskers(32, 106), whiskers(78, 104, 1));
-    push(P, 'wisp', glowOrb(24, 74, 7, '#3fe0a0'), glowOrb(128, 132, 7, '#b4f05a'));
+      `<path d="M44,100 L55,99 Q54,105 49.5,105 Q45,104.5 44,100 Z M62,98 L72,98 Q71,104 67,104 Q63,103.5 62,98 Z" fill="${DARK}"/>`,
+      `<path d="M43,99.5 L56,98.5 M61,97.8 L73,97.8" stroke="${DARK}" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<path d="M52,113 Q57,109 62,113" fill="none" stroke="${DARK}" stroke-width="2" stroke-linecap="round"/>`,
+      whiskers(42, 106), whiskers(80, 104, 1));
+    push(P, 'wisp', glowOrb(24, 92, 7, '#3fe0a0'), glowOrb(128, 140, 7, '#b4f05a'));
   }
   return assemble(kind, P, part);
 }
