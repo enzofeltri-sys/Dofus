@@ -242,7 +242,8 @@ interface SheepStyle {
   hoof: string;
   iris: string;
   ear: string;
-  nose?: string;
+  /** Couleur du nez ; `false` = pas de nez. */
+  nose?: string | false;
   sleepy?: boolean;
   horn: 'small' | 'ram';
   hornCol: string;
@@ -251,8 +252,8 @@ interface SheepStyle {
 const SHEEP_STYLE: Record<string, SheepStyle> = {
   palichon: { fleece: '#f2f7f6', face: '#a9bcb4', hoof: '#8ff0b4', iris: '#6a7a3a', ear: '#93aaa2', horn: 'small', hornCol: '#8fa49c' },
   orageux: { fleece: '#7f978b', face: '#1f2a25', hoof: '#eef8f4', iris: '#3a4a3a', ear: '#2a3630', horn: 'small', hornCol: '#f2f6f4' },
-  nuageux: { fleece: '#f4f8f8', face: '#cfe2dc', hoof: '#8ff0b4', iris: '#7a6a2a', ear: '#b4cac4', nose: '#3fcf8f', sleepy: true, horn: 'small', hornCol: '#e6eeec' },
-  bouftor: { fleece: '#eef7fb', face: '#c4d8dc', hoof: '#8ff0b4', iris: '#2a5a7a', ear: '#a8c6d0', horn: 'ram', hornCol: '#5e6662', crystals: true },
+  nuageux: { fleece: '#f4f8f8', face: '#cfe2dc', hoof: '#8ff0b4', iris: '#2a5a7a', ear: '#b4cac4', nose: false, horn: 'small', hornCol: '#e6eeec' },
+  bouftor: { fleece: '#eef7fb', face: '#c4d8dc', hoof: '#8ff0b4', iris: '#7a6a2a', ear: '#a8c6d0', nose: false, sleepy: true, horn: 'ram', hornCol: '#5e6662', crystals: true },
 };
 
 /** Toison en nuage : boules qui se chevauchent, contour commun (on trace tous les contours, puis tous les remplissages). */
@@ -293,7 +294,7 @@ function sheepSvg(kind: CritterKind, part?: CritterPart): string {
     fleece([[48, 88, 14], [62, 92, 12], [40, 96, 9]], S.fleece),
     blob('M62,102 Q74,96 76,106 Q68,112 62,108 Z', S.ear),
     eyeChibi(42, 108, 9.5, 11.5, S.iris, { look: [-0.4, 0.15], ...(S.sleepy ? { lid: -1, skin: S.face } : {}) }),
-    S.nose ? blob(ellipse(29, 117, 8, 6), S.nose) : `<ellipse cx="29" cy="117" rx="5" ry="3.5" fill="${shade(S.face, -0.5)}"/>`,
+    S.nose === false ? '' : S.nose ? blob(ellipse(29, 117, 8, 6), S.nose) : `<ellipse cx="29" cy="117" rx="5" ry="3.5" fill="${shade(S.face, -0.5)}"/>`,
     `<path d="M32,124 Q38,128 44,124" fill="none" stroke="${shade(S.face, -0.6)}" stroke-width="2" stroke-linecap="round"/>`,
   );
   // cornes
