@@ -312,7 +312,7 @@ export interface Zone {
   nodes: TreeNode[];
 }
 
-/** Arbre des zones. Astrub (après la Crypte) : Cité → Souterrains, Champs d'Astrub → Prairies → Donjon des Champs (les 4 cartes). Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
+/** Arbre des zones (une zone = ses cartes de farm puis son donjon ; validé par Enzo). Astrub (après la Crypte) : Cité → Souterrains, Champs d'Astrub → Prairies → Donjon des Champs (les 4 cartes). Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
 export const ZONES: Zone[] = [
   {
     id: 'incarnam', name: 'Incarnam',
@@ -325,18 +325,28 @@ export const ZONES: Zone[] = [
     ],
   },
   {
-    id: 'astrub', name: 'Astrub',
+    id: 'astrub', name: 'Astrub : les Champs',
     nodes: [
       { id: 'cite', name: 'Cité', level: 12, kind: 'map', area: CITE, needs: ['crypte'] },
       { id: 'souterrains', name: 'Souterrains', level: 13, kind: 'map', area: SOUTERRAINS, needs: ['cite'] },
       { id: 'champsAstrub', name: 'Champs d’Astrub', level: 17, kind: 'map', area: CHAMPS_ASTRUB, needs: ['cite'] },
       { id: 'prairies', name: 'Prairies', level: 18, kind: 'map', area: PRAIRIES, needs: ['champsAstrub'] },
       { id: 'grange', name: 'Donjon des Champs', level: 20, kind: 'dungeon', area: GRANGE, needs: ['cite', 'souterrains', 'champsAstrub', 'prairies'] },
+    ],
+  },
+  {
+    id: 'cote', name: 'Astrub : la Côte',
+    nodes: [
       { id: 'lisiere', name: 'Lisière des Champs', level: 16, kind: 'map', area: LISIERE, needs: ['grange'] },
       { id: 'dunes', name: 'Sentier des Dunes', level: 17, kind: 'map', area: DUNES, needs: ['lisiere'] },
       { id: 'calanques', name: 'Calanques', level: 18, kind: 'map', area: CALANQUES, needs: ['dunes'] },
       { id: 'plage', name: 'Plage du Château', level: 19, kind: 'map', area: PLAGE, needs: ['dunes'] },
       { id: 'chateau', name: 'Château Ensablé', level: 20, kind: 'dungeon', area: CHATEAU, needs: ['lisiere', 'dunes', 'calanques', 'plage'] },
+    ],
+  },
+  {
+    id: 'bouftous', name: 'Astrub : les Bouftous',
+    nodes: [
       { id: 'tainela', name: 'Tainéla', level: 22, kind: 'map', area: TAINELA, needs: ['grange'] },
       { id: 'coinBouftous', name: 'Coin des Bouftous', level: 23, kind: 'map', area: COIN_BOUFTOUS, needs: ['tainela'] },
       { id: 'coinBoos', name: 'Coin des Boos', level: 24, kind: 'map', area: COIN_BOOS, needs: ['tainela'] },
@@ -345,10 +355,15 @@ export const ZONES: Zone[] = [
     ],
   },
   {
-    id: 'amakna', name: 'Amakna',
+    id: 'amakna', name: 'Amakna : les Tofus',
     nodes: [
       { id: 'ingalsse', name: 'Champ des Ingalsse', level: 32, kind: 'map', area: INGALSSE, needs: ['cour'] },
       { id: 'tofus', name: 'Donjon des Tofus', level: 40, kind: 'dungeon', area: TOFULAILLER, needs: ['ingalsse'] },
+    ],
+  },
+  {
+    id: 'scarafeuilles', name: 'Amakna : les Scarafeuilles',
+    nodes: [
       { id: 'plaineScara', name: 'Plaine des Scarafeuilles', level: 36, kind: 'map', area: PLAINE_SCARA, needs: ['cour'] },
       { id: 'scaraDonjon', name: 'Donjon des Scarafeuilles', level: 40, kind: 'dungeon', area: SCARA_DONJON, needs: ['plaineScara'] },
     ],

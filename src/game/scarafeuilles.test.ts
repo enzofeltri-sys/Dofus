@@ -39,7 +39,7 @@ describe('Plaine et Donjon des Scarafeuilles, Bomberfu', () => {
     }
     expect(AREAS.scaraDonjon.boss?.id).toBe('scarabosse');
     expect(DUNGEON_KEYS.scaraDonjon).toBe(8139);
-    const z = ZONES.find((q) => q.id === 'amakna')!;
+    const z = { nodes: ZONES.flatMap((q) => q.nodes) };
     const node = (id: string) => z.nodes.find((n) => n.id === id)!;
     expect(isUnlocked(node('plaineScara'), ['cour'])).toBe(true);
     expect(isUnlocked(node('scaraDonjon'), ['cour', 'ingalsse', 'tofus'])).toBe(false);

@@ -31,7 +31,7 @@ describe('Astrub, branche A', () => {
   });
 
   it('branche C : la Côte s’ouvre après le Donjon des Champs, le Château après ses 4 cartes', () => {
-    const z = ZONES.find((q) => q.id === 'astrub')!;
+    const z = { nodes: ZONES.flatMap((q) => q.nodes) };
     const node = (id: string) => z.nodes.find((n) => n.id === id)!;
     expect(isUnlocked(node('lisiere'), ['crypte', 'cite'])).toBe(false);
     expect(isUnlocked(node('lisiere'), ['grange'])).toBe(true);
@@ -94,7 +94,7 @@ describe('Astrub, branche A', () => {
   });
 
   it('arbre : Astrub s’ouvre après la Crypte, la Grange après les 4 cartes', () => {
-    const z = ZONES.find((q) => q.id === 'astrub')!;
+    const z = { nodes: ZONES.flatMap((q) => q.nodes) };
     const node = (id: string) => z.nodes.find((n) => n.id === id)!;
     expect(isUnlocked(node('cite'), ['champs', 'paturages', 'foret', 'cimetiere'])).toBe(false);
     expect(isUnlocked(node('cite'), ['crypte'])).toBe(true);

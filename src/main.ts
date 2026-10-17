@@ -33,7 +33,7 @@ import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-
 import { bestiaryView } from './ui/bestiary-view';
 import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
-import { CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
+import { AREAS, CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
 import { breakItem, fuse, RARITIES } from './game/forge';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
@@ -225,15 +225,9 @@ async function main() {
     },
     current: () => {
       const a = areaOf();
-      const c = entryCost(save, a);
-      const keyName = (id: number | null) => (id ? item(id).name : 'clé');
-      const key = c.kind === 'open' ? undefined
-        : c.kind === 'first' ? { text: 'Tentatives libres tant que le donjon n’est pas vaincu', ok: true }
-        : c.kind === 'free' ? { text: `Clés gratuites aujourd’hui : ${c.left}/${FREE_KEYS_PER_DAY}`, ok: true }
-        : c.kind === 'item' ? { text: `Plus de clé gratuite : 1 ${keyName(c.itemId)} (${c.left} en stock)`, ok: true }
-        : { text: `Plus de clé : reviens demain ou fabrique une ${keyName(c.itemId)} (Atelier)`, ok: false };
-      return { kind: a.kind, name: a.name, level: a.level, sub: a.sub, key };
+      return { kind: a.kind, name: a.name, level: a.level, sub: a.sub, key: keyInfo(a) };
     },
+    info: (id: string) => ({ key: AREAS[id] ? keyInfo(AREAS[id]) : undefined }),
     enter() {
       const paid = payEntry(save, areaOf());
       if (!paid) return false;
@@ -246,6 +240,17 @@ async function main() {
       seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
     },
   };
+  /** Clés d'une carte ou d'un donjon : texte affiché et possibilité d'entrer. */
+  function keyInfo(a: AreaDef) {
+    const c = entryCost(save, a);
+    const keyName = (id: number | null) => (id ? item(id).name : 'clé');
+    const key = c.kind === 'open' ? undefined
+      : c.kind === 'first' ? { text: 'Tentatives libres tant que le donjon n’est pas vaincu', ok: true }
+      : c.kind === 'free' ? { text: `Clés gratuites aujourd’hui : ${c.left}/${FREE_KEYS_PER_DAY}`, ok: true }
+      : c.kind === 'item' ? { text: `Plus de clé gratuite : 1 ${keyName(c.itemId)} (${c.left} en stock)`, ok: true }
+      : { text: `Plus de clé : reviens demain ou fabrique une ${keyName(c.itemId)} (Atelier)`, ok: false };
+    return key;
+  }
   /** Bestiaire : monstres découverts déjà vus dans l'onglet (pour la pastille). */
   const knownBeasts = () => Object.values(save.bestiary ?? {}).filter((r) => r.seen > 0).length;
   let beastsShown = knownBeasts();

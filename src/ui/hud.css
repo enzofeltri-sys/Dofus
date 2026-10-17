@@ -716,7 +716,7 @@ html, body {
 .camp { padding-bottom: calc(var(--safe-bottom) + 96px); }
 .camp-nav {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 48; pointer-events: auto;
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
   padding: 6px 8px calc(var(--safe-bottom) + 6px);
   background: linear-gradient(#5a3a22, var(--night)); box-shadow: 0 -2px 0 var(--ink), 0 -6px 16px rgba(42,22,12,.35);
 }
@@ -863,3 +863,82 @@ html, body {
 .gm-row.later .gm-ico { filter: grayscale(1); }
 .gm-fav { border: 0; background: none; font-size: 24px; color: rgba(59,36,20,.3); cursor: pointer; padding: 4px; }
 .gm-fav.on { color: #e3a838; text-shadow: 0 1px 0 #8a5a10; }
+
+/* ---------- Camp simplifié (validé par Enzo) : personnage et XP en haut, JOUER au centre, dernière partie dessous ---------- */
+.camp { justify-content: center; gap: 10px; padding-top: calc(var(--safe-top) + 12px); }
+.camp-top { width: min(420px, 100%); display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; }
+.camp-top > * { position: relative; z-index: 1; }
+.camp-top .camp-name { flex-wrap: wrap; row-gap: 0; }
+.camp-brand { margin-left: auto; font: 800 11px var(--f-body); color: var(--coral-dark); }
+.camp .camp-hero { width: 132px; height: 160px; flex-shrink: 1; min-height: 90px; }
+.camp .play {
+  position: relative; width: min(320px, 86%); padding: 20px 10px; border-radius: 26px;
+  font: 400 34px var(--f-display); letter-spacing: 1px; text-transform: uppercase;
+  --c: var(--coral); --c-dark: var(--coral-dark); animation: pulse-play 2.2s ease-in-out infinite;
+}
+@keyframes pulse-play { 50% { transform: scale(1.03); } }
+.camp .play[data-n]:not([data-n=""])::after {
+  content: attr(data-n) ' nouveau' ; position: absolute; top: -10px; right: -6px; padding: 0 8px; height: 22px; border-radius: 11px;
+  font: 800 12px/22px var(--f-body); text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--gold); box-shadow: inset 0 0 0 2px var(--ink);
+}
+.camp .camp-dj { padding: 8px 12px; gap: 10px; }
+.camp .camp-dj b { font-size: var(--t-lg); }
+.sh-records { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.sh-records > div { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px; border-radius: 10px; background: rgba(220,195,140,.35); }
+.sh-records b { font-size: var(--t-md); }
+
+/* ---------- « Où aller ? » : zones, puis cartes et donjon d'une zone ---------- */
+.atlas .sh-head { gap: 8px; }
+.atlas .sh-head .gr-h2 { flex: 1; }
+.atlas .sh-head .back[hidden] { display: none; }
+.atlas-zones { display: flex; flex-direction: column; gap: 10px; }
+.zone-card { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.zone-card > * { position: relative; z-index: 1; }
+.zone-card.here { box-shadow: inset 0 0 0 3px var(--gold), 0 3px 0 rgba(59,36,20,.3); }
+.zone-card.locked { opacity: .55; cursor: default; }
+.zc-txt { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.zc-txt b { font: 400 var(--t-xl) var(--f-display); }
+.zc-txt small { font-size: var(--t-sm); color: var(--ink-soft); font-weight: 700; }
+.zc-txt em { font-style: normal; font-size: var(--t-sm); color: var(--coral-dark); font-weight: 700; display: flex; gap: 4px; align-items: center; }
+.zc-txt em svg, .map-row em svg, .dj-card em svg { width: 14px; height: 14px; }
+.zc-bar { height: 8px; border-radius: 4px; background: rgba(59,36,20,.18); overflow: hidden; }
+.zc-bar i { display: block; height: 100%; background: var(--leaf); }
+.zc-go { font: 400 34px var(--f-display); color: var(--ink-soft); }
+.map-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: #fffaf0; box-shadow: inset 0 0 0 2px rgba(59,36,20,.25); }
+.map-row.open { box-shadow: inset 0 0 0 2.5px var(--turquoise); }
+.map-row.locked { opacity: .55; }
+.map-row .an-dot { flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; background: var(--turquoise); box-shadow: inset 0 0 0 2px var(--ink); }
+.map-row.done .an-dot { background: var(--leaf); }
+.map-row.locked .an-dot { background: var(--parchment-3); color: var(--ink); }
+.map-row .an-dot svg { width: 15px; height: 15px; }
+.map-row .an-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.map-row .an-txt b { font: 400 var(--t-lg) var(--f-display); }
+.map-row .an-txt small { font-size: var(--t-sm); color: var(--ink-soft); font-weight: 700; }
+.map-row em, .dj-card em { font-style: normal; font-size: var(--t-sm); color: var(--coral-dark); font-weight: 700; display: flex; gap: 4px; align-items: center; }
+.map-row .mw { align-self: flex-start; --c: #bfe3a0; font-size: 11px; }
+.dj-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; margin-top: 4px; }
+.dj-card > * { position: relative; z-index: 1; }
+.dj-card.locked { opacity: .6; }
+.djc-name { font: 400 var(--t-xl) var(--f-display); }
+.djc-boss { font-weight: 800; color: var(--coral-dark); }
+.dj-card .dj-key { font-size: var(--t-sm); color: #3a7a2a; font-weight: 700; }
+.dj-card .dj-key.none { color: #b0302a; }
+.dj-card .go { align-self: stretch; margin-top: 4px; }
+.dj-card .go:disabled { filter: grayscale(1); opacity: .55; }
+
+/* ---------- Hauteur (validé par Enzo) : la fiche et l'inventaire tiennent dans l'écran, seul le tableau des caractéristiques défile ---------- */
+.sheet, .inv { gap: 7px; padding-top: calc(var(--safe-top) + 10px); }
+.sh-carac { padding: 3px 8px; }
+.sh-carac .ico svg { width: 26px; height: 26px; }
+.sh-carac .add { height: 30px; min-width: 38px; }
+.sh-caracs { gap: 4px; }
+.sh-free { padding: 4px 10px; }
+.sheet > .sh-rows { flex: 1 1 0; min-height: 120px; overflow-y: auto; flex-shrink: 1; }
+.sh-test { font-size: var(--t-sm); }
+.sh-carac .nm { min-width: 0; }
+.sh-carac .nm small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sh-records > div { padding: 2px; }
+.sh-records .gr-label { font-size: 10px; }
+.sh-records b { font-size: var(--t-sm); }
+details.sh-test summary { cursor: pointer; list-style: none; }
+details.sh-test:not([open]) { padding-top: 6px; padding-bottom: 6px; }

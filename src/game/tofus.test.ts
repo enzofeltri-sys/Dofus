@@ -43,7 +43,7 @@ describe('Amakna : Champ des Ingalsse et Donjon des Tofus', () => {
     }
     expect(AREAS.tofus.boss?.id).toBe('batofu');
     expect(DUNGEON_KEYS.tofus).toBe(7918);
-    const z = ZONES.find((q) => q.id === 'amakna')!;
+    const z = { nodes: ZONES.flatMap((q) => q.nodes) };
     const node = (id: string) => z.nodes.find((n) => n.id === id)!;
     expect(isUnlocked(node('ingalsse'), ['grange'])).toBe(false);
     expect(isUnlocked(node('ingalsse'), ['cour'])).toBe(true);
@@ -56,7 +56,7 @@ describe('Amakna : Champ des Ingalsse et Donjon des Tofus', () => {
     let s = { ...emptySave(), done: ['cour'] };
     for (let i = 1; i <= 3; i++) {
       s = applyRun(s, win).save;
-      const node = atlasView(s.done, 'ingalsse', s.mapWins).zones.find((z) => z.id === 'amakna')!.nodes.find((n) => n.id === 'ingalsse')!;
+      const node = atlasView(s.done, 'ingalsse', s.mapWins).zones.flatMap((z) => z.nodes).find((n) => n.id === 'ingalsse')!;
       expect(node.wins).toEqual([i, 3]);
       expect(s.done.includes('ingalsse')).toBe(i === 3);
     }

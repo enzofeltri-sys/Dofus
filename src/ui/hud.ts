@@ -82,21 +82,21 @@ export class Hud {
         <div class="pk-book gr-panel"><div class="gr-label pk-booklbl"></div><div class="pk-slots"></div></div>
       </div>
       <div class="camp gr-paper" hidden>
-        <h1 class="gr-title">Dofus <span>version Enzo</span></h1>
+        <div class="camp-top gr-panel">
+          <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span><span class="camp-brand">Dofus · version Enzo</span></div>
+          <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
+        </div>
         <div class="camp-hero">${sacrieurSvg()}</div>
-        <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span></div>
-        <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
-        <div class="camp-records"></div>
-        <div class="camp-dj gr-panel gold">
-          <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub">5 salles</span><span class="dj-key" hidden></span></div>
-          <button type="button" class="gr-btn enter">Entrer</button>
+        <button type="button" class="gr-btn play">Jouer</button>
+        <div class="camp-dj gr-panel">
+          <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub" hidden></span><span class="dj-key" hidden></span></div>
+          <button type="button" class="gr-btn sm turquoise enter">Rejouer</button>
         </div>
       </div>
       <nav class="camp-nav" hidden>
-        <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Caractéristiques</span><b class="badge gr-num" hidden></b></button>
-        <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipements</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Personnage</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipement</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="grimoire">${ICONS.pa.svg}<span>Grimoire</span><b class="badge gr-num" hidden></b></button>
-        <button type="button" class="nav-tab" data-sec="donjons">${ICONS.carte.svg}<span>Donjons</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="bestiaire">${ICONS.os.svg}<span>Bestiaire</span><b class="badge gr-num" hidden></b></button>
       </nav>
       <div class="summary" hidden><div class="sum-card gr-panel gold">
@@ -115,16 +115,17 @@ export class Hud {
           <button type="button" class="gr-btn ghost sm close">Fermer</button>
         </div>
         <div class="sh-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
+        <div class="sh-records"></div>
         <div class="sh-free"><span class="gr-label">Points à répartir</span><b class="gr-num"></b><button type="button" class="gr-btn ghost sm reset">Tout réinitialiser</button></div>
         <div class="sh-caracs"></div>
         <div class="gr-tabs sh-tabs"></div>
         <div class="sh-rows"></div>
-        <div class="sh-test">
-          <span class="gr-label">Mode test</span>
+        <details class="sh-test">
+          <summary class="gr-label">Mode test</summary>
           <div class="row"><label>Niveau <input type="number" inputmode="numeric" min="1" max="200" class="t-lvl"></label><button type="button" class="gr-btn ghost sm t-go">Appliquer</button></div>
           <div class="row"><button type="button" class="gr-btn ghost sm t-zones">Débloquer toutes les zones</button><button type="button" class="gr-btn sm magic t-bouftous">Prêt pour le Donjon des Bouftous</button></div>
           <small>Modifie la vraie sauvegarde (niveau, zones, objets).</small>
-        </div>
+        </details>
       </div>
       <div class="inv gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
@@ -152,8 +153,7 @@ export class Hud {
         <div class="inv-detail at-modal" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="atlas gr-paper" hidden>
-        <div class="sh-head"><h2 class="gr-h2">Donjons</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
-        <p class="atlas-intro">Chaque zone : 4 cartes de farm (5 salles, une élite à la fin), puis son donjon. Un donjon vaincu ouvre la suite de sa branche.</p>
+        <div class="sh-head"><button type="button" class="gr-btn ghost sm back" hidden>‹ Zones</button><h2 class="gr-h2">Où aller ?</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="atlas-zones"></div>
       </div>
       <div class="grimoire gr-paper" hidden>
@@ -395,7 +395,7 @@ export class Hud {
       look: () => (look ? this.appearance(look) : Promise.resolve()),
       inv: () => (inv ? this.inventory(inv) : Promise.resolve()),
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
-      atlas: () => (zones ? this.atlas(zones, () => current === 'atlas' && this.root.querySelector<HTMLButtonElement>('.atlas .sh-head .close')?.click()) : Promise.resolve()),
+      atlas: () => (zones ? this.atlas(zones, () => el.querySelector<HTMLButtonElement>('.enter')!.click()) : Promise.resolve()),
       bestiary: () => (beasts ? this.bestiary(beasts) : Promise.resolve()),
       grimoire: () => (spells ? this.grimoire(spells) : Promise.resolve()),
     };
@@ -403,7 +403,7 @@ export class Hud {
     const card = () => {
       if (!zones) return;
       const c = zones.current();
-      el.querySelector('.dj-kind')!.textContent = `${c.kind === 'map' ? 'Carte de farm' : 'Donjon'} · niveau ${c.level}`;
+      el.querySelector('.dj-kind')!.textContent = `Dernière partie · ${c.kind === 'map' ? 'carte' : 'donjon'} · niveau ${c.level}`;
       el.querySelector('.dj-name')!.textContent = c.name;
       el.querySelector('.dj-sub')!.textContent = c.sub;
       const k = el.querySelector<HTMLElement>('.dj-key')!;
@@ -429,7 +429,8 @@ export class Hud {
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="inv"]').forEach((t) => t.dataset.n = fresh ? String(fresh) : '');
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="atelier"]').forEach((t) => t.dataset.n = craftable ? String(craftable) : '');
       this.root.querySelectorAll<HTMLElement>('.sec-tab[data-panel="sheet"]').forEach((t) => t.dataset.n = v.free ? String(v.free) : '');
-      badge(nav.querySelector('[data-sec="donjons"] .badge'), zones ? zones.fresh() : 0);
+      const play = el.querySelector<HTMLElement>('.play')!;
+      play.dataset.n = zones && zones.fresh() > 0 ? String(zones.fresh()) : '';
       badge(nav.querySelector('[data-sec="bestiaire"] .badge'), beasts ? beasts.fresh() : 0);
       card();
       nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', !!current && SECTION[current] === t.dataset.sec));
@@ -457,17 +458,17 @@ export class Hud {
       void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : sec === 'grimoire' ? 'grimoire' : 'inv');
     };
     nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
-    nav.querySelector<HTMLElement>('[data-sec="donjons"]')!.hidden = !zones;
     nav.querySelector<HTMLElement>('[data-sec="bestiaire"]')!.hidden = !beasts;
     nav.querySelector<HTMLElement>('[data-sec="grimoire"]')!.hidden = !spells;
     refresh();
     const t = rec.bestWinTime;
-    el.querySelector('.camp-records')!.innerHTML = [
+    this.root.querySelector('.sh-records')!.innerHTML = [
       ['Parties', String(rec.runs)],
       ['Victoires', String(rec.wins)],
       ['Plus loin', rec.bestRoom ? `Salle ${rec.bestRoom}` : '—'],
       ['Record', t === null ? '—' : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`],
     ].map(([k, v]) => `<div><span class="gr-label">${k}</span><b class="gr-num">${v}</b></div>`).join('');
+    el.querySelector<HTMLButtonElement>('.play')!.onclick = () => void show('atlas');
     el.hidden = false;
     nav.hidden = false;
     return new Promise((resolve) => {
@@ -963,36 +964,75 @@ export class Hud {
     });
   }
 
-  /** Écran Donjons : l'arbre des zones ; toucher une étape ouverte la choisit (puis on revient au camp). */
-  atlas(h: ZoneHooks, done: () => void): Promise<void> {
+  private atlasZone: string | null = null;
+  /**
+   * « Où aller ? » (bouton Jouer) : d'abord les zones (débloquées ou non, progression), puis, dans une zone,
+   * ses cartes de farm (terminée, disponible, verrouillée) et son donjon (niveau, boss, clés, Entrer).
+   * Toucher « Jouer » ou « Entrer » lance directement la partie (`start`).
+   */
+  atlas(h: ZoneHooks, start: () => void): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.atlas')!;
+    const back = el.querySelector<HTMLButtonElement>('.sh-head .back')!;
+    const title = el.querySelector<HTMLElement>('.sh-head .gr-h2')!;
+    const bossOf = (sub: string) => sub.split('·').map((x) => x.trim()).filter((x) => !/salles|mini-boss|victoires/.test(x)).pop() ?? '';
     const render = () => {
       const v = h.view();
-      el.querySelector('.atlas-zones')!.innerHTML = v.zones.map((z) => `
-        <section class="atlas-zone"><h3 class="gr-h3">${z.name}</h3>
-          <ol class="atlas-path">${z.nodes.map((n) => `
-            <li class="atlas-node ${n.state} ${n.kind} ${n.selected ? 'sel' : ''}" data-id="${n.id}">
-              <span class="an-dot">${n.state === 'done' ? '✓' : n.state === 'locked' ? LOCK_SVG : n.kind === 'dungeon' ? '☠' : ''}</span>
-              <span class="an-txt"><b>${n.name}</b><small>${n.kind === 'map' ? 'Carte' : 'Donjon'} · niveau ${n.level}${n.sub ? ` · ${n.sub}` : ''}</small>${n.state === 'locked' ? `<em>${n.need}</em>` : ''}</span>
-              ${n.state === 'open' || n.state === 'done' ? `<span class="an-go">${n.selected ? 'Choisi' : 'Choisir'}</span>` : ''}
-            </li>`).join('')}</ol>
-        </section>`).join('');
+      const zone = v.zones.find((z) => z.id === this.atlasZone);
+      back.hidden = !zone;
+      title.textContent = zone ? zone.name : 'Où aller ?';
+      const box = el.querySelector('.atlas-zones')!;
+      if (!zone) {
+        box.innerHTML = v.zones.map((z) => {
+          const open = z.nodes.some((n) => n.state === 'open' || n.state === 'done');
+          const done = z.nodes.filter((n) => n.state === 'done').length;
+          const lv = z.nodes.map((n) => n.level);
+          const here = z.nodes.some((n) => n.selected);
+          return `<button type="button" class="zone-card gr-panel ${open ? '' : 'locked'} ${here ? 'here' : ''}" data-zone="${z.id}" ${open ? '' : 'disabled'}>
+            <span class="zc-txt"><b>${z.name}</b><small>Niveaux ${Math.min(...lv)} à ${Math.max(...lv)}${here ? ' · tu y es' : ''}</small>
+            ${open ? `<span class="zc-bar"><i style="width:${Math.round((100 * done) / z.nodes.length)}%"></i></span><small class="gr-num">${done}/${z.nodes.length} terminées</small>` : `<em>${LOCK_SVG} ${z.nodes[0].need}</em>`}</span>
+            ${open ? '<span class="zc-go">›</span>' : ''}</button>`;
+        }).join('');
+        return;
+      }
+      box.innerHTML = zone.nodes.map((n) => {
+        const playable = n.state === 'open' || n.state === 'done';
+        const wins = n.wins ? `<span class="gr-chip mw">${n.wins[0]}/${n.wins[1]} victoires</span>` : '';
+        if (n.kind === 'map') return `<div class="map-row ${n.state}" data-id="${n.id}">
+          <span class="an-dot">${n.state === 'done' ? '✓' : n.state === 'locked' ? LOCK_SVG : ''}</span>
+          <span class="an-txt"><b>${n.name}</b><small>Carte · niveau ${n.level}</small>${wins}${n.state === 'locked' ? `<em>${n.need}</em>` : ''}</span>
+          ${playable ? `<button type="button" class="gr-btn sm turquoise go">Jouer</button>` : ''}</div>`;
+        const key = playable ? h.info(n.id).key : undefined;
+        return `<div class="dj-card gr-panel gold ${n.state}" data-id="${n.id}">
+          <span class="gr-label">Donjon · niveau ${n.level}${n.state === 'done' ? ' · vaincu ✓' : ''}</span>
+          <b class="djc-name">${n.name}</b>
+          <span class="djc-boss">Boss : ${bossOf(n.sub)}</span>
+          ${n.state === 'locked' ? `<em>${LOCK_SVG} ${n.need}</em>` : `<span class="dj-key ${key?.ok === false ? 'none' : ''}">${key?.text ?? ''}</span>
+          <button type="button" class="gr-btn go" ${key?.ok === false ? 'disabled' : ''}>Entrer${key && /gratuite|clé|Clef/.test(key.text) && key.ok ? ' — 1 clé' : ''}</button>`}
+        </div>`;
+      }).join('');
     };
     el.onclick = (e) => {
-      const n = (e.target as HTMLElement).closest<HTMLElement>('.atlas-node.open, .atlas-node.done');
-      if (!n) return;
-      h.choose(n.dataset.id!);
-      render();
-      done();
+      const t = e.target as HTMLElement;
+      const z = t.closest<HTMLElement>('.zone-card[data-zone]');
+      if (z) { this.atlasZone = z.dataset.zone!; render(); el.scrollTop = 0; return; }
+      if (t.closest('.sh-head .back')) { this.atlasZone = null; render(); return; }
+      const go = t.closest<HTMLElement>('.go');
+      const row = go?.closest<HTMLElement>('[data-id]');
+      if (!go || !row || (go as HTMLButtonElement).disabled) return;
+      h.choose(row.dataset.id!);
+      el.hidden = true;
+      start();
     };
     h.seen();
+    // on ouvre directement la zone où l'on joue
+    if (this.atlasZone === null) this.atlasZone = h.view().zones.find((z) => z.nodes.some((n) => n.selected))?.id ?? null;
     render();
     el.hidden = false;
     return new Promise((resolve) => {
-      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
-        el.hidden = true;
-        resolve();
-      };
+      const close = el.querySelector<HTMLButtonElement>('.sh-head .close')!;
+      const obs = new MutationObserver(() => { if (el.hidden) { obs.disconnect(); resolve(); } });
+      obs.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+      close.onclick = () => { el.hidden = true; };
     });
   }
 
@@ -1357,6 +1397,8 @@ export interface ZoneHooks {
   view(): AtlasView;
   choose(id: string): void;
   current(): { kind: 'map' | 'dungeon'; name: string; level: number; sub: string; key?: { text: string; ok: boolean } };
+  /** Clés d'un donjon donné (texte, et s'il est possible d'entrer). */
+  info(id: string): { key?: { text: string; ok: boolean } };
   /** Entrée dans l'étape choisie (dépense une clé pour un donjon déjà vaincu) ; false s'il n'y a pas de clé. */
   enter(): boolean;
   /** Étapes nouvellement débloquées (pastille). */
