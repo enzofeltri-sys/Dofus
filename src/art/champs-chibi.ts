@@ -34,7 +34,7 @@ export const CRITTER_PIVOTS: Record<CritterKind, Partial<Record<CritterPart, [nu
   tournesol: { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [74, 116], leafF: [66, 118], head: [70, 98] },
   palichon: SHEEP_PIVOTS, orageux: SHEEP_PIVOTS, nuageux: SHEEP_PIVOTS, bouftor: SHEEP_PIVOTS,
   chakrobat: { tail: [86, 126], legB: [80, 78], body: [70, 148], legF: [64, 140], head: [66, 70], wisp: [58, 82] },
-  tigrimas: { tail: [108, 88], legB: [104, 112], body: [80, 140], legF: [64, 112], head: [68, 90], wisp: [30, 136] },
+  tigrimas: { tail: [106, 84], legB: [102, 110], body: [70, 150], legF: [80, 112], head: [68, 88], wisp: [70, 138] },
   ronronchon: { tail: [118, 108], legB: [104, 146], body: [80, 150], legF: [60, 146], head: [58, 104], wisp: [24, 92] },
 };
 
@@ -390,22 +390,20 @@ function catSvg(kind: CritterKind, part?: CritterPart): string {
     push(P, 'legF', '');
     push(P, 'wisp', glowOrb(64, 26, 10, '#7fd3ff'), catBody([capsule(52, 90, 47, 32, 4.5), ellipse(47, 30, 5.5, 4.5)], 24, 90));
   } else if (kind === 'tigrimas') {
-    // boule en plein bond : patte avant tendue vers son feu follet vert, patte arrière lancée, queue dressée en crochet
-    push(P, 'tail', catTail('M108,88 Q122,62 114,42 Q108,24 124,16', 7));
-    push(P, 'legB', catBody([capsule(104, 112, 120, 132, 6.5), ellipse(122, 135, 7.5, 5)], 110, 140));
-    push(P, 'body', catBody([
-      ear(50, 80, 42, 52, 62, 68), ear(70, 66, 80, 44, 88, 70),
-      ellipse(80, 98, 33, 31),
-      capsule(78, 120, 74, 140, 6.5), ellipse(72, 143, 8, 5),
-    ], 50, 146, ['M58,76 Q66,68 78,68', 'M98,110 Q104,104 106,96']));
-    push(P, 'legF', catBody([capsule(64, 112, 40, 122, 6), ellipse(38, 122, 6.5, 5.5)], 108, 128));
+    // boule en équilibre sur son feu follet vert (patte avant posée dessus), patte arrière lancée, queue dressée en crochet
+    push(P, 'tail', catTail('M106,84 Q122,60 114,40 Q108,22 124,14', 7));
+    push(P, 'legB', catBody([capsule(102, 110, 118, 120, 5.5), ellipse(120, 121, 6.5, 5)], 104, 126));
+    push(P, 'body', glowOrb(70, 138, 12, '#3fe0a0'), catBody([
+      ear(50, 80, 40, 48, 64, 68), ear(70, 66, 86, 40, 92, 74),
+      ellipse(80, 94, 32, 30),
+    ], 44, 124, ['M58,72 Q66,64 78,64', 'M98,106 Q104,100 106,92']));
+    push(P, 'legF', catBody([capsule(80, 112, 72, 124, 6), ellipse(71, 126, 7.5, 5)], 108, 130));
     push(P, 'head',
-      `<path d="M54,80 Q58,76 63,79 Q58,82 54,80 Z M70,77 Q74,73 79,76 Q74,80 70,77 Z" fill="${DARK}"/>`,
-      `<path d="M53,75 L63,77 M70,73 L80,72" stroke="${DARK}" stroke-width="1.8" stroke-linecap="round"/>`,
-      `<path d="M52,88 Q55,102 68,101 Q80,99 84,86 Q68,92 52,88 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M59,97 Q68,93 77,96 Q69,101 59,97 Z" fill="#ea6f7c"/>`,
-      `<path d="M56,89.4 l2.2,4 l2.2,-3.3 Z M75,89.4 l2.2,4 l2.2,-4.3 Z" fill="#fff"/>`,
-      whiskers(50, 86), whiskers(92, 82, 1));
-    push(P, 'wisp', glowOrb(30, 136, 11, '#3fe0a0'));
+      `<path d="M54,78 Q58,74 63,77 Q58,80 54,78 Z M70,75 Q74,71 79,74 Q74,78 70,75 Z" fill="${DARK}"/>`,
+      `<path d="M53,73 L63,75 M70,71 L80,70" stroke="${DARK}" stroke-width="1.8" stroke-linecap="round"/>`,
+      `<path d="M52,86 Q55,100 68,99 Q80,97 84,84 Q68,90 52,86 Z" fill="#a8202e" stroke="${DARK}" stroke-width="1.4"/><path d="M59,95 Q68,91 77,94 Q69,99 59,95 Z" fill="#ea6f7c"/>`,
+      `<path d="M56,87.4 l2.2,4 l2.2,-3.3 Z M75,87.4 l2.2,4 l2.2,-4.3 Z" fill="#fff"/>`,
+      whiskers(50, 84), whiskers(92, 80, 1));
   } else {
     // grosse boule affalée, l'air blasé ; sa queue monte et devient un esprit bleu à yeux au-dessus de lui
     push(P, 'tail', catTail('M118,108 Q140,84 128,52 Q118,28 96,38', 10), glowOrb(90, 44, 12, '#86d8ff', -0.1));
