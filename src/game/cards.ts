@@ -92,8 +92,10 @@ export function applyCard(w: World, c: Card, replaceSlot?: number) {
 
 /** Échange deux cases (ordre de priorité). */
 export function swapSlots(w: World, a: number, b: number) {
-  const s = w.run.slots;
+  const s = w.run.slots, t = w.lastCast;
   [s[a], s[b]] = [s[b], s[a]];
+  // le tour de rôle suit le sort, pas la case
+  [t[a], t[b]] = [t[b], t[a]];
 }
 
 /** Textes d'une carte pour l'écran de choix. */

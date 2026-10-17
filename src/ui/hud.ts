@@ -173,6 +173,16 @@ export class Hud {
         <div class="look-rows"></div>
         <div class="look-btns"><button type="button" class="gr-btn sm magic rnd">Aléatoire</button><button type="button" class="gr-btn sm ghost reset">Couleurs du jeu</button></div>
       </div>
+      <div class="pausemenu" hidden><div class="pm-card gr-panel gold">
+        <h2 class="gr-title">Pause</h2>
+        <div class="gr-label pm-lbl">Tes sorts · touche deux sorts pour changer leur ordre</div>
+        <div class="pk-slots pm-slots"></div>
+        <div class="gr-label pm-lbl">Butin de la partie</div>
+        <div class="pm-loot"></div>
+        <button type="button" class="gr-btn turquoise resume">Reprendre</button>
+        <button type="button" class="gr-btn ghost sm quit">Quitter le combat</button>
+        <p class="pm-note"></p>
+      </div></div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
     this.paFill = root.querySelector('.pa-side .vfill')!;
     this.paVal = root.querySelector('.pa-side .val')!;
@@ -351,6 +361,49 @@ export class Hud {
     this.toastTimer = window.setTimeout(() => (el.hidden = true), ms);
   }
 
+  /**
+   * Pause : changer l'ordre des sorts (toucher deux sorts), voir le butin déjà ramassé, reprendre ou quitter le combat
+   * (quitter = comme une défaite : on garde l'XP et le butin des monstres ; il faut toucher deux fois).
+   */
+  pauseMenu(slots: SlotView[], onSwap: (a: number, b: number) => SlotView[], loot: { icon: string; name: string; count: number; boss: boolean }[], xp: number): Promise<'resume' | 'quit'> {
+    const el = this.root.querySelector<HTMLElement>('.pausemenu')!;
+    let sel = -1;
+    const drawSlots = (list: SlotView[]) => {
+      const sb = el.querySelector('.pm-slots')!;
+      sb.innerHTML = list.map((s, i) => `<button type="button" class="pk-slot ${s ? '' : 'empty'} ${i === sel ? 'sel' : ''}" data-s="${i}">
+        <span class="prio gr-num">${i + 1}</span>${s ? `<span class="art">${s.icon}</span>` : '<span class="plus">+</span>'}</button>`).join('');
+      sb.querySelectorAll<HTMLButtonElement>('.pk-slot').forEach((b) => (b.onclick = () => {
+        const i = Number(b.dataset.s);
+        if (!list[i] && sel < 0) return;
+        if (sel < 0) sel = i;
+        else {
+          if (sel !== i) list = onSwap(sel, i);
+          sel = -1;
+        }
+        drawSlots(list);
+      }));
+    };
+    drawSlots(slots);
+    el.querySelector('.pm-loot')!.innerHTML = (loot.length
+      ? loot.map((l) => `<span class="pm-item ${l.boss ? 'boss' : ''}" title="${l.name}">${l.icon}<i class="gr-num">${l.count}</i></span>`).join('')
+      : '<em>Rien pour l’instant.</em>') + `<span class="gr-chip pm-xp">+${xp} XP</span>`;
+    const quit = el.querySelector<HTMLButtonElement>('.quit')!;
+    const note = el.querySelector<HTMLElement>('.pm-note')!;
+    quit.textContent = 'Quitter le combat';
+    note.textContent = '';
+    el.hidden = false;
+    return new Promise((resolve) => {
+      const done = (r: 'resume' | 'quit') => { el.hidden = true; resolve(r); };
+      el.querySelector<HTMLButtonElement>('.resume')!.onclick = () => done('resume');
+      quit.onclick = () => {
+        if (quit.dataset.armed === '1') { quit.dataset.armed = ''; done('quit'); return; }
+        quit.dataset.armed = '1';
+        quit.textContent = 'Touche encore pour quitter';
+        note.textContent = 'Comme une défaite : tu gardes l’XP et le butin des monstres, pas celui du boss.';
+      };
+    });
+  }
+
   /** Écran plein (défaite, pause, fin de démo) avec un bouton. Retourne une promesse résolue au clic. */
   overlay(title: string, text: string, button: string): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.overlay')!;
@@ -368,7 +421,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.pausemenu', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -1334,9 +1387,10 @@ export class Hud {
     won: boolean, rows: [string, string][], cards: string[], loot: string,
     xp?: { gained: number; before: number; view: SheetView },
     items?: { icon: string; name: string; count: number; boss: boolean; lost: boolean; rarity?: number }[],
+    quit = false,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.summary')!;
-    el.querySelector('h2')!.textContent = won ? 'Victoire !' : 'Le Sacrieur est tombé';
+    el.querySelector('h2')!.textContent = won ? 'Victoire !' : quit ? 'Combat quitté' : 'Le Sacrieur est tombé';
     el.querySelector('.sum-sub')!.textContent = won ? `${this.lastLabel === 'Boss' ? 'Le boss est vaincu' : 'L’élite est vaincue'} : ${this.areaName}, terminé !` : 'Il reviendra plus fort.';
     el.querySelector('.sum-stats')!.innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b class="gr-num">${v}</b></div>`).join('');
     el.querySelector('.sum-cards')!.innerHTML = cards.length

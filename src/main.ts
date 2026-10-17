@@ -1108,7 +1108,7 @@ async function main() {
   const resSeen = new Set<string>();
 
   /** Fin de partie : bilan, sauvegarde, retour au camp, nouvelle partie. */
-  async function endRun(won: boolean) {
+  async function endRun(won: boolean, quit = false) {
     const st = game.stats;
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
@@ -1143,7 +1143,7 @@ async function main() {
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
     ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.'].filter(Boolean).join(' '),
-    { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList);
+    { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList, quit);
     if (SHOW_CAMP) await openCamp();
     await transition(() => {
       game.restart(heroFromSave(), areaOf());
@@ -1195,7 +1195,21 @@ async function main() {
   hud.pauseButton.addEventListener('click', async () => {
     if (paused || busy) return;
     paused = true;
-    await hud.overlay('Pause', 'Le combat est en pause.', 'Reprendre');
+    const st = game.stats;
+    const loot = [...Object.entries(st.loot).map(([k, n]) => ({ id: Number(k), count: n, boss: false })), ...Object.entries(st.bossLoot).map(([k, n]) => ({ id: Number(k), count: n, boss: true }))]
+      .sort((a, b) => Number(item(b.id).slot !== null) - Number(item(a.id).slot !== null) || item(b.id).level - item(a.id).level)
+      .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, boss: l.boss }));
+    const choice = await hud.pauseMenu(slotViews(), (a, b) => {
+      swapSlots(game, a, b);
+      hud.setSlots(slotViews());
+      return slotViews();
+    }, loot, st.xp);
+    if (choice === 'quit') {
+      busy = true;
+      paused = false;
+      await endRun(false, true);
+      return;
+    }
     paused = false;
   });
 
