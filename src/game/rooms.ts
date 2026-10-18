@@ -9,7 +9,7 @@ import type { Theme } from './data/areas';
 export type PropKind = 'column' | 'sarcophagus' | 'brazier' | 'boneBowl' | 'rubble' | 'bones' | 'candles' | 'blossom' | 'stone' | 'stele' | 'flowers'
   | 'redbush' | 'block' | 'horns' | 'tomb' | 'deadtree' | 'lantern' | 'chest' | 'fountain'
   | 'autumnTree' | 'fence' | 'barn' | 'haystack' | 'house' | 'stall' | 'crates' | 'sunflowers' | 'pipe'
-  | 'palm' | 'shell' | 'shellBlue' | 'sandrock' | 'tower' | 'pebbles' | 'mossrock' | 'quarry' | 'hut' | 'barrels';
+  | 'palm' | 'shell' | 'shellBlue' | 'sandrock' | 'tower' | 'pebbles' | 'mossrock' | 'quarry' | 'hut' | 'barrels' | 'carrot' | 'banner';
 
 export interface PropPlacement {
   kind: PropKind;
@@ -31,7 +31,7 @@ export interface Obstacle {
 const BLOCK: Record<PropKind, number> = { column: 46, sarcophagus: 0, brazier: 42, boneBowl: 36, rubble: 38, bones: 0, candles: 0, blossom: 30, stone: 40, stele: 28, flowers: 0,
   redbush: 30, block: 36, horns: 36, tomb: 32, deadtree: 22, lantern: 22, chest: 34, fountain: 56,
   autumnTree: 32, fence: 40, barn: 66, haystack: 38, house: 66, stall: 44, crates: 36, sunflowers: 0, pipe: 30,
-  palm: 24, shell: 32, shellBlue: 32, sandrock: 42, tower: 40, pebbles: 0, mossrock: 42, quarry: 46, hut: 56, barrels: 36 };
+  palm: 24, shell: 32, shellBlue: 32, sandrock: 42, tower: 40, pebbles: 0, mossrock: 42, quarry: 46, hut: 56, barrels: 36, carrot: 38, banner: 18 };
 
 const TEMPLATES: PropPlacement[][] = [
   [
@@ -228,6 +228,11 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   campementBworks: { block: [['hut', 1.0, 1.15], ['deadtree', 1, 1.2], ['quarry', 0.85, 1.05], ['crates', 0.9, 1.05], ['autumnTree', 1, 1.15]], decor: ['bones'] },
   villageBworks: { block: [['hut', 1.0, 1.15], ['barrels', 0.9, 1.05], ['quarry', 0.85, 1.05], ['deadtree', 1, 1.2], ['crates', 0.9, 1.05]], decor: ['bones'] },
   donjonBworks: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['block', 0.85, 1.05], ['lantern', 1, 1]], decor: ['bones'] },
+  // Wabbits, d'après les vraies cartes : îles d'herbe vive et carottes géantes (Cawotte), bannières orange et rochers (Couronne),
+  // Château : caverne aux dalles orange, caisses, tonneaux, lanternes
+  cawotte: { block: [['carrot', 0.95, 1.15], ['autumnTree', 1.05, 1.2], ['carrot', 0.95, 1.15], ['sandrock', 0.8, 0.95], ['mossrock', 0.85, 1]], decor: ['flowers'] },
+  couronne: { block: [['carrot', 0.95, 1.15], ['banner', 1, 1.1], ['autumnTree', 1.05, 1.2], ['sandrock', 0.85, 1], ['horns', 0.9, 1.05]], decor: ['flowers'] },
+  chateauWabbit: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['carrot', 0.9, 1.05], ['lantern', 1, 1], ['banner', 1, 1.1]], decor: ['pebbles'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 

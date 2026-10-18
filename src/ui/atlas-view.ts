@@ -27,7 +27,7 @@ export function atlasView(done: string[], selected: string, mapWins: Record<stri
         id: n.id, name: n.name, level: n.level, kind: n.kind,
         sub: n.soon ? 'Bientôt' : n.area?.sub ?? '',
         state: n.soon ? 'soon' : done.includes(n.id) ? 'done' : isUnlocked(n, done) ? 'open' : 'locked',
-        need: n.needs.length ? `Termine : ${n.needs.map(nameOf).join(', ')}` : '',
+        need: [n.needs.length ? `Termine : ${n.needs.map(nameOf).join(', ')}` : '', n.needsAny ? `Termine : ${n.needsAny.map(nameOf).join(' ou ')}` : ''].filter(Boolean).join(' · '),
         selected: n.id === selected,
         ...(n.area?.winsNeeded && n.area.winsNeeded > 1 ? { wins: [Math.min(mapWins[n.id] ?? 0, n.area.winsNeeded), n.area.winsNeeded] as [number, number] } : {}),
       })),

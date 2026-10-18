@@ -30,7 +30,7 @@ export function placesOf(id: string): string[] {
   }
   for (const d of Object.values(MONSTERS)) {
     const sm = d.boss?.summon;
-    if ((Array.isArray(sm) ? sm.includes(id) : sm === id) || d.summons?.id === id) out.push(`invoqué par ${d.name}`);
+    if ((Array.isArray(sm) ? sm.includes(id) : sm === id) || [d.summons?.id ?? []].flat().includes(id)) out.push(`invoqué par ${d.name}`);
   }
   return [...new Set(out)];
 }

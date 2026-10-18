@@ -108,7 +108,7 @@ export interface MonsterDef {
   /** Multiplicateur d'XP (monstre d'élite). */
   xpMult?: number;
   /** Invocation (hors boss) : premier appel et intervalle (s), monstre invoqué, nombre maximum en même temps. */
-  summons?: { first: number; every: number; id: string; max: number };
+  summons?: { first: number; every: number; id: string | string[]; max: number };
   /** Archimonstre (version rare et nommée d'un monstre de la zone). */
   archi?: { of: string };
   /** Soin unique : toute sa vie revient la première fois qu'il passe sous `below` de ses PV. */
@@ -147,6 +147,10 @@ export interface BossKit {
   revive?: { every: number; spell: string };
   /** Grand soin (Reconstitution Bwork de la Bworkette) : `pct` % des PV max, au plus toutes les `every` s, quand il est blessé ; `once` : une seule fois par combat. */
   regen?: { every: number; pct: number; spell: string; once?: boolean };
+  /** Armure (Awmuwe Woyale du Wa Wabbit) : toutes les `every` s, pendant `duration` s, dommages subis × `taken` et bouclier de `shield` PV. */
+  armor?: { every: number; duration: number; taken: number; shield: number; spell: string };
+  /** Sort de zone autour du boss (Abwutissement du Wa Wabbit) : toutes les `every` s, sa prochaine attaque devient celle-ci, annoncée au sol. */
+  nova?: { every: number; attack: MonsterAttack; spell: string };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -335,6 +339,26 @@ export const MONSTERS: Record<string, MonsterDef> = {
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'bwork', maxSummons: 0,
       heal: { every: 4, min: 15, max: 18, spell: 'Mot Croisé' }, regen: { every: 24, pct: 50, spell: 'Reconstitution Bwork', once: true } },
   },
+  /**
+   * Wa Wabbit (180) : boss du Château du Wa Wabbit, niveau 60, 2 600 à 3 300 PV, toutes caractéristiques 210, Sagesse 170,
+   * résistances Neutre 28, Terre 28, Feu 18, Eau -7, Air -12 ; 4 PM, 10 PA. Valeurs réelles (comme les autres boss) :
+   * WaWabehameha : Neutre 21-30 en ligne à 1-11 cases, 1 fois par tour → toutes les 4 s environ ;
+   * Abwutissement : Eau 31-35 autour de lui, tous les 3 tours → toutes les 12 s (annoncé au sol ; les -150/-300 Puissance ne sont pas repris) ;
+   * Awmuwe Woyale : dommages subis × 0,7 et bouclier de 120 PV (200 % de son niveau) pendant 2 tours, tous les 5 tours → 8 s toutes les 20 s.
+   * Cawotte Woyale (invocation de 290 PV sans sort) n'est pas reprise.
+   */
+  waWabbit: {
+    id: 'waWabbit', name: 'Wa Wabbit', dofusId: 180,
+    grades: ([[2600, 47600], [2800, 59400], [2900, 71300], [3100, 83200], [3300, 95100]] as const).map(([hp, xp]) => g(60, hp, 210, [28, 28, 18, -7, -12], xp, 170, 10, 9, 20, { intelligence: 210, chance: 210, agilite: 210 })),
+    behavior: 'boss', speed: 140, radius: 44, art: 'waWabbit', scale: 1.6,
+    attack: { shape: 'line', trigger: 420, size: 440, spread: 26, offset: 0, windup: 0.75, recover: 0.4, cooldown: [3.2, 4.0], roll: { min: 21, max: 30, critBonus: 3, critBase: 3, element: 'neutre' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'tiwabbit', maxSummons: 0,
+      armor: { every: 20, duration: 8, taken: 0.7, shield: 120, spell: 'Awmuwe Woyale' },
+      nova: { every: 12, spell: 'Abwutissement', attack: { shape: 'circle', trigger: 160, size: 150, spread: 0, offset: 0, windup: 1.0, recover: 0.45, cooldown: [1.0, 1.4], roll: { min: 31, max: 35, critBonus: 3, critBase: 3, element: 'eau' } } } },
+  },
+  wabbitElite: eliteOf(ASTRUB.wabbit, 'wabbitElite', 'Wabbit d’élite'),
+  woWabbitElite: eliteOf(ASTRUB.woWabbit, 'woWabbitElite', 'Wo Wabbit d’élite'),
+  grandPaElite: eliteOf(ASTRUB.grandPaWabbit, 'grandPaElite', 'Grand Pa Wabbit d’élite'),
   /** Ashi-magari (2976) : invocation du Boostache, 150 PV ; Enchevêtrement : immobilise ce qui l'entoure pendant 1 tour (4 s), sans dommages. */
   ashiMagari: {
     id: 'ashiMagari', name: 'Ashi-magari', dofusId: 2976,

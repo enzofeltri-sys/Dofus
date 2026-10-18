@@ -127,7 +127,7 @@ describe('Cartes entre les salles', () => {
     expect(w.hero.maxHp).toBe(max + 20);
     applyCard(w, { kind: 'upgrade', spell: 'supplice', up: 'dmg' });
     expect(w.run.slots[0]?.dmgBonus).toBeCloseTo(0.05);
-    expect(Object.keys(SPELLS)).toHaveLength(14); // 6 sorts jusqu'au niveau 10, 4 de 15 à 30, 4 de 35 à 50
+    expect(Object.keys(SPELLS)).toHaveLength(16); // sorts jusqu'au niveau 60 (Dissolution 55, Désolation 60)
   });
 
   it('un nouveau donjon remet les cartes à zéro', () => {

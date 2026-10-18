@@ -25,7 +25,7 @@ export const setSpellPower = (v: number) => (SPELL_POWER = v);
 export const CAST_DELAY = 0.35;
 
 export type SpellId = 'supplice' | 'hemorragie' | 'absorption' | 'stase' | 'attirance' | 'mutilation' | 'epeeVorace' | 'ravage' | 'assaut' | 'transposition'
-  | 'condensation' | 'hostilite' | 'couronne' | 'transfusion';
+  | 'condensation' | 'hostilite' | 'couronne' | 'transfusion' | 'dissolution' | 'desolation';
 
 export type SpellKind =
   /** Vol de vie sur une cible ; `debuff` = effet secondaire du sort Dofus. */
@@ -41,7 +41,7 @@ export type SpellKind =
   /** Échange de position avec la cible (Assaut : quand on est encerclé, avec dommages ; Transposition : pour fuir, PV bas). */
   | { type: 'swap'; roll?: DamageRoll; when: 'surrounded' | 'danger' }
   /** Dommages en zone autour de la cible, puis attire les touchés vers le lanceur (Condensation). */
-  | { type: 'zone'; roll: DamageRoll; radius: number; pullCells: number }
+  | { type: 'zone'; roll: DamageRoll; radius: number; pullCells: number; steal?: boolean; slow?: number }
   /** Dommages puis repousse la cible ; contre un obstacle : dommages de poussée (Hostilité). */
   | { type: 'push'; roll: DamageRoll; cells: number }
   /** Bouclier et renvoi des dommages de mêlée pendant un tour (Couronne d'Épines). */
@@ -160,6 +160,18 @@ export const SPELLS: Record<SpellId, SpellDef> = {
     id: 'transfusion', name: 'Transfusion', element: 'neutre', level: 50, pa: 2, range: [0, 3 * CELL], cooldown: TURN,
     kind: { type: 'nova', hpPct: 8, radius: 3 * CELL },
     text: 'Explosion Neutre autour de toi (3 cases), selon ta vie restante : plus tu as de PV, plus elle fait mal.',
+  },
+  // Dissolution (12757) : 4 PA, 0 à 5 cases, 2/tour ; vol de vie Eau 16-19 en croix d'une case autour de la cible (-20 Fuite : sans équivalent utile).
+  dissolution: {
+    id: 'dissolution', name: 'Dissolution', element: 'eau', level: 55, pa: 4, range: [0, 5 * CELL], cooldown: TURN / 2,
+    kind: { type: 'zone', roll: steal('eau', 16, 19, 20), radius: 1.5 * CELL, pullCells: 0, steal: true },
+    text: 'Vol de vie Eau sur un groupe (une case autour de la cible, jusqu’à 5 cases).',
+  },
+  // Désolation (12753) : 4 PA, 1 à 4 cases, 2/tour ; vol de vie Air 19-22 en zone et -3 PM pendant 1 tour → les touchés sont ralentis 4 s.
+  desolation: {
+    id: 'desolation', name: 'Désolation', element: 'air', level: 60, pa: 4, range: [0, 4 * CELL], cooldown: TURN / 2,
+    kind: { type: 'zone', roll: steal('air', 19, 22, 23), radius: 1.5 * CELL, pullCells: 0, steal: true, slow: TURN },
+    text: `Vol de vie Air sur un groupe (une case autour de la cible, jusqu’à 4 cases) ; les touchés sont ralentis pendant ${TURN} s (-3 PM).`,
   },
 };
 

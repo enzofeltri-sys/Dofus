@@ -9,7 +9,8 @@ export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | '
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
   | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome'
-  | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks';
+  | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks'
+  | 'cawotte' | 'couronne' | 'chateauWabbit';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -384,6 +385,35 @@ export const DONJON_BWORKS: AreaDef = {
   theme: 'donjonBworks',
 };
 
+/** Niveaux 51-60 (validés par Enzo) : Île de la Cawotte, Îlot de la Couronne, Château du Wa Wabbit. */
+export const CAWOTTE: AreaDef = {
+  id: 'cawotte', name: 'Île de la Cawotte', kind: 'map', zone: 'amakna', level: 52, winsNeeded: 3,
+  sub: '5 salles · élite : Wabbit d’élite · 3 victoires',
+  rooms: 5, pool: ['wabbit', 'wabbit', 'blackWabbit', 'tiwabbit', 'blackTiwabbit', 'tiwabbitKiafin'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'wabbitElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2304', 'archi2403', 'archi2293', 'archi2402', 'archi2294'],
+  theme: 'cawotte',
+};
+
+export const COURONNE: AreaDef = {
+  id: 'couronne', name: 'Îlot de la Couronne', kind: 'map', zone: 'amakna', level: 55, winsNeeded: 3,
+  sub: '5 salles · élite : Wo Wabbit d’élite · 3 victoires',
+  rooms: 5, pool: ['wabbit', 'blackWabbit', 'blackWabbit', 'woWabbit', 'grandPaWabbit'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'woWabbitElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2304', 'archi2403', 'archi2308', 'archi2498'],
+  theme: 'couronne',
+};
+
+export const CHATEAU_WABBIT: AreaDef = {
+  id: 'chateauWabbit', name: 'Château du Wa Wabbit', kind: 'dungeon', zone: 'amakna', level: 60,
+  sub: '7 salles · mini-boss · Wa Wabbit',
+  rooms: 7, pool: ['wabbit', 'blackWabbit', 'tiwabbit', 'blackTiwabbit', 'tiwabbitKiafin', 'woWabbit', 'grandPaWabbit'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'grandPaElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'waWabbit', grade: 5, adds: 3 },
+  archis: ['archi2304', 'archi2403', 'archi2293', 'archi2402', 'archi2294', 'archi2308', 'archi2498'],
+  theme: 'chateauWabbit',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -393,6 +423,8 @@ export interface TreeNode {
   area?: AreaDef;
   /** Identifiants à terminer pour débloquer cette étape. */
   needs: string[];
+  /** Au moins un de ceux-ci terminé (en plus de `needs`). */
+  needsAny?: string[];
   /** Pas encore dans le jeu. */
   soon?: boolean;
 }
@@ -483,6 +515,14 @@ export const ZONES: Zone[] = [
       { id: 'donjonBworks', name: 'Donjon des Bworks', level: 50, kind: 'dungeon', area: DONJON_BWORKS, needs: ['campementBworks', 'villageBworks'] },
     ],
   },
+  {
+    id: 'wabbits', name: 'Les Wabbits',
+    nodes: [
+      { id: 'cawotte', name: 'Île de la Cawotte', level: 52, kind: 'map', area: CAWOTTE, needs: [], needsAny: ['nidKwakwa', 'donjonBworks'] },
+      { id: 'couronne', name: 'Îlot de la Couronne', level: 55, kind: 'map', area: COURONNE, needs: ['cawotte'] },
+      { id: 'chateauWabbit', name: 'Château du Wa Wabbit', level: 60, kind: 'dungeon', area: CHATEAU_WABBIT, needs: ['cawotte', 'couronne'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -493,15 +533,16 @@ export const AREAS: Record<string, AreaDef> = {
   ingalsse: INGALSSE, tofus: TOFULAILLER, plaineScara: PLAINE_SCARA, scaraDonjon: SCARA_DONJON,
   cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES, maisonFantome: MAISON_FANTOME,
   craqueleurs: CRAQUELEURS, nidKwakwa: NID_KWAKWA, campementBworks: CAMPEMENT_BWORKS, villageBworks: VILLAGE_BWORKS, donjonBworks: DONJON_BWORKS,
+  cawotte: CAWOTTE, couronne: COURONNE, chateauWabbit: CHATEAU_WABBIT,
 };
 
 /** Étapes jouables et débloquées. */
-export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.includes(n.id) || n.needs.every((id) => done.includes(id)));
+export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.includes(n.id) || (n.needs.every((id) => done.includes(id)) && (!n.needsAny || n.needsAny.some((id) => done.includes(id)))));
 
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
-  kwaks: [41, 50], bworks: [41, 50],
+  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60],
 };
 
 /** Zone de l'arbre qui contient cette carte ou ce donjon. */

@@ -7,7 +7,7 @@ ORDER = [12725, 12748, 12734, 12728, 12735, 12737, 12744, 12746, 12733, 12736, 1
 # sorts présents dans le jeu (identifiant interne)
 IDS = {12725: 'supplice', 12748: 'hemorragie', 12734: 'absorption', 12728: 'stase', 12735: 'attirance', 12737: 'mutilation',
        12744: 'epeeVorace', 12746: 'ravage', 12733: 'assaut', 12736: 'transposition',
-       12745: 'condensation', 12756: 'hostilite', 12761: 'couronne', 12738: 'transfusion'}
+       12745: 'condensation', 12756: 'hostilite', 12761: 'couronne', 12738: 'transfusion', 12757: 'dissolution', 12753: 'desolation'}
 rows = []
 for sp in ORDER:
     s = json.load(open(f'{D}/s{sp}.json'))

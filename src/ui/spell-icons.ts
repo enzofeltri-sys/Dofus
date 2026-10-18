@@ -77,6 +77,14 @@ export const SPELL_ICONS: Record<SpellId, string> = {
   transfusion: badge('#ece4d4', '#8a7a5a',
     `<circle cx="24" cy="25" r="16" fill="none" stroke="#b8a68a" stroke-width="2.4"/><circle cx="24" cy="25" r="11" fill="none" stroke="#b8a68a" stroke-width="2"/>` +
     `<path d="M24 32c-6-4-9-7-9-10a4.5 4.5 0 0 1 9-1 4.5 4.5 0 0 1 9 1c0 3-3 6-9 10Z" fill="#c8303c" ${S}/>`),
+  // Dissolution (Eau) : quatre gouttes en croix qui fondent vers le centre
+  dissolution: badge('#c9ede6', '#22a196',
+    `<path d="M24 24L13 13M24 24L35 13M24 24L13 35M24 24L35 35" stroke="#5cc9ba" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 3"/>` +
+    [[13, 15], [35, 15], [13, 37], [35, 37]].map(([x, y]) => `<path d="M${x},${y - 6}c2.6,3.4 4.2,5.4 4.2,7.6a4.2,4.2 0 0 1-8.4,0c0-2.2 1.6-4.2 4.2-7.6Z" fill="#5cc9ba" ${S}/>`).join('') + DROP(24, 27, 0.8)),
+  // Désolation (Air) : tourbillon de vent et gouttes de sang arrachées
+  desolation: badge('#d7edbf', '#5d8c3a',
+    `<path d="M10 20c8-6 22-6 28 0M12 27c7-4 17-4 22 0M16 34c5-3 11-3 14 0" fill="none" stroke="${INK}" stroke-width="5.4" stroke-linecap="round"/>` +
+    `<path d="M10 20c8-6 22-6 28 0M12 27c7-4 17-4 22 0M16 34c5-3 11-3 14 0" fill="none" stroke="#8fd05a" stroke-width="2.4" stroke-linecap="round"/>` + DROP(36, 34, 0.7) + DROP(12, 36, 0.55)),
 };
 
 /** Icônes des passifs (pastille dorée : un passif est permanent pendant le donjon). */

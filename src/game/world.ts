@@ -163,6 +163,10 @@ export interface Monster {
   reviveT?: number;
   regenT?: number;
   regenDone?: boolean;
+  armorT?: number;
+  armorCdT?: number;
+  armorShield?: number;
+  novaT?: number;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -171,6 +175,8 @@ export interface Monster {
   markT: number;
   weakT: number;
   critDownT: number;
+  /** Ralenti (Désolation : -3 PM) : vitesse divisée par deux. */
+  slowT?: number;
 }
 
 /** Sort placé dans une case pendant le donjon (avec ses améliorations de run). */
@@ -916,8 +922,10 @@ export class World {
       const center = cands.reduce((a, b) => (around(b).length > around(a).length ? b : a));
       this.events.push({ type: 'cast', spell: sp.id, slot, x: h.x, y: h.y, tx: center.x, ty: center.y, uid: center.uid });
       for (const m of around(center)) {
-        this.spellHit(m, k.roll, sl, false, false);
+        this.spellHit(m, k.roll, sl, false, !!k.steal);
         if (m.state === 'dead') continue;
+        if (k.slow) m.slowT = Math.max(m.slowT ?? 0, k.slow);
+        if (!k.pullCells) continue;
         const dx = h.x - m.x, dy = (h.y - m.y) / PERSP, d = Math.hypot(dx, dy) || 1;
         const move = Math.min(k.pullCells * CELL, Math.max(0, d - h.def.radius - m.def.radius - 10));
         [m.x, m.y] = this.pushOut(m.x + (dx / d) * move, m.y + (dy / d) * move * PERSP, m.def.radius);
@@ -1043,7 +1051,19 @@ export class World {
     this.events.push({ type: 'heal', x: h.x, y: h.y, amount: heal });
   }
 
+  /** Awmuwe Woyale : dommages réduits puis absorbés par le bouclier pendant l'armure. */
+  private armorCut(m: Monster, damage: number): number {
+    if (!m.armorT || m.armorT <= 0) return damage;
+    const a = m.def.boss!.armor!;
+    let d = Math.round(damage * a.taken);
+    const abs = Math.min(m.armorShield ?? 0, d);
+    m.armorShield = (m.armorShield ?? 0) - abs;
+    d -= abs;
+    return d;
+  }
+
   private damageMonster(m: Monster, damage: number, crit: boolean, element?: Element, push = false) {
+    damage = this.armorCut(m, damage);
     m.hp -= damage;
     this.stats.dealt += damage;
     m.hurtT = 0.18;
@@ -1094,6 +1114,7 @@ export class World {
       }
       // Supplice : frapper une cible marquée soigne de 20 % des dommages
       if (m.markT > 0) this.healHero(Math.floor(damage * SUPPLICE_MARK));
+      damage = this.armorCut(m, damage);
       m.hp -= damage;
       this.stats.dealt += damage;
       m.hurtT = 0.18;
@@ -1164,6 +1185,18 @@ export class World {
         this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.regen.spell });
       }
     }
+    if (b.armor) {
+      m.armorT = Math.max(0, (m.armorT ?? 0) - STEP);
+      if (m.armorT <= 0) m.armorShield = 0;
+      m.armorCdT = (m.armorCdT ?? b.armor.every * 0.5) - STEP;
+      if (m.armorCdT <= 0) {
+        m.armorCdT = b.armor.every;
+        m.armorT = b.armor.duration;
+        m.armorShield = b.armor.shield;
+        this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: 60 });
+      }
+    }
+    if (b.nova) m.novaT = (m.novaT ?? b.nova.every * 0.5) - STEP;
     if (b.crackEvery > 0) m.crackT -= STEP;
     if (b.crackEvery > 0 && m.crackT <= 0) {
       m.crackT = b.crackEvery;
@@ -1276,6 +1309,7 @@ export class World {
     m.markT = Math.max(0, m.markT - STEP);
     m.weakT = Math.max(0, m.weakT - STEP);
     m.critDownT = Math.max(0, m.critDownT - STEP);
+    if (m.slowT) m.slowT = Math.max(0, m.slowT - STEP);
     if (m.def.boss && h.alive) this.stepBoss(m);
     if (m.def.summons && h.alive) this.stepSummon(m, m.def.summons);
     if (m.def.support && h.alive) this.stepSupport(m, m.def.support);
@@ -1304,6 +1338,13 @@ export class World {
           m.chargeT = ch.every;
           m.cd = 0;
         }
+        // Abwutissement : la prochaine attaque est le sort de zone, dès que le héros est assez près
+        const nv = m.def.boss?.nova;
+        if (nv && (m.novaT ?? 1) <= 0 && d <= nv.attack.trigger && a !== nv.attack) {
+          m.atk = a = nv.attack;
+          m.novaT = nv.every;
+          m.cd = 0;
+        }
         let want = 0;
         if (m.def.behavior === 'lancer') {
           // le piquier garde ses distances
@@ -1315,7 +1356,7 @@ export class World {
           else if (d < 170) want = -0.6;
         } else if (d > a.trigger * 0.8) want = 1;
         if (want !== 0) {
-          const sp = m.def.speed * (m.hasteT > 0 ? m.def.boss?.haste ?? 1.6 : 1) * want * STEP;
+          const sp = m.def.speed * (m.hasteT > 0 ? m.def.boss?.haste ?? 1.6 : 1) * (m.slowT ? 0.5 : 1) * want * STEP;
           // de l'autre côté du vide : on passe par le pont
           const nav = want > 0 ? this.navPoint(m.x, m.y, h.x, h.y) : h;
           let ndx = nav.x - m.x, ndy = (nav.y - m.y) / PERSP;

@@ -210,3 +210,29 @@ export function barrels(): PropArt {
   const b = shadow(50, 86, 46, 8) + barrel(32, 86, 1) + barrel(70, 84, 0.9) + `<path d="M52,40 Q60,30 68,38" fill="#e84a3a" stroke="#7a1a0a" stroke-width="1.6"/>`;
   return { svg: svg(100, 94, '', b), foot: [50, 86] };
 }
+
+/** Carotte géante plantée (Île de la Cawotte) : grosse racine orange à demi sortie, bouquet de feuilles. */
+export function giantCarrot(): PropArt {
+  const leaf = (a: number, l: number, c: string) => {
+    const x = 60 + Math.cos(a) * l, y = 64 + Math.sin(a) * l;
+    return `<path d="M60,66 Q${(60 + x) / 2 - 6},${(64 + y) / 2 - 4} ${x.toFixed(1)},${y.toFixed(1)} Q${(60 + x) / 2 + 6},${(64 + y) / 2 + 6} 62,70 Z" fill="${c}" stroke="#1e4a10" stroke-width="2.2" stroke-linejoin="round"/>`;
+  };
+  const b = shadow(60, 132, 42, 9) +
+    [[-2.6, 52, '#4a9a2e'], [-0.5, 52, '#4a9a2e'], [-2.1, 60, '#6ab83a'], [-1.0, 60, '#6ab83a'], [-1.55, 62, '#8ad85a']].map(([a, l, c]) => leaf(a as number, l as number, c as string)).join('') +
+    `<path d="M24,108 Q22,74 60,70 Q98,74 96,108 Q94,132 60,134 Q26,132 24,108 Z" fill="#f07a1a" stroke="#6a2a06" stroke-width="3"/>` +
+    `<path d="M34,92 q10,2 18,-2 M70,88 q10,4 18,0 M38,114 q12,3 22,-1 M66,112 q10,3 20,-1" fill="none" stroke="#b84a08" stroke-width="2.4" stroke-linecap="round"/>` +
+    `<path d="M36,86 Q46,76 60,76" fill="none" stroke="#ffd0a0" stroke-width="5" stroke-linecap="round" opacity="0.6"/>` +
+    `<path d="M18,132 Q30,124 42,132 M78,132 Q90,124 102,132" fill="none" stroke="#5aa83a" stroke-width="3" stroke-linecap="round"/>`;
+  return { svg: svg(120, 140, '', b), foot: [60, 132] };
+}
+
+/** Bannière des Wabbits (Îlot de la Couronne) : mât de bois, étendard orange à la carotte. */
+export function wabbitBanner(): PropArt {
+  const b = shadow(40, 150, 22, 6) +
+    `<path d="M40,150 L40,16" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M40,150 L40,16" stroke="#9a6a3a" stroke-width="4" stroke-linecap="round"/>` +
+    `<path d="M20,22 L60,22" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>` +
+    `<path d="M24,24 L56,24 L56,92 L40,82 L24,92 Z" fill="#e8762a" stroke="#6a2a06" stroke-width="2.6" stroke-linejoin="round"/>` +
+    `<path d="M28,30 L52,30 L52,36 L28,36 Z" fill="#f8d040"/>` +
+    `<path d="M40,46 Q48,50 44,64 L40,74 L36,64 Q32,50 40,46 Z" fill="#fbeccc" stroke="#6a2a06" stroke-width="1.6"/><path d="M40,46 l-4,-8 M40,46 l4,-8 M40,46 l0,-9" stroke="#3a8a2a" stroke-width="2.2" stroke-linecap="round"/>`;
+  return { svg: svg(80, 158, '', b), foot: [40, 150] };
+}

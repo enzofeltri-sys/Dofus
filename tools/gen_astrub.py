@@ -149,6 +149,25 @@ d('bworkMage', 53, 'bworkMage', 'caster', 120, 26, 1.05, "{ shape: 'circle', tri
 d('bworkArcher', 74, 'bworkArcher', 'lancer', 130, 26, 1.05, "{ shape: 'line', trigger: 300, size: 320, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.4, 1.9], roll: roll('air', 4, 5) }",
   'Flèche Trouveuse : Air 16-20, 1-8 cases en ligne ; 4 PM. Maîtrise des Armes de Jet et Projectile Puissant non repris')
 
+# Niveaux 51-60 (validés par Enzo) : Île de la Cawotte, Îlot de la Couronne, Château du Wa Wabbit
+d('wabbit', 64, 'wabbit', 'melee', 140, 26, 1.1, MEL('terre', 5, 6),
+  'Fwappe des Wabbits : Terre 21-25 au contact ; Fawandole de cawottes : se soigne de 20 % de ses PV tous les 2 tours ; 4 PM. Les +1 PA/PM de la Fawandole ne sont pas repris',
+  ", support: { name: 'Fawandole de cawottes', every: 8, radius: 0, healPct: [20, 20] }")
+d('blackWabbit', 65, 'blackWabbit', 'lancer', 135, 26, 1.1, "{ shape: 'line', trigger: 330, size: 350, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [3.4, 4.2], roll: roll('air', 6, 7) }",
+  'Wabeha : Air 26-28 en ligne à 1-11 cases, 1 fois par tour (la poussée d\'une case n\'est pas reprise) ; Fwappe des Wabbits (Terre 21-25 au contact) non reprise ; 4 PM')
+d('tiwabbit', 96, 'tiwabbit', 'melee', 135, 22, 0.85, MEL('terre', 5, 6),
+  'Fwappe des Wabbits : Terre 21-25 au contact ; 4 PM. Envoie la patate (+100 Puissance à un allié) non repris')
+d('blackTiwabbit', 68, 'blackTiwabbit', 'lancer', 110, 22, 0.85, "{ shape: 'line', trigger: 270, size: 290, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.6, 2.2], roll: roll('feu', 5, 6) }",
+  'Petit Wabehameha : Feu 21-25 en ligne à 1-8 cases (la poussée d\'une case n\'est pas reprise) ; 3 PM')
+d('tiwabbitKiafin', 72, 'tiwabbitKiafin', 'melee', 165, 22, 0.85, "{ shape: 'circle', trigger: 90, size: 70, spread: 0, offset: 0, windup: 0.5, recover: 0.3, cooldown: [2.4, 3.2], roll: neutre(3, 4) }",
+  'Vent de panique : Neutre 11-15 autour de lui ; Panique (fuite) non reprise ; 5 PM (rapide)')
+d('woWabbit', 97, 'woWabbit', 'brute', 110, 32, 1.3, "{ shape: 'circle', trigger: 105, size: 70, spread: 0, offset: 60, windup: 0.55, recover: 0.3, cooldown: [1.2, 1.6], roll: neutre(7, 9), push: 6 }",
+  'Ventwoboom : Neutre 26-35 au contact et repousse de 6 cases ; invoque un Tiwabbit, un Black Tiwabbit ou un Tiwabbit Kiafin tous les 4 tours ; 3 PM',
+  ", summons: { first: 4, every: 16, id: ['tiwabbit', 'blackTiwabbit', 'tiwabbitKiafin'], max: 3 }")
+d('grandPaWabbit', 99, 'grandPaWabbit', 'caster', 110, 26, 1.15, "{ shape: 'circle', trigger: 280, size: 64, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [3.4, 4.2], roll: roll('feu', 9, 11), atTarget: true }",
+  'Cawotte Explosive : Feu 36-45 à 0-7 cases, 1 fois par tour ; Cawotte Vitaminée : soigne un allié de 21-30 PV, 1 fois par tour ; 3 PM. Cawotte Pawalysante (-2 PA, -2 PM) non reprise',
+  ", support: { name: 'Cawotte Vitaminée', every: 4, radius: 160, heal: [21, 30] }")
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -158,7 +177,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert'),
          (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire'),
          (2549, 'boostachePrepubere'),
-         (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage')]
+         (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage'),
+         (2304, 'wabbit'), (2403, 'blackWabbit'), (2293, 'tiwabbit'), (2402, 'blackTiwabbit'), (2294, 'tiwabbitKiafin'), (2308, 'woWabbit'), (2498, 'grandPaWabbit')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -166,7 +186,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']
