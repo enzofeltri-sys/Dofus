@@ -23,7 +23,8 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'pichonOrange' | 'pichonBleu' | 'pichonBlanc' | 'pichonVert' | 'pichonKloune'
   | 'tofuJaune' | 'tofuNoir' | 'tofoune' | 'tofukaz' | 'tofuMutant' | 'tofuVentripotent' | 'batofu' | 'bomberfu' | 'tofuMalefique' | 'rib' | 'kwoan'
   | 'scaraRouge' | 'scaraBleu' | 'scaraVert' | 'scaraBlanc' | 'scaraNoir' | 'scaraImmature' | 'scarabosse'
-  | 'boostache' | 'boostachePrepubere' | 'gargrouille' | 'ashimagari';
+  | 'boostache' | 'boostachePrepubere' | 'gargrouille' | 'ashimagari'
+  | 'kwakVent' | 'kwakereVent' | 'bwakVent' | 'kwakFlamme' | 'kwakereFlamme' | 'bwakFlamme' | 'kwakGlace' | 'kwakereGlace' | 'bwakGlace' | 'kwakTerre' | 'kwakereTerre' | 'bwakTerre' | 'kwakwa';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -46,9 +47,11 @@ export const PICHONS: CritterKind[] = ['pichonOrange', 'pichonBleu', 'pichonBlan
 export const BIPEDS: CritterKind[] = ['milirat', 'ramane', 'scelerat', 'mobEponge'];
 export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
 /** Maison Fantôme : fantômes et Gargrouille (rig flottant : halo, corps, visage). */
+/** Kwaks, Kwakeres, Bwaks (Montagne des Craqueleurs, Nid du Kwakwa) et le Kwakwa : oiseaux élémentaires. */
+export const KWAKS: CritterKind[] = ['kwakVent', 'kwakereVent', 'bwakVent', 'kwakFlamme', 'kwakereFlamme', 'bwakFlamme', 'kwakGlace', 'kwakereGlace', 'bwakGlace', 'kwakTerre', 'kwakereTerre', 'bwakTerre', 'kwakwa'];
 export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille', 'ashimagari'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
-  (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
+  (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
     : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
@@ -84,6 +87,7 @@ export const CRITTER_PIVOTS = {
   milimulou: { tail: [110, 112], legB: [96, 122], body: [80, 132], legF: [64, 96], head: [56, 86], horn: [58, 74] },
   ...Object.fromEntries(['milirat', 'ramane', 'scelerat', 'mobEponge'].map((k) => [k, { legB: [80, 118], legF: [62, 118], stem: [70, 142], leafB: [92, 84], leafF: [52, 86], head: [68, 82] }])),
   ...Object.fromEntries(['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'].map((k) => [k, { wingB: [94, 98], legB: [102, 106], legF: [68, 122], body: [72, 132], crest: [74, 84], wingF: [74, 112] }])),
+  ...Object.fromEntries(KWAKS.map((k) => [k, { wingB: [100, 98], legB: [86, 128], legF: [68, 128], body: [78, 128], crest: [62, 84], wingF: [80, 104] }])),
   ...Object.fromEntries(['tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant', 'tofuVentripotent', 'batofu', 'bomberfu', 'tofuMalefique'].map((k) => [k, { wingB: [104, 92], legB: [86, 146], legF: [58, 146], body: [74, 140], crest: [72, 64], wingF: [82, 112] }])),
   ...Object.fromEntries(['scaraRouge', 'scaraBleu', 'scaraVert', 'scaraBlanc', 'scaraNoir', 'scaraImmature', 'scarabosse'].map((k) => [k, { tail: [90, 92], legB: [96, 126], body: [80, 130], legF: [64, 128], head: [56, 110], horn: [54, 90] }])),
   rib: SHEEP_PIVOTS, kwoan: { back: [70, 150], body: [70, 110], face: [70, 110] },
@@ -1385,6 +1389,54 @@ function ashimagariSvg(part?: CritterPart): string {
   return assemble('ashimagari', P, part);
 }
 
+
+const KWAK_PAL: Record<string, { body: string; back: string; beak: string; spot: string }> = {
+  Vent: { body: '#f4eee0', back: '#c4a0e4', beak: '#f2c63a', spot: '#d878d8' },
+  Flamme: { body: '#f2a636', back: '#8a5628', beak: '#f8e040', spot: '#e8862a' },
+  Glace: { body: '#acd4f6', back: '#5a7cbc', beak: '#9c8ccc', spot: '#c8e2ff' },
+  Terre: { body: '#92c83c', back: '#5a8a26', beak: '#ec9a3a', spot: '#8a5a2a' },
+  Kwakwa: { body: '#f6f2ea', back: '#5a3a22', beak: '#dcb440', spot: '#f0a030' },
+};
+function kwakSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const bwak = kind.startsWith('bwak'), boss = kind === 'kwakwa', kwakere = kind.startsWith('kwakere');
+  const C = KWAK_PAL[boss ? 'Kwakwa' : kind.replace(/^(kwakere|kwak|bwak)/, '')];
+  const ink = shade(C.back, -0.6);
+  const legs = (arr: Parts, k: CritterPart, x: number, y0: number) => push(arr, k,
+    `<path d="M${x},${y0} L${x - 2},146" stroke="#3a2410" stroke-width="5" stroke-linecap="round"/><path d="M${x},${y0} L${x - 2},146" stroke="#f0a83a" stroke-width="3" stroke-linecap="round"/>`,
+    `<path d="M${x - 2},146 l-9,2 M${x - 2},146 l-3,4 M${x - 2},146 l6,2" stroke="#3a2410" stroke-width="2.6" stroke-linecap="round"/><path d="M${x - 2},146 l-9,2 M${x - 2},146 l-3,4 M${x - 2},146 l6,2" stroke="#f8e2c0" stroke-width="1.2" stroke-linecap="round"/>`);
+  if (bwak) {
+    // Bwak : boule de plumes, grosses plumes dressées, queue en éventail, gros œil, bec en coin
+    push(P, 'wingB', blob('M96,100 Q132,70 138,40 Q120,56 112,60 Q124,40 122,24 Q104,52 92,82 Z', C.back, { ink }));
+    legs(P, 'legB', 86, 128); legs(P, 'legF', 66, 128);
+    push(P, 'body', blob(fuzz(76, 104, 34, 30), C.body, { ink, hl: [0.3, 0.22] }), blob(ellipse(70, 116, 20, 14), shade(C.body, 0.18), { ink: shade(C.body, -0.3), w: 1, rim: false }));
+    push(P, 'crest', blob('M70,76 Q62,50 68,36 Q76,52 78,74 Z', C.back, { ink }), blob('M80,76 Q82,48 92,38 Q94,58 86,78 Z', C.back, { ink }),
+      eyeChibi(60, 94, 14, 15, '#1a1a1a', { look: [-0.4, 0.1] }), `<path d="M46,80 Q58,74 72,80" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round"/>`,
+      blob('M48,104 L22,112 L48,120 Q56,112 48,104 Z', C.beak, { ink: shade(C.beak, -0.55) }), `<path d="M24,112 L50,112" stroke="${shade(C.beak, -0.55)}" stroke-width="1.4"/>`);
+    push(P, 'wingF', blob('M86,104 Q100,108 98,126 Q88,128 80,118 Z', shade(C.body, -0.08), { ink }));
+    return assemble(kind, P, part);
+  }
+  // Kwak / Kwakere / Kwakwa : grand oiseau penché en avant, bec crochu, antenne(s) à ocelle, plumes de queue
+  push(P, 'wingB', blob('M96,90 Q126,82 134,62 Q130,84 136,92 Q126,100 112,108 Z', C.back, { ink }), blob('M100,96 Q124,98 132,112 Q114,114 98,108 Z', shade(C.back, -0.1), { ink }));
+  legs(P, 'legB', 88, 120); legs(P, 'legF', 70, 120);
+  push(P, 'body', blob('M54,98 Q56,74 82,72 Q108,72 112,96 Q110,122 84,124 Q60,124 54,98 Z', C.back, { ink, hl: [0.3, 0.22] }),
+    blob('M54,98 Q58,82 72,80 Q82,96 78,122 Q60,122 54,98 Z', C.body, { ink, w: 1.3, rim: false }));
+  const antennas = boss ? [[-30, 0], [-18, -6], [-6, -10], [6, -10], [18, -6], [30, 0]] : kwakere ? [[-14, 0], [0, -6], [14, 0]] : [[-4, -4]];
+  push(P, 'crest', ...antennas.map(([dx, dy]) => {
+    const tx = 56 + dx, ty = 18 + dy + Math.abs(dx) * 0.4;
+    return `<path d="M60,58 Q${(60 + tx) / 2 - 4},${(58 + ty) / 2} ${tx},${ty}" fill="none" stroke="#2a1a0a" stroke-width="2.2"/>` + blob(ellipse(tx, ty - 5, 4.5, 6.5), C.spot, { ink: shade(C.spot, -0.55), w: 1.2 }) + `<circle cx="${tx}" cy="${ty - 5}" r="1.8" fill="#fff"/>`;
+  }),
+    blob(`M64,62 L${kwakere || boss ? 92 : 86},46 L76,66 L${kwakere || boss ? 96 : 88},62 L74,74 Z`, C.back, { ink }),
+    boss ? blob('M44,80 Q58,92 78,84 Q74,98 58,98 Q44,94 44,80 Z', '#ffffff', { ink: '#5a4a3a', w: 1.3 }) : '',
+    blob(ellipse(58, 72, 18, 16), C.body, { ink }),
+    blob('M44,62 Q30,58 22,70 Q16,82 24,94 Q26,84 34,80 Q44,80 48,74 Z', C.beak, { ink: shade(C.beak, -0.55) }),
+    `<path d="M24,94 Q30,86 40,80" fill="none" stroke="${shade(C.beak, -0.55)}" stroke-width="1.6"/>`,
+    eyeChibi(56, 68, 7.5, 8.5, '#1a1a1a', { look: [-0.4, 0.1], lid: kwakere || boss ? 1 : 0, skin: C.body }));
+  push(P, 'wingF', blob('M80,90 Q98,92 102,110 Q90,114 78,104 Z', shade(C.back, 0.08), { ink }));
+  return assemble(kind, P, part);
+}
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1404,6 +1456,7 @@ export const CRITTER_SVG = {
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   rib: (p) => ribSvg(p), kwoan: (p) => kwoanSvg(p),
   boostache: (p) => ghostSvg('boostache', p), boostachePrepubere: (p) => ghostSvg('boostachePrepubere', p), gargrouille: (p) => gargrouilleSvg(p), ashimagari: (p) => ashimagariSvg(p),
+  ...(Object.fromEntries(KWAKS.map((k) => [k, (p?: CritterPart) => kwakSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),

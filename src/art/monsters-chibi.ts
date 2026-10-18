@@ -13,6 +13,7 @@ type Parts = Record<ChaferPart, string[]>;
 const empty = (): Parts => ({ cape: [], armB: [], legB: [], pelvis: [], legF: [], chest: [], shield: [], armF: [], head: [] });
 
 const LW = 1.7;
+const ellipse = (cx: number, cy: number, rx: number, ry: number) => `M${cx - rx},${cy} a${rx},${ry} 0 1,0 ${2 * rx},0 a${rx},${ry} 0 1,0 ${-2 * rx},0 Z`;
 let n = 0;
 let pre = 'mc';
 let builds = 0;
@@ -67,6 +68,7 @@ function assemble(P: Parts, part?: ChaferPart, wrap = (s: string) => s, defs = '
 
 export function chaferChibiSvg(kind: ChaferKind, part?: ChaferPart): string {
   if (kind === 'vampire' || kind === 'maitreVampire') return vampireChibiSvg(kind, part);
+  if (kind === 'bwork' || kind === 'bworkMage' || kind === 'bworkArcher' || kind === 'bworkette') return bworkChibiSvg(kind, part);
   begin();
   const P = empty();
   const glow = uid('glow');
@@ -463,5 +465,76 @@ function vampireChibiSvg(kind: 'vampire' | 'maitreVampire', part?: ChaferPart): 
   h.push(`<circle cx="51" cy="45" r="4.4" fill="#ff2222" filter="url(#${glow})" opacity="0.95"/><circle cx="51" cy="45" r="1.8" fill="#ffd0c0"/><circle cx="71.5" cy="43.5" r="1.5" fill="#ffd0c0"/>`);
   h.push(`<path d="M50,56 Q58,59 66,55" fill="none" stroke="#5a1a1e" stroke-width="2" stroke-linecap="round"/><path d="M53,56.6 L55,62 L57,57.4 M61,57.2 L63,62 L64.6,56.4" fill="#fff" stroke="#5a4a56" stroke-width="0.8"/>`);
   h.push(`<path d="M56,46 L54,52 L57,52" fill="none" stroke="#c8bcc4" stroke-width="1.2"/>`);
+  return assemble(P, part);
+}
+
+/**
+ * Bworks (Campement, Village, Donjon des Bworks) : grosses brutes à peau verte, défenses, cuir et os.
+ * Bwork : épaulière d'os à pointes, couperet ; Mage : bandeau à plume rouge, bâton enflammé ; Archer : crâne en épaulière, arc et carquois ;
+ * Bworkette (boss) : longue mèche noire à plumes, fleur orange, collier d'os, gourdin sur l'épaule.
+ */
+function bworkChibiSvg(kind: 'bwork' | 'bworkMage' | 'bworkArcher' | 'bworkette', part?: ChaferPart): string {
+  begin();
+  const P = empty();
+  const SKIN = kind === 'bworkette' ? '#8ab030' : '#7a9a2a', INK = '#26300a', LEATHER = '#7a5632', LINK = '#2e1e0e';
+  const fat = kind === 'bwork' ? 1 : 0;
+  // dos : carquois de l'Archer, plumes de la Bworkette
+  if (kind === 'bworkArcher') {
+    P.cape.push(blob('M96,52 L112,46 L120,104 L104,108 Z', LEATHER, { ink: LINK }));
+    for (const x of [100, 106, 112]) P.cape.push(`<path d="M${x},50 L${x + 2},28" stroke="#5a3a1a" stroke-width="2.4"/>`, blob(`M${x + 2},28 l-5,-8 l5,2 l5,-2 Z`, '#e8e2d0', { ink: '#5a4a2a', w: 1, rim: false }));
+  }
+  // bras arrière : gros biceps vert, brassard de cuir
+  P.armB.push(blob('M94,66 Q114,72 112,98 Q108,114 98,112 Q94,96 88,84 Z', SKIN, { ink: INK }));
+  P.armB.push(blob('M98,98 L112,96 L112,106 L98,108 Z', LEATHER, { ink: LINK, w: 1.2, rim: false }), blob(ellipse(104, 116, 8, 7), SKIN, { ink: INK }));
+  // jambes trapues, pieds nus griffus
+  const leg = (arr: string[], x: number) => {
+    arr.push(blob(`M${x - 9},112 L${x + 9},112 L${x + 8},150 L${x - 8},150 Z`, SKIN, { ink: INK }));
+    arr.push(blob(`M${x - 16},146 Q${x},138 ${x + 12},146 L${x + 12},160 Q${x - 2},166 ${x - 18},160 Z`, SKIN, { ink: INK }));
+    arr.push(`<path d="M${x - 16},158 l-3,4 M${x - 8},160 l-2,5 M${x},160 l0,5" stroke="#e8e2d0" stroke-width="2.4" stroke-linecap="round"/>`);
+    arr.push(`<path d="M${x - 9},132 L${x + 9},130" stroke="${LEATHER}" stroke-width="4"/>`);
+  };
+  leg(P.legB, 98);
+  leg(P.legF, 72);
+  // pagne de cuir, ceinture à boucle d'os
+  P.pelvis.push(blob('M60,96 L108,96 L110,124 L98,118 L90,130 L80,118 L68,126 L58,118 Z', LEATHER, { ink: LINK }));
+  P.pelvis.push(blob('M60,94 L108,94 L108,102 L60,102 Z', '#4a3218', { ink: LINK, w: 1.2, rim: false }), blob(ellipse(84, 98, 6, 5), '#e8e2d0', { ink: '#5a4a2a', w: 1.2 }));
+  // torse massif
+  P.chest.push(blob(`M${54 - 4 * fat},70 Q84,${54 - 4 * fat} ${114 + 4 * fat},70 Q118,92 108,100 Q84,108 60,100 Q50,88 ${54 - 4 * fat},70 Z`, SKIN, { ink: INK, hl: [0.3, 0.2] }));
+  P.chest.push(`<path d="M72,78 Q84,84 96,78 M84,84 L84,98" fill="none" stroke="${shade(SKIN, -0.35)}" stroke-width="1.8"/>`);
+  if (kind === 'bworkette') P.chest.push(`<path d="M62,72 Q84,92 106,72" fill="none" stroke="#5a3a1a" stroke-width="2"/>` + [64, 72, 80, 88, 96, 104].map((x, i) => blob(`M${x},${74 + (i < 3 ? i * 3 : (5 - i) * 3)} l3,8 l3,-8 Z`, '#f0e8d4', { ink: '#5a4a2a', w: 1, rim: false })).join(''));
+  else P.chest.push(`<path d="M60,68 L104,100" stroke="${LEATHER}" stroke-width="7"/><path d="M60,68 L104,100" stroke="#4a3218" stroke-width="2" stroke-dasharray="3 5"/>`);
+  // épaulière (épaule arrière) : os à pointes (Bwork), crâne (Archer)
+  if (kind === 'bwork') P.chest.push(blob('M88,52 Q110,44 122,60 Q124,74 112,78 Q96,76 88,66 Z', '#d8ccaa', { ink: '#4a3a1e' }), blob('M104,48 L110,30 L114,50 Z M116,56 L132,48 L120,64 Z', '#f0e8d4', { ink: '#4a3a1e', w: 1.2 }));
+  if (kind === 'bworkArcher') P.chest.push(blob(ellipse(108, 62, 12, 11), '#f0e8d4', { ink: '#4a3a1e' }), `<circle cx="104" cy="62" r="3" fill="#2a1a10"/><circle cx="112" cy="62" r="3" fill="#2a1a10"/>`);
+  // bras avant et arme
+  const fist = (x: number, y: number) => blob(ellipse(x, y, 9, 8), SKIN, { ink: INK });
+  P.armF.push(blob('M76,68 Q56,70 48,88 Q46,98 56,98 Q64,88 76,84 Z', SKIN, { ink: INK }));
+  if (kind === 'bwork') {
+    P.armF.push(`<path d="M50,96 L42,124" stroke="#4a3218" stroke-width="6" stroke-linecap="round"/>`, blob('M30,118 L58,112 L64,150 Q46,160 28,150 Z', '#8a8c96', { ink: '#26262e' }),
+      `<path d="M30,148 Q46,156 62,148" fill="none" stroke="#e8eaf0" stroke-width="2.4"/>`, fist(50, 96));
+  } else if (kind === 'bworkMage') {
+    P.armF.push(`<path d="M44,150 L56,16" stroke="#3a2410" stroke-width="7" stroke-linecap="round"/><path d="M44,150 L56,16" stroke="#9a6a3a" stroke-width="4" stroke-linecap="round"/>`,
+      blob('M56,18 Q46,8 52,-6 Q56,4 62,0 Q60,8 66,6 Q66,18 56,18 Z', '#ff8a2a', { ink: '#8a2a0a', w: 1.3 }), blob('M56,16 Q52,10 56,4 Q58,10 61,9 Q61,15 56,16 Z', '#ffe27a', { ink: '#c86a10', w: 1, rim: false }), fist(51, 92));
+  } else if (kind === 'bworkArcher') {
+    P.armF.push(`<path d="M38,40 Q12,96 40,150" fill="none" stroke="#3a2410" stroke-width="6" stroke-linecap="round"/><path d="M38,40 Q12,96 40,150" fill="none" stroke="#9a6a3a" stroke-width="3" stroke-linecap="round"/>`,
+      `<path d="M38,40 L40,150" stroke="#e8e2d0" stroke-width="1.2"/>`, fist(30, 94));
+  } else {
+    P.armF.push(fist(52, 92), `<path d="M52,92 Q60,60 80,34" stroke="#3a2410" stroke-width="9" stroke-linecap="round"/><path d="M52,92 Q60,60 80,34" stroke="#a87a44" stroke-width="6" stroke-linecap="round"/>`,
+      blob(ellipse(82, 30, 10, 8), '#8a5a2a', { ink: '#3a2410' }));
+  }
+  // tête : mâchoire carrée, défenses, petits yeux sous un sourcil épais
+  const h = P.head;
+  if (kind === 'bworkette') h.push(blob('M70,18 Q96,6 108,24 Q118,46 106,74 Q100,56 92,46 Q90,30 70,18 Z', '#2a1a2e', { ink: '#0e0610' }),
+    blob('M104,20 L124,0 L118,22 Z M110,30 L132,20 L120,38 Z', '#c84a2a', { ink: '#5a1a0a', w: 1.2 }));
+  h.push(blob('M42,44 C40,24 54,14 70,14 C88,14 98,26 96,46 C96,62 86,72 70,72 C54,72 42,62 42,44 Z', SKIN, { ink: INK }));
+  h.push(blob('M86,30 L104,22 L96,40 Z', SKIN, { ink: INK, w: 1.3 }));
+  h.push(`<path d="M44,36 Q56,30 70,36" fill="none" stroke="${shade(SKIN, -0.5)}" stroke-width="4" stroke-linecap="round"/>`);
+  h.push(`<circle cx="54" cy="42" r="3.4" fill="#1a1a0a"/><circle cx="68" cy="42" r="3" fill="#1a1a0a"/><circle cx="53" cy="41" r="1.1" fill="#fff"/>`);
+  h.push(blob('M46,52 Q60,60 80,54 Q80,66 62,68 Q48,64 46,52 Z', shade(SKIN, -0.12), { ink: INK, w: 1.3 }));
+  h.push(blob('M50,58 l-2,-12 l6,10 Z', '#f4eedc', { ink: '#5a4a2a', w: 1.1 }), blob('M74,56 l2,-12 l4,12 Z', '#f4eedc', { ink: '#5a4a2a', w: 1.1 }));
+  if (kind === 'bwork') h.push(blob('M42,30 Q60,10 90,20 Q96,28 92,34 Q66,26 44,36 Z', '#8a8c96', { ink: '#26262e' }), blob('M48,22 L36,6 L54,18 Z M84,18 L92,0 L92,22 Z', '#f0e8d4', { ink: '#4a3a1e', w: 1.2 }));
+  if (kind === 'bworkMage') h.push(`<path d="M42,30 Q68,22 94,30" fill="none" stroke="#c8a040" stroke-width="5"/>`, blob('M88,26 Q104,6 112,10 Q102,20 96,32 Z', '#d8302a', { ink: '#5a0a08', w: 1.2 }));
+  if (kind === 'bworkArcher') h.push(blob('M40,34 Q50,8 72,10 Q94,10 98,30 Q74,22 40,34 Z', '#f0e8d4', { ink: '#4a3a1e' }), `<path d="M52,16 L46,4 M84,14 L90,2" stroke="#4a3a1e" stroke-width="2.4" stroke-linecap="round"/>`);
+  if (kind === 'bworkette') h.push(blob(ellipse(46, 30, 7, 7), '#ff8a2a', { ink: '#8a3a0a', w: 1.2 }), `<circle cx="46" cy="30" r="2.4" fill="#ffd84a"/>`);
   return assemble(P, part);
 }
