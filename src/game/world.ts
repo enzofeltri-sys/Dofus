@@ -162,6 +162,7 @@ export interface Monster {
   fearT?: number;
   reviveT?: number;
   regenT?: number;
+  regenDone?: boolean;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -1152,11 +1153,12 @@ export class World {
         this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.heal.spell ?? 'Soin Feuillu' });
       }
     }
-    if (b.regen) {
+    if (b.regen && !(b.regen.once && m.regenDone)) {
       m.regenT = (m.regenT ?? b.regen.every * 0.5) - STEP;
       // Reconstitution Bwork : seulement une fois bien entamé (moins de 60 % de ses PV)
       if (m.regenT <= 0 && m.hp < m.maxHp * 0.6) {
         m.regenT = b.regen.every;
+        m.regenDone = true;
         const amount = Math.min(m.maxHp - m.hp, Math.round(m.maxHp * b.regen.pct / 100));
         m.hp += amount;
         this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.regen.spell });

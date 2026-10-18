@@ -145,8 +145,8 @@ export interface BossKit {
   fear?: { every: number; radius: number; push: number; pa: number; spell: string };
   /** L'Enfer des Zombies (Boostache) : réanime le dernier allié mort (100 % de ses PV), au plus toutes les `every` s. */
   revive?: { every: number; spell: string };
-  /** Grand soin (Reconstitution Bwork de la Bworkette) : `pct` % des PV max, au plus toutes les `every` s, quand il est blessé. */
-  regen?: { every: number; pct: number; spell: string };
+  /** Grand soin (Reconstitution Bwork de la Bworkette) : `pct` % des PV max, au plus toutes les `every` s, quand il est blessé ; `once` : une seule fois par combat. */
+  regen?: { every: number; pct: number; spell: string; once?: boolean };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -323,7 +323,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
    * Mot Croisé : Feu 15-18 sur ses ennemis et soin 15-18 de ses alliés (elle comprise), 0-6 cases, 2 fois par tour
    * → un coup à distance toutes les 2 s et un soin de 15-18 PV toutes les 4 s ;
    * Charge : Terre 21-40 au contact, tous les 2 tours → elle fonce sur le héros toutes les 8 s ;
-   * Reconstitution Bwork : se soigne de 50 % de ses PV max, tous les 6 tours → au plus toutes les 24 s.
+   * Reconstitution Bwork : se soigne de 50 % de ses PV max, tous les 6 tours dans Dofus ; ici une seule fois par combat (choix d'Enzo : la vraie cadence la rendait imbattable).
    * Abolissement (Neutre 200) ne touche que les invocations : sans objet ici. Rage (+6-10 dommages) n'est pas reprise.
    */
   bworkette: {
@@ -333,7 +333,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
     attack: { shape: 'circle', trigger: 240, size: 70, spread: 0, offset: 0, windup: 0.75, recover: 0.35, cooldown: [1.6, 2.2], roll: { min: 15, max: 18, critBonus: 3, critBase: 3, element: 'feu' }, atTarget: true },
     charge: { every: 8, dash: 240, attack: { shape: 'line', trigger: 380, size: 300, spread: 30, offset: 0, windup: 0.85, recover: 0.5, cooldown: [1.2, 1.6], roll: { min: 21, max: 40, critBonus: 4, critBase: 3, element: 'terre' } } },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'bwork', maxSummons: 0,
-      heal: { every: 4, min: 15, max: 18, spell: 'Mot Croisé' }, regen: { every: 24, pct: 50, spell: 'Reconstitution Bwork' } },
+      heal: { every: 4, min: 15, max: 18, spell: 'Mot Croisé' }, regen: { every: 24, pct: 50, spell: 'Reconstitution Bwork', once: true } },
   },
   /** Ashi-magari (2976) : invocation du Boostache, 150 PV ; Enchevêtrement : immobilise ce qui l'entoure pendant 1 tour (4 s), sans dommages. */
   ashiMagari: {

@@ -83,7 +83,7 @@ describe('Niveaux 41-50 : Kwaks et Bworks (validés par Enzo)', () => {
     expect(w.hero.y - y0).toBeGreaterThan(60);
   });
 
-  it('Reconstitution Bwork : la Bworkette se soigne de 50 % de ses PV max une fois bien entamée', () => {
+  it('Reconstitution Bwork : la Bworkette se soigne de 50 % de ses PV max, une seule fois par combat', () => {
     const w = bossRoom('donjonBworks');
     const boss = w.boss!;
     w.monsters = [boss];
@@ -95,5 +95,11 @@ describe('Niveaux 41-50 : Kwaks et Bworks (validés par Enzo)', () => {
     const hp0 = boss.hp;
     w.step({ x: 0, y: 0 });
     expect(boss.hp - hp0).toBe(Math.round(boss.maxHp * 0.5));
+    // une seule fois par combat (choix d'Enzo)
+    boss.hp = Math.round(boss.maxHp * 0.3);
+    boss.regenT = STEP;
+    const hp1 = boss.hp;
+    for (let i = 0; i < 10; i++) w.step({ x: 0, y: 0 });
+    expect(boss.hp).toBe(hp1);
   });
 });
