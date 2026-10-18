@@ -12,12 +12,13 @@ await p.reload(); await ready();
 await p.evaluate(async () => {
   const inv = await import('/src/game/inventory.ts');
   const f = await import('/src/game/forge.ts');
+  const pr = await import('/src/game/progression.ts');
   let i = inv.starterInventory();
   i = f.addNew(i, 7712, 2, Math.random); // Pioute vert (rareté ignorée)
   i = f.addNew(i, 7113, 0, Math.random); // Dofawa
   i = f.addNew(i, 7113, 0, Math.random); // un 2e Dofawa
   i = f.addNew(i, 30356, 0, Math.random); // Jyfus
-  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 90000, carac: {} }, inventory: i, resources: { 20040: 25 } }));
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { ...pr.defaultProfile(), xp: pr.XP_TABLE[25] }, inventory: i, resources: { 20040: 25 } }));
 });
 await p.reload(); await ready();
 await p.click('.nav-tab[data-sec="equip"]');
@@ -40,7 +41,7 @@ for (const d of dofs) {
   await p.click(`.inv-grid [data-uid="${d.uid}"]`);
   await p.waitForTimeout(300);
   console.log('Dofawa :', await p.textContent('.inv-detail:not(.inv-modal) .act'));
-  await p.click('.inv-detail:not(.inv-modal) .act');
+  if (await p.$eval('.inv-detail:not(.inv-modal) .act', (e) => !e.disabled)) await p.click('.inv-detail:not(.inv-modal) .act');
   await p.waitForTimeout(200);
   await p.click('.inv-detail:not(.inv-modal) .det-close');
 }
