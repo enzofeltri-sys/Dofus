@@ -1188,8 +1188,8 @@ export class Hud {
     let pick: 'fuse' | 'break' | null = null;
     let chosen: number[] = [];
     const forgeOf = () => new Map((this.work?.forge() ?? []).map((r) => [r.uid, r]));
-    const renderActs = () => {
-      acts.hidden = this.invTab !== 0 || !this.work;
+    const renderActs = (any: boolean) => {
+      acts.hidden = this.invTab !== 0 || !this.work || !any;
       acts.innerHTML = !pick
         ? '<button type="button" class="gr-btn magic sm ia-fuse">Fusion</button><button type="button" class="gr-btn coral sm ia-break">Briser</button>'
         : `<span class="ia-hint">${pick === 'fuse' ? 'Touche l’objet à faire monter de rareté' : `Touche les objets à briser · ${chosen.length} choisi${chosen.length > 1 ? 's' : ''}`}</span>
@@ -1281,7 +1281,7 @@ export class Hud {
           : '<p class="inv-empty">Aucune panoplie ne correspond.</p>');
       }
       renderDoll(v);
-      renderActs();
+      renderActs(v.equipment.length > 0);
       if (open) showDetail(open.kind === 'uid' ? h.detail(open.uid) : open.kind === 'res' ? h.resource(open.id) : h.catalog(open.id));
       return n;
     };
@@ -1313,13 +1313,15 @@ export class Hud {
         open = null;
         return;
       }
-      const links = d.links.filter((l) => !(l.go.startsWith('uses:') || l.go.startsWith('recipe:')) || this.work);
+      // panoplie : une seule ligne cliquable, les bonus se lisent dans la vue panoplie (demandé par Enzo)
+      const setGo = d.links.find((l) => l.go.startsWith('set:'))?.go;
+      const links = d.links.filter((l) => !l.go.startsWith('set:') && (!(l.go.startsWith('uses:') || l.go.startsWith('recipe:')) || this.work));
       const fg = open?.kind === 'uid' ? forgeOf().get(open.uid) : undefined;
       detail.querySelector('.det-card')!.innerHTML = `
         <div class="det-head"><span class="det-ico r${d.rarity}">${d.icon}</span><div><h3 class="gr-h3 rar-${d.rarity}">${d.name}</h3><span class="det-sub">${d.sub}</span></div>
           ${d.marks ? `<div class="det-marks"><button type="button" class="mark fav ${d.marks.fav ? 'on' : ''}" data-mark="fav" aria-label="Favori">${STAR_SVG}</button><button type="button" class="mark lock ${d.marks.lock ? 'on' : ''}" data-mark="lock" aria-label="Verrouiller">${LOCK_SVG}</button></div>` : ''}</div>
         ${d.lines.length ? `<div class="det-lines">${d.lines.map((l) => `<div><span>${l.text}</span>${l.range ? `<small>${l.range}</small>` : ''}</div>`).join('')}</div>` : ''}
-        ${d.set ? `<div class="det-set"><span class="gr-label">${d.set.name}</span>${d.set.rows.map((r) => `<div class="${r.on ? 'on' : ''}"><b class="gr-num">${r.n}</b> ${r.text}</div>`).join('')}</div>` : ''}
+        ${d.set && setGo ? `<button type="button" class="det-setlink" data-go="${setGo}"><span>${d.set.name.split(" · ")[0]}</span><b class="gr-num">${d.set.count}/${d.set.total}</b><i>›</i></button>` : ''}
         ${d.diffTitle ? `<div class="det-diff"><span class="gr-label">${d.diffTitle}</span>${d.diff.length ? d.diff.map((x) => `<span class="${x.up ? 'up' : 'down'}">${x.text}</span>`).join('') : '<span>Aucun changement</span>'}</div>` : ''}
         ${d.sources.length ? `<div class="det-src"><span class="gr-label">Où l’obtenir</span>${d.sources.map((s) => `<div>${s}</div>`).join('')}</div>` : ''}
         ${d.note ? `<p class="det-note">${d.note}</p>` : ''}

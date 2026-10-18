@@ -1,0 +1,24 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push(e.message));
+const ready = async () => { await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 }); await p.waitForSelector('.camp:not([hidden]) .play', { timeout: 20000 }); };
+await p.goto('http://localhost:5173/');
+await p.evaluate(() => localStorage.clear());
+await p.reload(); await ready();
+await p.evaluate(async () => {
+  const inv = await import('/src/game/inventory.ts');
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 9000, carac: {} }, inventory: inv.starterInventory(), resources: {} }));
+});
+await p.reload(); await ready();
+await p.click('.nav-tab[data-sec="equip"]');
+await p.waitForTimeout(500);
+await p.click('.inv-doll [data-slot="amulette"]');
+await p.waitForTimeout(500);
+await p.screenshot({ path: 'shots/setlink_fiche.png' });
+await p.click('.det-setlink');
+await p.waitForTimeout(900);
+await p.screenshot({ path: 'shots/setlink_pano.png' });
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();

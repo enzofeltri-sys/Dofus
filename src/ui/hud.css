@@ -478,6 +478,13 @@ html, body {
 .det-sub { font-size: var(--t-sm); color: var(--ink-soft); font-weight: 700; }
 .det-lines > div { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1.5px dashed rgba(59,36,20,.2); font-weight: 800; }
 .det-lines small { color: var(--ink-soft); font-weight: 600; }
+.det-setlink {
+  margin-top: 10px; width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px;
+  border: 2px solid var(--parchment-3); background: #fcf6e6; font: inherit; font-weight: 800; color: var(--leaf-dark); text-align: left; cursor: pointer;
+}
+.det-setlink span { flex: 1; }
+.det-setlink b { color: var(--ink-soft); }
+.det-setlink i { font-style: normal; font-size: 20px; line-height: 1; color: var(--ink-soft); }
 .det-set { margin-top: 10px; display: flex; flex-direction: column; gap: 2px; font-size: var(--t-sm); }
 .det-set > div { color: var(--ink-soft); }
 .det-set > div.on { color: var(--leaf-dark); font-weight: 800; }
