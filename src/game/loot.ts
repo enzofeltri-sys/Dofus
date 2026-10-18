@@ -1,6 +1,7 @@
 import { isEquipment, ITEMS } from './data/items';
 import { DUNGEON_DROPS, REGION_DROPS, ZONE_EQUIP } from './data/items.gen';
 import { zoneEquipRange } from './data/areas';
+import { PET_FOOD, SPECIAL_CHANCE } from './pets';
 
 /**
  * Butin (document de design §8.1) : tables réelles de DofusDB, avec des multiplicateurs pour le rythme d'une partie
@@ -50,6 +51,12 @@ export interface DropContext {
   prospection: number;
   /** Équipement de zone de la carte (`zoneEquipPool`). */
   zonePool?: number[];
+  /** Familiers de la zone : tirés sur l'élite d'une carte (3 %) ou le boss (10 %). */
+  pets?: { ids: number[]; from: 'elite' | 'boss' };
+  /** Dofus de ce boss (très rare). */
+  dofus?: number;
+  /** Super Croquettes (tous les monstres de la partie). */
+  food?: boolean;
 }
 
 /** Chance (0-1) qu'un objet de la table tombe, avec les multiplicateurs du jeu (prospection 100). */
@@ -80,6 +87,9 @@ export function rollDrops(ctx: DropContext, rnd: () => number): number[] {
       }
     }
   }
+  if (ctx.food && rnd() < Math.min(1, SPECIAL_CHANCE.food * pp)) out.push(PET_FOOD);
+  if (ctx.pets?.ids.length && rnd() < Math.min(1, (ctx.pets.from === 'boss' ? SPECIAL_CHANCE.petBoss : SPECIAL_CHANCE.petElite) * pp)) out.push(ctx.pets.ids[Math.floor(rnd() * ctx.pets.ids.length)]);
+  if (ctx.dofus && rnd() < Math.min(1, SPECIAL_CHANCE.dofus * pp)) out.push(ctx.dofus);
   const zp = ctx.zonePool;
   if (zp?.length) {
     const c = ctx.boss ? ZONE_EQUIP_CHANCE.boss : ZONE_EQUIP_CHANCE.monster * (ctx.elite ? ZONE_EQUIP_CHANCE.elite : 1);

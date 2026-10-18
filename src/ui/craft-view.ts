@@ -1,6 +1,6 @@
 import { canCraft, jobLevel, jobProgress, sortedRecipes, usable, type Workshop } from '../game/craft';
 import type { Facets } from '../game/search';
-import { fmtLine, item, SETS, statLabel } from '../game/data/items';
+import { fmtLine, isSpecial, item, SETS, statLabel } from '../game/data/items';
 import {
   BOSS_RESOURCE, breakPreview, canBreak, FUSION_BOSS_COST, fusionPartners, fusionRule, MAX_RARITY, RARITIES, rangesFor, upgradeRolls,
 } from '../game/forge';
@@ -86,7 +86,8 @@ export function forgeRows(w: Workshop): ForgeRow[] {
     const d = item(it.id), r = it.rarity ?? 0;
     const partners = fusionPartners(inv, it.uid).length;
     const rule = fusionRule(it);
-    const fuseWhy = r >= MAX_RARITY ? 'Déjà Mythique'
+    const fuseWhy = isSpecial(it.id) ? (d.slot === 'familier' ? 'Un familier ne se fusionne pas' : 'Un Dofus ne se fusionne pas')
+      : r >= MAX_RARITY ? 'Déjà Mythique'
       : partners >= 2 ? ''
       : rule === 'same' ? `Il faut 2 autres ${d.name} ${RARITIES[r]}` : `Il faut 2 pièces ${RARITIES[r]} de la panoplie`;
     const br = canBreak(inv, it.uid);

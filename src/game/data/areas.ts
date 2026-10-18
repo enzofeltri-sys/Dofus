@@ -425,6 +425,9 @@ export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
 };
 
+/** Zone de l'arbre qui contient cette carte ou ce donjon. */
+export const zoneIdOf = (areaId: string): string | null => ZONES.find((z) => z.nodes.some((n) => n.area?.id === areaId))?.id ?? null;
+
 /** Niveaux de l'équipement de zone d'une carte : sa tranche, jusqu'au niveau de la carte + 2 (toute la tranche en donjon). */
 export function zoneEquipRange(areaId: string): { lo: number; hi: number; zone: string } | null {
   for (const z of ZONES) {

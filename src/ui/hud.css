@@ -687,6 +687,9 @@ html, body {
 .inv-acts .ia-hint { flex: 1; font-size: 13px; color: var(--ink-soft); font-weight: 700; }
 .inv-cell.off { opacity: .35; filter: grayscale(.7); }
 .inv-cell.sel { box-shadow: inset 0 0 0 3px var(--coral), 0 2px 0 rgba(59,36,20,.3); transform: translateY(-1px); }
+.det-pet { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.det-pet .track { flex: 1; height: 10px; border-radius: 6px; background: var(--parchment-3); overflow: hidden; }
+.det-pet .fill { display: block; height: 100%; width: var(--v); background: var(--leaf); }
 .det-forge { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
 .det-forge small { flex-basis: 100%; color: var(--ink-soft); font-size: 12px; }
 .fz-partners { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 8px; margin: 6px 0; }

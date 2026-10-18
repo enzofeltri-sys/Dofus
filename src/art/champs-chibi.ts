@@ -22,7 +22,8 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'martoa' | 'sherpoa' | 'douzdoa' | 'pikdoa' | 'arakneEgouts' | 'milimulou' | 'milirat' | 'ramane' | 'scelerat' | 'mobEponge'
   | 'pichonOrange' | 'pichonBleu' | 'pichonBlanc' | 'pichonVert' | 'pichonKloune'
   | 'tofuJaune' | 'tofuNoir' | 'tofoune' | 'tofukaz' | 'tofuMutant' | 'tofuVentripotent' | 'batofu' | 'bomberfu' | 'tofuMalefique' | 'rib' | 'kwoan'
-  | 'scaraRouge' | 'scaraBleu' | 'scaraVert' | 'scaraBlanc' | 'scaraNoir' | 'scaraImmature' | 'scarabosse';
+  | 'scaraRouge' | 'scaraBleu' | 'scaraVert' | 'scaraBlanc' | 'scaraNoir' | 'scaraImmature' | 'scarabosse'
+  | 'boostache' | 'boostachePrepubere' | 'gargrouille';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -44,9 +45,11 @@ export const PICHONS: CritterKind[] = ['pichonOrange', 'pichonBleu', 'pichonBlan
 /** Bipèdes (jambes, corps, bras, tête : pièces des plantes). */
 export const BIPEDS: CritterKind[] = ['milirat', 'ramane', 'scelerat', 'mobEponge'];
 export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
+/** Maison Fantôme : fantômes et Gargrouille (rig flottant : halo, corps, visage). */
+export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
-    : JELLIES.includes(k) || FLAMES.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
+    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
 const PLANT_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [76, 112], leafF: [64, 114], head: [70, 96] };
@@ -84,6 +87,8 @@ export const CRITTER_PIVOTS = {
   ...Object.fromEntries(['tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant', 'tofuVentripotent', 'batofu', 'bomberfu', 'tofuMalefique'].map((k) => [k, { wingB: [104, 92], legB: [86, 146], legF: [58, 146], body: [74, 140], crest: [72, 64], wingF: [82, 112] }])),
   ...Object.fromEntries(['scaraRouge', 'scaraBleu', 'scaraVert', 'scaraBlanc', 'scaraNoir', 'scaraImmature', 'scarabosse'].map((k) => [k, { tail: [90, 92], legB: [96, 126], body: [80, 130], legF: [64, 128], head: [56, 110], horn: [54, 90] }])),
   rib: SHEEP_PIVOTS, kwoan: { back: [70, 150], body: [70, 110], face: [70, 110] },
+  boostache: { back: [70, 150], body: [70, 104], face: [70, 104] }, boostachePrepubere: { back: [70, 150], body: [70, 104], face: [70, 104] },
+  gargrouille: { back: [70, 150], body: [70, 146], face: [70, 146] },
 } as Record<CritterKind, Partial<Record<CritterPart, [number, number]>>>;
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -1304,6 +1309,68 @@ function kwoanSvg(part?: CritterPart): string {
   return assemble('kwoan', P, part);
 }
 
+
+/** Boostache (boss) et Boostache Prépubère : fantômes flottants, queue en volute ; le Boostache a une grosse moustache, des yeux jaunes et une flammèche verte. */
+function ghostSvg(kind: 'boostache' | 'boostachePrepubere', part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const big = kind === 'boostache';
+  const base = big ? '#f4f6ec' : '#f8ddd2', ink = big ? '#4a5a48' : '#8a5a50';
+  push(P, 'back', `<ellipse cx="70" cy="150" rx="22" ry="5" fill="#000" opacity="0.16"/>`, halo(uid('h'), 70, 92, 58, big ? '#b8ff9a' : '#ffd8c8'));
+  push(P, 'body',
+    blob('M34,86 C30,52 50,30 72,30 C98,30 112,52 110,80 C108,100 100,112 108,124 C112,132 100,138 92,130 C88,138 76,140 70,132 C62,140 50,136 50,126 C40,122 36,104 34,86 Z', base, { ink }),
+    blob('M36,92 Q22,96 20,108 Q30,112 40,104 Z', base, { ink, w: 1.4 }), blob('M106,90 Q120,92 124,104 Q114,108 104,100 Z', base, { ink, w: 1.4 }),
+    `<path d="M48,44 Q60,34 76,36" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.7"/>`);
+  if (big) {
+    push(P, 'face',
+      // flammèche verte sur le crâne
+      blob('M74,30 Q66,18 74,6 Q76,16 84,20 Q86,28 74,30 Z', '#7aef6a', { ink: '#2a7a2a', w: 1.3 }), halo(uid('h'), 76, 20, 14, '#9aff8a'),
+      // yeux jaunes, sourcils froncés
+      blob(ellipse(56, 66, 9, 8), '#fff6b0', { ink: '#3a3a1a', w: 1.4 }), blob(ellipse(86, 66, 9, 8), '#fff6b0', { ink: '#3a3a1a', w: 1.4 }),
+      `<circle cx="58" cy="67" r="3.4" fill="#2a2a10"/><circle cx="84" cy="67" r="3.4" fill="#2a2a10"/>`,
+      `<path d="M44,54 L66,60 M98,54 L76,60" stroke="#3a4a38" stroke-width="3.4" stroke-linecap="round"/>`,
+      // grosse moustache en volutes
+      blob('M70,80 C60,74 46,74 40,84 C36,92 44,98 50,92 C46,90 46,84 52,84 C58,84 64,88 70,86 C76,88 82,84 88,84 C94,84 94,90 90,92 C96,98 104,92 100,84 C94,74 80,74 70,80 Z', '#ffffff', { ink: '#5a6a58', w: 1.5 }),
+      `<path d="M62,96 Q70,100 78,96" fill="none" stroke="#3a4a38" stroke-width="2.2" stroke-linecap="round"/>`);
+  } else {
+    push(P, 'face',
+      `<circle cx="58" cy="70" r="4" fill="#3a2420"/><circle cx="82" cy="70" r="4" fill="#3a2420"/><circle cx="59.4" cy="68.6" r="1.4" fill="#fff"/><circle cx="83.4" cy="68.6" r="1.4" fill="#fff"/>`,
+      `<ellipse cx="50" cy="80" rx="6" ry="3.4" fill="#ff9a9a" opacity="0.6"/><ellipse cx="90" cy="80" rx="6" ry="3.4" fill="#ff9a9a" opacity="0.6"/>`,
+      // un début de moustache (prépubère) et une petite bouche boudeuse
+      `<path d="M62,82 q4,-3 8,0 q4,-3 8,0" fill="none" stroke="#c89a8a" stroke-width="2" stroke-linecap="round"/>`,
+      `<path d="M64,90 Q70,86 76,90" fill="none" stroke="#5a3028" stroke-width="2.2" stroke-linecap="round"/>`);
+  }
+  return assemble(kind, P, part);
+}
+
+/** Gargrouille : petite créature encapuchonnée en cape brune, masque d'os à cornes, bâton à crâne et lanterne. */
+function gargrouilleSvg(part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  push(P, 'back', `<ellipse cx="70" cy="150" rx="28" ry="6" fill="#000" opacity="0.2"/>`,
+    // bâton (derrière) : crâne au sommet, lanterne accrochée
+    `<path d="M100,148 L106,22" stroke="#3a2a18" stroke-width="6" stroke-linecap="round"/><path d="M100,148 L106,22" stroke="#7a5a34" stroke-width="3" stroke-linecap="round"/>`,
+    blob(ellipse(106, 20, 9, 8), '#ece2c4', { ink: '#5a4a2a', w: 1.4 }), `<circle cx="103" cy="19" r="2" fill="#2a1a10"/><circle cx="109" cy="19" r="2" fill="#2a1a10"/>`,
+    `<path d="M106,30 Q120,30 122,40" fill="none" stroke="#2a2a2a" stroke-width="2"/>`, halo(uid('h'), 122, 54, 18, '#ffe88a'),
+    blob('M114,42 L130,42 L132,64 L112,64 Z', '#ffe27a', { ink: '#3a3020', w: 1.6 }), `<path d="M112,42 L132,42 M122,42 L122,64 M111,64 L133,64" stroke="#3a3020" stroke-width="2.2"/>`);
+  push(P, 'body',
+    // cape brune voûtée, ourlet effiloché, pieds griffus
+    blob('M40,140 C34,112 36,82 50,66 C62,54 84,54 94,68 C106,84 108,112 102,140 L94,134 L88,142 L80,134 L72,142 L64,134 L56,142 L48,134 Z', '#7a4a2a', { ink: '#2e1a0c' }),
+    `<path d="M54,80 Q60,110 56,136 M86,80 Q84,110 90,136" fill="none" stroke="#5a3418" stroke-width="2.4" opacity="0.8"/>`,
+    blob('M52,140 l-6,8 l8,-2 l4,4 l4,-8 Z', '#a8946a', { ink: '#3a2a12', w: 1.2 }), blob('M84,140 l-2,8 l6,-2 l6,4 l0,-8 Z', '#a8946a', { ink: '#3a2a12', w: 1.2 }),
+    // main sur le bâton
+    blob(ellipse(98, 100, 7, 6), '#a8946a', { ink: '#3a2a12', w: 1.3 }));
+  push(P, 'face',
+    // capuche et masque d'os à cornes
+    blob('M42,76 C40,50 54,36 70,36 C88,36 100,50 98,76 C90,70 50,70 42,76 Z', '#6a3e22', { ink: '#2e1a0c' }),
+    blob('M50,72 C50,56 60,50 70,50 C82,50 90,58 90,72 C88,86 78,92 70,92 C60,92 52,86 50,72 Z', '#ece2c4', { ink: '#5a4a2a' }),
+    blob('M54,56 C44,48 40,36 46,28 C48,38 54,44 62,50 Z', '#d8ccaa', { ink: '#5a4a2a', w: 1.4 }), blob('M86,56 C96,48 100,36 94,28 C92,38 86,44 78,50 Z', '#d8ccaa', { ink: '#5a4a2a', w: 1.4 }),
+    blob(ellipse(62, 70, 6, 7), '#2a1a10', { ink: '#1a0e06', w: 1.2, rim: false }), blob(ellipse(80, 70, 6, 7), '#2a1a10', { ink: '#1a0e06', w: 1.2, rim: false }),
+    `<circle cx="62" cy="71" r="2.4" fill="#ffd84a"/><circle cx="80" cy="71" r="2.4" fill="#ffd84a"/>`,
+    `<path d="M62,84 l2,4 l2,-4 l2,4 l2,-4 l2,4 l2,-4 l2,4" fill="none" stroke="#5a4a2a" stroke-width="1.4"/>`);
+  return assemble('gargrouille', P, part);
+}
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1322,6 +1389,7 @@ export const CRITTER_SVG = {
   ...(Object.fromEntries(Object.keys(LARVE).map((k) => [k, (p?: CritterPart) => larveSvg(k as CritterKind, p)])) as Record<string, (p?: CritterPart) => string>),
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   rib: (p) => ribSvg(p), kwoan: (p) => kwoanSvg(p),
+  boostache: (p) => ghostSvg('boostache', p), boostachePrepubere: (p) => ghostSvg('boostachePrepubere', p), gargrouille: (p) => gargrouilleSvg(p),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),

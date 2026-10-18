@@ -22,6 +22,8 @@ export interface ItemInstance {
   fav?: boolean;
   /** Verrouillé : protégé de la fusion et du brisage (étape 8). */
   lock?: boolean;
+  /** Familier : croissance en % de son bonus maximal (20 à 100), monte en mangeant des Super Croquettes. */
+  food?: number;
 }
 
 export interface Inventory {
@@ -52,7 +54,8 @@ export function toggleMark(inv: Inventory, uid: number, mark: 'fav' | 'lock'): I
 
 /** Lignes d'un objet avec ses jets (et sa ligne bonus de rareté). */
 export const itemLines = (it: ItemInstance): [StatPath, number][] => {
-  const lines: [StatPath, number][] = item(it.id).effects.map(([p], i) => [p, it.rolls[i] ?? 0]);
+  const pct = item(it.id).slot === 'familier' ? (it.food ?? 100) / 100 : 1;
+  const lines: [StatPath, number][] = item(it.id).effects.map(([p], i) => [p, pct < 1 ? Math.floor((it.rolls[i] ?? 0) * pct) : it.rolls[i] ?? 0]);
   if (it.bonus) lines.push(it.bonus);
   if (it.exo) lines.push(it.exo);
   return lines;
@@ -109,6 +112,8 @@ export function canEquip(inv: Inventory, uid: number, level: number, slot?: Slot
   // Dofus : deux anneaux identiques sont permis, sauf s'ils font partie d'une panoplie
   const other = options.find((s) => s !== target && inv.equipped[s] !== undefined);
   if (other && d.set && instance(inv, inv.equipped[other]!)?.id === it.id) return { ok: false, reason: 'Anneau de panoplie déjà porté' };
+  // Dofus : un seul exemplaire de chaque
+  if (d.slot === 'dofus' && options.some((s) => s !== target && inv.equipped[s] !== undefined && instance(inv, inv.equipped[s]!)?.id === it.id)) return { ok: false, reason: 'Ce Dofus est déjà porté' };
   return { ok: true, slot: target };
 }
 

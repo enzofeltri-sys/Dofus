@@ -2,10 +2,11 @@ import { rng } from '../iso';
 import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
 import { rollDrops, zoneEquipPool } from './loot';
+import { BOSS_DOFUS, ZONE_PETS } from './pets';
 import { startingHero, type HeroDef } from './data/hero';
 import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import { ARCHI_OF } from './data/monsters.astrub';
-import { CRYPTE, type AreaDef, type Theme, type WanderGroup } from './data/areas';
+import { CRYPTE, zoneIdOf, type AreaDef, type Theme, type WanderGroup } from './data/areas';
 import type { Stats } from './formulas';
 import { CAST_DELAY, CELL, MELEE, SPELL_POWER, MUTILATION, PA_MAX, PA_REGEN, PASSIVES, slotsForLevel, SOUFFRANCE, SPELLS, SUPPLICE_MARK, TURN, type PassiveId, type SpellDef, type SpellId } from './data/spells';
 import { islandLayout, mirrorLayout, obstacleCore, roomLayout, roomObstacles, type Obstacle, type PropPlacement } from './rooms';
@@ -1117,7 +1118,8 @@ export class World {
     // butin : les invocations ne lâchent rien ; celui du boss n'est gagné qu'en cas de victoire
     if (m.summoner === null) {
       const boss = m === this.boss;
-      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)), zonePool: zoneEquipPool(this.area.id) }, this.lootRnd);
+      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)), zonePool: zoneEquipPool(this.area.id),
+        food: true, dofus: boss ? BOSS_DOFUS[m.def.id] : undefined, pets: boss || m === this.elite ? { ids: ZONE_PETS[zoneIdOf(this.area.id) ?? ''] ?? [], from: boss ? 'boss' : 'elite' } : undefined }, this.lootRnd);
       const bag = boss ? this.stats.bossLoot : this.stats.loot;
       for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
       if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });

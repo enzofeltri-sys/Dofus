@@ -1333,7 +1333,7 @@ export class Hud {
       // panoplie : une seule ligne cliquable, les bonus se lisent dans la vue panoplie (demandé par Enzo)
       const setGo = d.links.find((l) => l.go.startsWith('set:'))?.go;
       const links = d.links.filter((l) => !l.go.startsWith('set:') && (!(l.go.startsWith('uses:') || l.go.startsWith('recipe:')) || this.work));
-      const fg = open?.kind === 'uid' ? forgeOf().get(open.uid) : undefined;
+      const fg = open?.kind === 'uid' && !d.special ? forgeOf().get(open.uid) : undefined;
       detail.querySelector('.det-card')!.innerHTML = `
         <div class="det-head"><span class="det-ico r${d.rarity}">${d.icon}</span><div><h3 class="gr-h3 rar-${d.rarity}">${d.name}</h3><span class="det-sub">${d.sub}</span></div>
           ${d.marks ? `<div class="det-marks"><button type="button" class="mark fav ${d.marks.fav ? 'on' : ''}" data-mark="fav" aria-label="Favori">${STAR_SVG}</button><button type="button" class="mark lock ${d.marks.lock ? 'on' : ''}" data-mark="lock" aria-label="Verrouiller">${LOCK_SVG}</button></div>` : ''}</div>
@@ -1343,6 +1343,12 @@ export class Hud {
         ${d.sources.length ? `<div class="det-src"><span class="gr-label">Où l’obtenir</span>${d.sources.map((s) => `<div>${s}</div>`).join('')}</div>` : ''}
         ${d.note ? `<p class="det-note">${d.note}</p>` : ''}
         ${links.length ? `<div class="det-links">${links.map((l) => `<button type="button" class="gr-btn sm turquoise link" data-go="${l.go}">${l.label}</button>`).join('')}</div>` : ''}
+        ${d.pet ? `<div class="det-pet"><span class="gr-label">Croissance</span><span class="track"><span class="fill" style="--v:${d.pet.pct}%"></span></span><b class="gr-num">${d.pet.pct} %</b></div>
+        <div class="det-forge">${d.pet.pct >= 100 ? '<small>Ton familier est à son maximum.</small>' : `
+          <button type="button" class="gr-btn leaf sm d-feed" ${d.pet.food ? '' : 'disabled'}>Nourrir</button>
+          <button type="button" class="gr-btn ghost sm d-feedall" ${d.pet.food > 1 ? '' : 'disabled'}>Tout donner</button>
+          <small>${d.pet.food} Super Croquette${d.pet.food > 1 ? 's' : ''} · +4 % chacune (elles tombent sur tous les monstres, 3 %)</small>`}
+        </div>` : ''}
         ${fg ? `<div class="det-forge">
           <button type="button" class="gr-btn magic sm d-fuse" ${fg.fusable ? '' : 'disabled'}>Fusionner${fg.fusable ? ` → ${fg.next}` : ''}</button>
           <button type="button" class="gr-btn coral sm d-break" ${fg.breakable ? '' : 'disabled'}>Briser</button>
@@ -1405,6 +1411,11 @@ export class Hud {
           endPick();
           renderList();
         });
+        return;
+      }
+      if (open?.kind === 'uid' && t.closest('.d-feed, .d-feedall')) {
+        this.toast(h.feed(open.uid, !!t.closest('.d-feedall')), 1800);
+        renderList();
         return;
       }
       if (w && open?.kind === 'uid' && t.closest('.d-fuse, .d-break')) {
@@ -1531,6 +1542,8 @@ function setXpBar(el: HTMLElement, v: { level: number; xpInto: number; xpNeed: n
 /** Ce dont l'inventaire a besoin (fourni par le jeu). */
 export interface InvHooks {
   get(): InvView;
+  /** Donne une Super Croquette (ou toutes) à un familier ; renvoie le message. */
+  feed(uid: number, all: boolean): string;
   detail(uid: number): ItemDetail;
   resource(id: number): ItemDetail;
   /** Équipe ou retire. */

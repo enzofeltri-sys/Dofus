@@ -46,10 +46,13 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
-EXTRA_ITEMS = [2473, 2474, 2475, 2476, 2477, 2478]
+EXTRA_ITEMS = [2473, 2474, 2475, 2476, 2477, 2478,
+               # familiers des zones (validés par Enzo), Super Croquette (leur nourriture), premiers Dofus
+               1711, 7523, 7712, 7711, 7708, 7709, 7710, 7713, 7707, 11858, 10865, 12988, 8154, 10106, 7518,
+               20040, 7113, 19629, 30356]
 
 # superType DofusDB → emplacement (None = ressource)
-SLOT = {1: 'amulette', 2: 'arme', 3: 'anneau', 4: 'ceinture', 5: 'bottes', 7: 'bouclier', 10: 'chapeau', 11: 'cape'}
+SLOT = {1: 'amulette', 2: 'arme', 3: 'anneau', 4: 'ceinture', 5: 'bottes', 7: 'bouclier', 10: 'chapeau', 11: 'cape', 12: 'familier', 13: 'dofus'}
 RESOURCE_SUPER = 9
 
 # caractéristique DofusDB → champ de Stats (le jeu)

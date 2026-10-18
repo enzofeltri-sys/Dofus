@@ -6,7 +6,7 @@ import { ITEM_DATA, SET_DATA } from './items.gen';
  */
 
 /** Type d'emplacement d'un objet (un anneau peut aller dans les deux cases d'anneau). */
-export type ItemSlot = 'amulette' | 'arme' | 'anneau' | 'ceinture' | 'bottes' | 'bouclier' | 'chapeau' | 'cape';
+export type ItemSlot = 'amulette' | 'arme' | 'anneau' | 'ceinture' | 'bottes' | 'bouclier' | 'chapeau' | 'cape' | 'familier' | 'dofus';
 /** Une case d'équipement du personnage (comme dans Dofus). */
 export type SlotId =
   | 'amulette' | 'chapeau' | 'cape' | 'ceinture' | 'bottes' | 'anneau1' | 'anneau2' | 'arme' | 'bouclier' | 'familier'
@@ -64,9 +64,12 @@ export const item = (id: number): ItemData => {
   return it;
 };
 export const isEquipment = (id: number) => ITEMS[id]?.slot != null;
+/** Familier ou Dofus : ni rareté, ni fusion, ni brisage, ni forgemagie. */
+export const isSpecial = (id: number) => ITEMS[id]?.slot === 'familier' || ITEMS[id]?.slot === 'dofus';
 
 /** Cases où un objet peut aller. */
 export function slotsFor(s: ItemSlot): SlotId[] {
+  if (s === 'dofus') return ['dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'];
   return s === 'anneau' ? ['anneau1', 'anneau2'] : [s as SlotId];
 }
 

@@ -1,4 +1,4 @@
-import { fmtLine, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, type StatPath } from '../game/data/items';
+import { fmtLine, isSpecial, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, type StatPath } from '../game/data/items';
 import { canEquip, compare, instance, isWorn, itemLines, setBonus, setCounts, type Inventory } from '../game/inventory';
 import type { Facets } from '../game/search';
 import { sourcesOf, sourceText, usedIn } from '../game/sources';
@@ -44,10 +44,14 @@ export interface ItemDetail {
   /** Favori / verrou (null : pas de marque possible). */
   marks: { fav: boolean; lock: boolean } | null;
   links: Link[];
+  /** Familier ou Dofus : pas de fusion, de brisage ni de forgemagie. */
+  special?: boolean;
+  /** Familier : croissance (%) et Super Croquettes en stock. */
+  pet?: { pct: number; food: number };
 }
 
-/** Cases sans objet possible pour l'instant (pas encore de familiers ni de Dofus dans le jeu). */
-const NOT_YET: SlotId[] = ['familier', 'dofus1', 'dofus2', 'dofus3', 'dofus4', 'dofus5', 'dofus6'];
+/** Cases sans objet possible pour l'instant (familiers et Dofus sont arrivés). */
+const NOT_YET: SlotId[] = [];
 
 /** Haut de la fourchette (ou bas pour un malus). */
 const top = (a: number, b: number) => (Math.abs(b) >= Math.abs(a) ? b : a);
@@ -144,13 +148,14 @@ function setBlock(setId: number, count: number, label: string): ItemDetail['set'
 }
 
 /** Fiche d'un équipement possédé : jets, panoplie, comparaison, bouton. */
-export function equipmentDetail(inv: Inventory, uid: number, level: number): ItemDetail {
+export function equipmentDetail(inv: Inventory, uid: number, level: number, food = 0): ItemDetail {
   const it = instance(inv, uid)!;
   const d = item(it.id);
   const worn = isWorn(inv, uid);
   const r = it.rarity ?? 0;
   const ranges = rangesFor(it.id, r);
   const lines = itemLines(it).map(([p, v], i) => {
+    if (d.slot === 'familier') return { text: fmtLine(p, v), range: `max ${d.effects[i]?.[2] ?? v}` };
     if (!ranges[i]) return { text: fmtLine(p, v), range: r >= 4 ? 'ligne mythique' : 'ligne légendaire' };
     const [, a, b] = ranges[i];
     return { text: fmtLine(p, v), range: a === b ? '' : `${a} à ${b}` };
@@ -160,9 +165,11 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number): Ite
     icon: itemIconImg(it.id, 'big'),
     name: d.name,
     rarity: r,
-    sub: `${RARITIES[r]} · ${d.type} · niveau ${d.level}`,
+    sub: isSpecial(it.id) ? `${d.type} · niveau ${d.level}` : `${RARITIES[r]} · ${d.type} · niveau ${d.level}`,
     lines,
     set: d.set ? setBlock(d.set, setCounts(inv).get(d.set) ?? 0, 'portés') : null,
+    special: isSpecial(it.id),
+    pet: d.slot === 'familier' ? { pct: it.food ?? 100, food } : undefined,
     diff: compare(inv, uid, level).map(([p, v]) => ({ text: `${v > 0 ? '+' : ''}${v} ${statLabel(p)}`, up: v > 0 })),
     diffTitle: worn ? 'Si tu le retires' : 'Si tu l’équipes',
     action: worn

@@ -1,4 +1,4 @@
-import { item, type StatPath } from './data/items';
+import { isSpecial, item, type StatPath } from './data/items';
 import { craftXp, jobLevel, type Workshop } from './craft';
 import { rangesFor, RUNE_STAT, RUNES_BY_STAT, statWeight, type ForgeResult } from './forge';
 import { instance, type ItemInstance } from './inventory';
@@ -70,6 +70,7 @@ export function fmCheck(w: Workshop, uid: number, runeId: number): FmCheck {
   const it = instance(w.inventory, uid);
   const rs = RUNE_STAT.get(runeId);
   if (!it || !rs) return { ok: false, reason: 'Introuvable' };
+  if (isSpecial(it.id)) return { ok: false, reason: 'Pas de forgemagie sur un familier ou un Dofus' };
   if ((w.resources[runeId] ?? 0) <= 0) return { ok: false, reason: 'Plus de rune' };
   const [p, v] = rs;
   const lines = fmLines(it);

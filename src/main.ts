@@ -8,7 +8,7 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
-import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, SCARAS, TOFUS, FLAMES, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
+import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, SCARAS, TOFUS, FLAMES, GHOSTS, JELLIES, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
 import { champsGateSvg, champsRoomSvg } from './scene/champsRoom';
@@ -36,6 +36,7 @@ import { applyRune, FM_NAMES } from './game/fm';
 import { atlasView } from './ui/atlas-view';
 import { AREAS, CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
 import { breakItem, fuse, RARITIES } from './game/forge';
+import { feedPet, PET_FOOD } from './game/pets';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
 import { ELEMENT_COLOR, PASSIVE_ICONS, SPELL_ICONS } from './ui/spell-icons';
@@ -158,7 +159,7 @@ async function main() {
   };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) || k === 'kwoan' ? 'jelly'
+    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? 'jelly'
       : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(
@@ -1000,7 +1001,16 @@ async function main() {
   const heroLevel = () => heroFromSave().level;
   const invHooks = {
     get: () => invView(save.inventory, save.resources, heroLevel(), freshItems, save.resMarks),
-    detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel()),
+    detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel(), save.resources[PET_FOOD] ?? 0),
+    feed(uid: number, all: boolean) {
+      const have = save.resources[PET_FOOD] ?? 0;
+      const r = feedPet(save.inventory, uid, all ? have : Math.min(1, have));
+      if (!r.eaten) return have ? 'Ton familier est déjà à son maximum' : 'Pas de Super Croquette';
+      save = { ...save, inventory: r.inventory, resources: { ...save.resources, [PET_FOOD]: have - r.eaten } };
+      storeSave(save);
+      const it = save.inventory.items.find((i) => i.uid === uid)!;
+      return `${item(it.id).name} a mangé ${r.eaten} Super Croquette${r.eaten > 1 ? 's' : ''} · croissance ${it.food} %`;
+    },
     resource: (id: number) => resourceDetail(id, save.resources[id] ?? 0, { fav: save.resMarks.fav.includes(id), lock: save.resMarks.lock.includes(id) }),
     catalog: (id: number) => catalogDetail(save.inventory, id),
     mark(kind: 'uid' | 'res', id: number, mark: 'fav' | 'lock') {

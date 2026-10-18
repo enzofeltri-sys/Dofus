@@ -1,7 +1,8 @@
-import { item, ITEMS, type StatPath } from './data/items';
+import { isSpecial, item, ITEMS, type StatPath } from './data/items';
+import { PET_START } from './pets';
 import { RUNE_DATA } from './data/items.gen';
 import { craftXp, jobLevel, usable, type Workshop } from './craft';
-import { addItem, instance, isWorn, type Inventory, type ItemInstance } from './inventory';
+import { addItem, instance, isWorn, rollItem, type Inventory, type ItemInstance } from './inventory';
 
 /**
  * Étape 8 (document de design §8.4 et §9) : raretés, fusion, brisage.
@@ -78,6 +79,8 @@ export function mythicBonus(prev: [StatPath, number] | undefined, level: number,
 
 /** Nouvel objet d'un rang donné : jets dans les fourchettes du rang, ligne bonus si Légendaire ou plus. */
 export function makeItem(id: number, rarity: number, rnd: () => number): Omit<ItemInstance, 'uid'> {
+  // familiers et Dofus : sans rareté ; un familier commence à 20 % de son bonus
+  if (isSpecial(id)) return item(id).slot === 'familier' ? { id, rolls: item(id).effects.map(([, , b]) => b), food: PET_START } : { id, rolls: rollItem(id, rnd) };
   const rolls = rangesFor(id, rarity).map(([, a, b]) => a + Math.floor(rnd() * (b - a + 1)));
   const out: Omit<ItemInstance, 'uid'> = { id, rolls };
   if (rarity > 0) out.rarity = rarity;
@@ -109,7 +112,7 @@ export function fusionRule(it: ItemInstance): 'same' | 'set' {
 /** Objets qui peuvent accompagner celui-ci dans une fusion (même rang, ni portés ni verrouillés). */
 export function fusionPartners(inv: Inventory, mainUid: number): ItemInstance[] {
   const main = instance(inv, mainUid);
-  if (!main || rarityOf(main) >= MAX_RARITY) return [];
+  if (!main || rarityOf(main) >= MAX_RARITY || isSpecial(main.id)) return [];
   const rule = fusionRule(main);
   const set = item(main.id).set;
   return inv.items.filter((o) =>
@@ -250,6 +253,7 @@ export function canBreak(inv: Inventory, uid: number): BreakCheck {
   const it = instance(inv, uid);
   if (!it) return { ok: false, reason: 'Objet introuvable' };
   if (it.lock) return { ok: false, reason: 'Verrouillé' };
+  if (isSpecial(it.id)) return { ok: false, reason: item(it.id).slot === 'familier' ? 'Un familier ne se brise pas' : 'Un Dofus ne se brise pas' };
   if (isWorn(inv, uid)) return { ok: false, reason: 'Porté' };
   return { ok: true };
 }
