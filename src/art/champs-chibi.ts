@@ -23,7 +23,7 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'pichonOrange' | 'pichonBleu' | 'pichonBlanc' | 'pichonVert' | 'pichonKloune'
   | 'tofuJaune' | 'tofuNoir' | 'tofoune' | 'tofukaz' | 'tofuMutant' | 'tofuVentripotent' | 'batofu' | 'bomberfu' | 'tofuMalefique' | 'rib' | 'kwoan'
   | 'scaraRouge' | 'scaraBleu' | 'scaraVert' | 'scaraBlanc' | 'scaraNoir' | 'scaraImmature' | 'scarabosse'
-  | 'boostache' | 'boostachePrepubere' | 'gargrouille';
+  | 'boostache' | 'boostachePrepubere' | 'gargrouille' | 'ashimagari';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -46,7 +46,7 @@ export const PICHONS: CritterKind[] = ['pichonOrange', 'pichonBleu', 'pichonBlan
 export const BIPEDS: CritterKind[] = ['milirat', 'ramane', 'scelerat', 'mobEponge'];
 export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFollet'];
 /** Maison Fantôme : fantômes et Gargrouille (rig flottant : halo, corps, visage). */
-export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille'];
+export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille', 'ashimagari'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
     : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
@@ -88,7 +88,7 @@ export const CRITTER_PIVOTS = {
   ...Object.fromEntries(['scaraRouge', 'scaraBleu', 'scaraVert', 'scaraBlanc', 'scaraNoir', 'scaraImmature', 'scarabosse'].map((k) => [k, { tail: [90, 92], legB: [96, 126], body: [80, 130], legF: [64, 128], head: [56, 110], horn: [54, 90] }])),
   rib: SHEEP_PIVOTS, kwoan: { back: [70, 150], body: [70, 110], face: [70, 110] },
   boostache: { back: [70, 150], body: [70, 104], face: [70, 104] }, boostachePrepubere: { back: [70, 150], body: [70, 104], face: [70, 104] },
-  gargrouille: { back: [70, 150], body: [70, 146], face: [70, 146] },
+  gargrouille: { back: [70, 150], body: [70, 146], face: [70, 146] }, ashimagari: { back: [70, 150], body: [70, 96], face: [70, 96] },
 } as Record<CritterKind, Partial<Record<CritterPart, [number, number]>>>;
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -1371,6 +1371,20 @@ function gargrouilleSvg(part?: CritterPart): string {
   return assemble('gargrouille', P, part);
 }
 
+
+/** Ashi-magari (invocation du Boostache) : petite silhouette pâle, bras écartés, dans une bulle d'esprit verte. */
+function ashimagariSvg(part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  push(P, 'back', `<ellipse cx="70" cy="150" rx="18" ry="4" fill="#000" opacity="0.15"/>`, halo(uid('h'), 70, 92, 50, '#a8ff9a'),
+    `<circle cx="70" cy="92" r="40" fill="#c8ffc0" opacity="0.28" stroke="#7ad87a" stroke-width="2"/>`);
+  push(P, 'body',
+    blob('M62,82 L52,72 Q48,68 52,66 L66,76 L74,76 L88,66 Q92,68 88,72 L78,82 L78,100 L86,118 Q86,122 82,120 L72,104 L68,104 L58,120 Q54,122 54,118 L62,100 Z', '#f4e2b0', { ink: '#8a6a3a', w: 1.4 }));
+  push(P, 'face', blob(ellipse(70, 64, 12, 12), '#f4e2b0', { ink: '#8a6a3a', w: 1.4 }),
+    `<circle cx="66" cy="64" r="1.8" fill="#4a3a20"/><circle cx="74" cy="64" r="1.8" fill="#4a3a20"/><path d="M67,70 Q70,68 73,70" fill="none" stroke="#4a3a20" stroke-width="1.4"/>`);
+  return assemble('ashimagari', P, part);
+}
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1389,7 +1403,7 @@ export const CRITTER_SVG = {
   ...(Object.fromEntries(Object.keys(LARVE).map((k) => [k, (p?: CritterPart) => larveSvg(k as CritterKind, p)])) as Record<string, (p?: CritterPart) => string>),
   chakrobat: (p) => catSvg('chakrobat', p), tigrimas: (p) => catSvg('tigrimas', p), ronronchon: (p) => catSvg('ronronchon', p),
   rib: (p) => ribSvg(p), kwoan: (p) => kwoanSvg(p),
-  boostache: (p) => ghostSvg('boostache', p), boostachePrepubere: (p) => ghostSvg('boostachePrepubere', p), gargrouille: (p) => gargrouilleSvg(p),
+  boostache: (p) => ghostSvg('boostache', p), boostachePrepubere: (p) => ghostSvg('boostachePrepubere', p), gargrouille: (p) => gargrouilleSvg(p), ashimagari: (p) => ashimagariSvg(p),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),

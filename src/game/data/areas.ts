@@ -8,7 +8,7 @@ import { CRYPT_POOL } from './monsters';
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
-  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes';
+  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -323,6 +323,17 @@ export const SQUELETTES: AreaDef = {
   theme: 'squelettes',
 };
 
+/** Maison Fantôme (validée par Enzo) : donjon niveau 40, après les Cryptes ; boss Boostache. */
+export const MAISON_FANTOME: AreaDef = {
+  id: 'maisonFantome', name: 'Maison Fantôme', kind: 'dungeon', zone: 'amakna', level: 40,
+  sub: '7 salles · mini-boss · Boostache',
+  rooms: 7, pool: ['tofuMalefique', 'vampire', 'kwoan', 'gargrouille', 'boostachePrepubere', 'boostachePrepubere'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'gargrouilleElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'boostache', grade: 5, adds: 3 },
+  archis: ['archi2357', 'archi2302', 'archi2522', 'archi2549'],
+  theme: 'maisonFantome',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -397,6 +408,7 @@ export const ZONES: Zone[] = [
       { id: 'cimetiereAmakna', name: 'Cimetière d’Amakna', level: 34, kind: 'map', area: CIMETIERE_AMAKNA, needs: ['cour'] },
       { id: 'cryptes', name: 'Cryptes du Cimetière', level: 36, kind: 'map', area: CRYPTES, needs: ['cimetiereAmakna'] },
       { id: 'squelettes', name: 'Donjon des Squelettes', level: 40, kind: 'dungeon', area: SQUELETTES, needs: ['cimetiereAmakna', 'cryptes'] },
+      { id: 'maisonFantome', name: 'Maison Fantôme', level: 40, kind: 'dungeon', area: MAISON_FANTOME, needs: ['cryptes'] },
     ],
   },
   {
@@ -414,7 +426,7 @@ export const AREAS: Record<string, AreaDef> = {
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
   tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
   ingalsse: INGALSSE, tofus: TOFULAILLER, plaineScara: PLAINE_SCARA, scaraDonjon: SCARA_DONJON,
-  cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES,
+  cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES, maisonFantome: MAISON_FANTOME,
 };
 
 /** Étapes jouables et débloquées. */

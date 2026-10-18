@@ -220,6 +220,7 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   cimetiereAmakna: { block: [['tomb', 0.9, 1.05], ['autumnTree', 1.05, 1.25], ['tomb', 0.9, 1.05], ['lantern', 1, 1], ['mossrock', 0.85, 1]], decor: ['flowers'] },
   cryptes: { block: [['tomb', 0.9, 1.05], ['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['lantern', 1, 1]], decor: ['bones'] },
   squelettes: { block: [['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['deadtree', 1, 1.2], ['lantern', 1, 1]], decor: ['bones'] },
+  maisonFantome: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['deadtree', 1, 1.15], ['lantern', 1, 1]], decor: ['bones'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 

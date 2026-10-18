@@ -42,7 +42,9 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 194, 198, 240, 241, 795, 798, 2280, 2281, 2282, 2283, 797,
                 # Cimetière, Cryptes et Donjon des Squelettes (+ archimonstres, Chafer Rōnin)
                 54, 108, 110, 111, 154, 396, 127, 124, 3240, 3238,
-                2319, 2276, 2321, 2357, 2522, 2421, 2302, 2532]
+                2319, 2276, 2321, 2357, 2522, 2421, 2302, 2532,
+                # Maison Fantôme (+ archimonstre Boostif l'Affamé, Boostache et son Ashi-magari)
+                498, 3235, 2549, 2975, 2976]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -227,7 +229,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570, 'maisonFantome': 11799}
 dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')

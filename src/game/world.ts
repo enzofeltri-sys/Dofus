@@ -159,6 +159,8 @@ export interface Monster {
   /** Soin unique déjà utilisé ; délai avant le prochain soin périodique (boss). */
   healed: boolean;
   healT?: number;
+  fearT?: number;
+  reviveT?: number;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -312,6 +314,8 @@ export class World {
   guard: Monster | null = null;
   chest: { x: number; y: number; open: boolean } | null = null;
   fountain: { x: number; y: number; healed: number; acc: number } | null = null;
+  /** Dernier monstre mort (L'Enfer des Zombies du Boostache). */
+  private lastDead: { def: MonsterDef; grade: number; x: number; y: number } | null = null;
   /** Salle de vagues : temps restant à tenir. */
   wavesT = 0;
   private waveSpawnT = 0;
@@ -421,6 +425,7 @@ export class World {
     this.guard = null;
     this.chest = null;
     this.fountain = null;
+    this.lastDead = null;
     this.wavesT = 0;
     this.ambush = false;
     this.hazards = [];
@@ -1108,6 +1113,7 @@ export class World {
   }
 
   private kill(m: Monster) {
+    if (m.summoner === null && !m.def.boss) this.lastDead = { def: m.def, grade: m.grade, x: m.x, y: m.y };
     this.stats.kills++;
     this.stats.slain[m.def.id] = (this.stats.slain[m.def.id] ?? 0) + 1;
     const xp = xpGain(m.xp, m.level, this.hero.def.level, this.heroStats().sagesse);
@@ -1152,6 +1158,37 @@ export class World {
         if (o.state !== 'dead' && flatDist(o.x, o.y, m.x, m.y) <= b.crackRadius) o.hasteT = b.crackDuration;
       }
       this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: b.crackRadius });
+    }
+    if (b.fear) {
+      m.fearT = (m.fearT ?? b.fear.every) - STEP;
+      if (m.fearT <= 0) {
+        m.fearT = b.fear.every;
+        const h = this.hero;
+        this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: b.fear.radius });
+        const d = flatDist(h.x, h.y, m.x, m.y);
+        if (h.alive && d <= b.fear.radius + h.def.radius) {
+          const ux = (h.x - m.x) / (d || 1), uy = (h.y - m.y) / PERSP / (d || 1);
+          [h.x, h.y] = this.pushOut(h.x + ux * b.fear.push * CELL, h.y + uy * b.fear.push * CELL * PERSP, h.def.radius);
+          h.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, h.x));
+          h.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, h.y));
+          h.pa = Math.max(0, h.pa - b.fear.pa);
+          this.events.push({ type: 'hit', target: 'hero', x: h.x, y: h.y, damage: 0, crit: false });
+        }
+      }
+    }
+    if (b.revive) {
+      m.reviveT = (m.reviveT ?? b.revive.every) - STEP;
+      const dead = this.lastDead;
+      if (m.reviveT <= 0 && dead) {
+        m.reviveT = b.revive.every;
+        this.lastDead = null;
+        // relevé à côté de son corps, comme une invocation du boss : il ne rapporte rien une 2e fois
+        const [sx, sy] = this.pushOut(dead.x, dead.y, dead.def.radius);
+        const s = this.makeMonster(dead.def, dead.grade, sx, sy);
+        s.summoner = m.uid;
+        this.pending.push(s);
+        this.events.push({ type: 'summon', uid: s.uid, by: m.uid });
+      }
     }
     this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons, count: b.summonCount });
   }
@@ -1372,10 +1409,15 @@ export class World {
     h.hp = Math.max(0, h.hp - (dmg - absorbed));
     this.stats.taken += dmg - absorbed;
     // érosion : une part des dommages subis réduit les PV max jusqu'à la fin de la salle
-    const eroded = Math.min(erosionLoss(dmg - absorbed, mine), h.maxHp - 1);
+    const eroded = Math.min(erosionLoss(dmg - absorbed, m.atk.erosion ? { ...mine, erosion: mine.erosion + m.atk.erosion } : mine), h.maxHp - 1);
     h.maxHp -= eroded;
     h.eroded += eroded;
     h.hp = Math.min(h.hp, h.maxHp);
+    // Enchevêtrement (Ashi-magari) : le héros ne peut plus bouger
+    if (m.atk.root) {
+      h.rootT = Math.max(h.rootT, m.atk.root);
+      this.events.push({ type: 'rooted' });
+    }
     // renvoi de dommages : sur les attaques de mêlée
     if (melee && mine.renvoi > 0 && m.state !== 'dead') this.damageMonster(m, mine.renvoi, false);
     // Couronne d'Épines : les dommages de mêlée reviennent à l'attaquant

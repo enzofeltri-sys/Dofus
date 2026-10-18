@@ -124,6 +124,13 @@ d('chaferPrimitif', 3240, 'primitif', 'melee', 130, 26, 1, "{ shape: 'circle', t
   'Curare : Eau 13-16 puis 6, au corps à corps, 3 fois par tour ; 4 PM. Élancé de Couteau et Robustesse non repris')
 
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
+# Maison Fantôme (validée par Enzo)
+d('gargrouille', 498, 'gargrouille', 'melee', 130, 26, 1.1, "{ shape: 'circle', trigger: 105, size: 66, spread: 0, offset: 58, windup: 0.45, recover: 0.28, cooldown: [1.2, 1.6], roll: roll('air', 6, 7) }",
+  'Gargouilli : Air 23-27 au contact, 1 fois par tour ; 4 PM ; 50 % de résistance partout. Souffle Gargouillesque (Feu 9-11 à distance), Couteau et -30 Puissance non repris')
+d('boostachePrepubere', 3235, 'boostachePrepubere', 'stealth', 130, 22, 0.85, "{ shape: 'circle', trigger: 100, size: 60, spread: 0, offset: 54, windup: 0.42, recover: 0.25, cooldown: [1.1, 1.5], roll: neutre(4, 6) }",
+  'Boorrade : Neutre 17-24 au contact ; Timidité → invisible par moments ; Caresse Effrayante : soigne un allié de 21-30 PV (valeur réelle) toutes les 4 s ; 4 PM',
+  ", support: { name: 'Caresse Effrayante', every: 4, radius: 110, heal: [21, 30] }")
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -131,7 +138,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2315, 'bouftonBlanc'), (2316, 'bouftonNoir'), (2317, 'bouftou'), (2324, 'chefBouftou'), (2333, 'milimulou'), (2349, 'prespic'), (2353, 'sanglier'),
          (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts'),
          (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert'),
-         (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire')]
+         (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire'),
+         (2549, 'boostachePrepubere')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",

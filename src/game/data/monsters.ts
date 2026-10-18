@@ -54,6 +54,10 @@ export interface MonsterAttack {
   steal?: boolean;
   /** Explose : le monstre meurt en frappant (Détonation du poulailler du Bomberfu). */
   selfDestruct?: boolean;
+  /** Érosion en plus (%) : part des dommages qui réduit les PV max (Le Dentiste du Boostache : 30 %). */
+  erosion?: number;
+  /** Immobilise le héros (s) : Enchevêtrement de l'Ashi-magari. */
+  root?: number;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -135,6 +139,10 @@ export interface BossKit {
   summonCount?: number;
   /** Soin périodique du boss (PV, toutes les `every` s). */
   heal?: { every: number; min: number; max: number; spell?: string };
+  /** Frayeurs (Boostache) : repousse le héros proche de `push` cases et lui retire `pa` PA, toutes les `every` s. */
+  fear?: { every: number; radius: number; push: number; pa: number; spell: string };
+  /** L'Enfer des Zombies (Boostache) : réanime le dernier allié mort (100 % de ses PV), au plus toutes les `every` s. */
+  revive?: { every: number; spell: string };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -207,6 +215,7 @@ export const MONSTERS: Record<string, MonsterDef> = {
   fantassinElite: eliteOf(ASTRUB.chaferFantassin, 'fantassinElite', 'Chafer Fantassin d’élite'),
   maitreVampireElite: eliteOf(ASTRUB.maitreVampire, 'maitreVampireElite', 'Maître Vampire d’élite'),
   primitifElite: eliteOf(ASTRUB.chaferPrimitif, 'primitifElite', 'Chafer Primitif d’élite'),
+  gargrouilleElite: eliteOf(ASTRUB.gargrouille, 'gargrouilleElite', 'Gargrouille d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
    * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
@@ -264,6 +273,29 @@ export const MONSTERS: Record<string, MonsterDef> = {
     attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.55, recover: 0.3, cooldown: [1.0, 1.3], roll: { min: 31, max: 35, critBonus: 4, critBase: 3, element: 'terre' }, steal: true },
     charge: { every: 4, dash: 0, attack: { shape: 'line', trigger: 380, size: 400, spread: 24, offset: 0, windup: 0.75, recover: 0.4, cooldown: [1.2, 1.6], roll: { min: 19, max: 23, critBonus: 3, critBase: 3, element: 'feu' } } },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 6, summonEvery: 12, summon: 'roninIllusion', maxSummons: 4, summonCount: 4 },
+  },
+  /**
+   * Boostache (2975) : boss de la Maison Fantôme, niveau 40, 820 à 1 200 PV, Force, Intelligence, Chance et Agilité 160 ;
+   * résistances Neutre 55 %, Eau 15 %, Air 85 % (plafonnées à 50 %) ; 6 PM, 10 PA. Valeurs réelles (comme les autres boss) :
+   * Le Dentiste : vol de vie Air 31-40 au contact et 30 % d'érosion, 3 fois par tour ;
+   * Frayeurs : repousse de 3 cases tout ce qui l'entoure et -2 PA, tous les 3 tours → toutes les 12 s ;
+   * Esprit empêtrant : invoque un Ashi-magari tous les 3 tours → toutes les 12 s ;
+   * L'Enfer des Zombies : réanime le dernier allié mort avec toute sa vie, 1 fois par tour → toutes les 4 s.
+   */
+  boostache: {
+    id: 'boostache', name: 'Boostache', dofusId: 2975,
+    grades: ([[820, 17000], [910, 21000], [1000, 25000], [1100, 30000], [1200, 34560]] as const).map(([hp, xp]) => g(40, hp, 160, [55, 0, 0, 15, 85], xp, 0, 0, 0, 0, { intelligence: 160, chance: 160, agilite: 160 })),
+    behavior: 'boss', speed: 140, radius: 40, art: 'boostache', scale: 1.5,
+    attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.55, recover: 0.3, cooldown: [1.0, 1.3], roll: { min: 31, max: 40, critBonus: 4, critBase: 3, element: 'air' }, steal: true, erosion: 30 },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 8, summonEvery: 12, summon: 'ashiMagari', maxSummons: 3,
+      fear: { every: 12, radius: 150, push: 3, pa: 2, spell: 'Frayeurs' }, revive: { every: 4, spell: 'L’Enfer des Zombies' } },
+  },
+  /** Ashi-magari (2976) : invocation du Boostache, 150 PV ; Enchevêtrement : immobilise ce qui l'entoure pendant 1 tour (4 s), sans dommages. */
+  ashiMagari: {
+    id: 'ashiMagari', name: 'Ashi-magari', dofusId: 2976,
+    grades: [g(40, 150, 0, [0, 0, 0, 0, 0], 0, 0, 0, 0, 0)],
+    behavior: 'melee', speed: 50, radius: 22, art: 'ashimagari', scale: 0.8,
+    attack: { shape: 'circle', trigger: 90, size: 80, spread: 0, offset: 0, windup: 0.6, recover: 0.4, cooldown: [3.6, 4.4], roll: { min: 0, max: 0, critBonus: 0, critBase: 0, element: 'neutre' }, root: 4 },
   },
   /** Illusion du Chafer Rōnin (Bunshin) : son apparence, aucun dégât, disparaît au premier coup ; ne rapporte rien. */
   roninIllusion: {
