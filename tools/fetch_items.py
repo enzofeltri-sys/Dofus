@@ -1,6 +1,6 @@
 """
 Extrait de DofusDB les données de butin et d'équipement de la Crypte de Kardorim et de sa région (Incarnam).
-Produit src/game/data/items.gen.ts et les icônes src/assets/items/<iconId>.png (64 px).
+Produit src/game/data/items.gen.ts et les icônes src/assets/items/<iconId>.webp (64 px).
 
   python3 tools/fetch_items.py
 
@@ -298,13 +298,14 @@ os.makedirs(OUT_ICONS, exist_ok=True)
 for it in items.values():
     if not it:
         continue
-    path = os.path.join(OUT_ICONS, f"{it['icon']}.png")
+    path = os.path.join(OUT_ICONS, f"{it['icon']}.webp")
     if os.path.exists(path):
         continue
     with urllib.request.urlopen(f"{API}/img/items/{it['icon']}.png", timeout=30) as r:
         im = Image.open(io.BytesIO(r.read())).convert('RGBA')
     im.thumbnail((64, 64), Image.LANCZOS)
-    im.save(path, optimize=True)
+    # WebP : 2 fois plus léger que le PNG (la page publiée est limitée à 16 Mo)
+    im.save(path, 'WEBP', quality=85, method=6)
 
 # 3 bis) Armes : icône en 128 px, tenue en main par le Sacrieur
 OUT_WEAPONS = os.path.join(ROOT, 'src/assets/weapons')
@@ -312,13 +313,13 @@ os.makedirs(OUT_WEAPONS, exist_ok=True)
 for it in items.values():
     if not it or it['slot'] != 'arme':
         continue
-    path = os.path.join(OUT_WEAPONS, f"{it['icon']}.png")
+    path = os.path.join(OUT_WEAPONS, f"{it['icon']}.webp")
     if os.path.exists(path):
         continue
     with urllib.request.urlopen(f"{API}/img/items/{it['icon']}.png", timeout=30) as r:
         im = Image.open(io.BytesIO(r.read())).convert('RGBA')
     im.thumbnail((128, 128), Image.LANCZOS)
-    im.save(path, optimize=True)
+    im.save(path, 'WEBP', quality=85, method=6)
 
 # 4) TypeScript
 def ts_stats(lines):
