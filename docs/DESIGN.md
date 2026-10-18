@@ -374,6 +374,8 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - **Expédition (farm hors ligne)** depuis le camp sur une carte terminée ; récompenses au retour, plafond 8 h, ≈ 25 % du rendement actif, ressources et XP seulement (pas d'équipement). Chiffres à confirmer.
 - **Auto-farm** en direct (sans toucher le téléphone) sur une carte terminée, récompenses réduites : après l'expédition, si Enzo le veut toujours.
 
+- **Bestiaire, « Tout récupérer » (demandé par Enzo)** : un bouton en haut du Bestiaire récupère d'un coup tous les paliers prêts, de tous les monstres.
+
 ### 8.4 Raretés
 **Commun → Rare → Épique → Légendaire → Mythique.**
 - Chaque rang relève les fourchettes de stats (**≈ +15 % par rang**, modéré : le niveau de l'objet doit toujours compter plus que sa rareté).

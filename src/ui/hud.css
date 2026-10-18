@@ -841,6 +841,7 @@ html, body {
 .bestiary[hidden] { display: none; }
 .bestiary > * { width: min(440px, 100%); margin: 0 auto; flex-shrink: 0; }
 .bs-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+.bs-kinds .bs-all { flex-basis: 100%; }
 .bs-kinds i { font-style: normal; opacity: .7; margin-left: 2px; }
 .bs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .bs-card {

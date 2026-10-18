@@ -1131,7 +1131,9 @@ export class Hud {
       el.querySelector('.bs-count')!.textContent = `${known}/${all.length}`;
       const kinds: (BeastKind | 'all')[] = ['all', 'normal', 'elite', 'archi', 'boss'];
       const label = (k: BeastKind | 'all') => (k === 'all' ? 'Tous' : k === 'normal' ? 'Normaux' : k === 'elite' ? 'Élites' : k === 'archi' ? 'Archimonstres' : 'Boss');
-      el.querySelector('.bs-kinds')!.innerHTML = kinds.map((k) => {
+      // paliers prêts sur tous les monstres : un seul bouton pour tout récupérer (demandé par Enzo)
+      const ready = all.reduce((a, c) => a + c.tiers.filter((t) => t.state === 'ready').length, 0);
+      el.querySelector('.bs-kinds')!.innerHTML = (ready ? `<button type="button" class="gr-btn sm leaf bs-all">Tout récupérer (${ready} palier${ready > 1 ? 's' : ''})</button>` : '') + kinds.map((k) => {
         const n = all.filter((c) => k === 'all' || c.kind === k);
         return `<button type="button" class="flt-chip ${this.bsKind === k ? 'on' : ''}" data-k="${k}">${label(k)} <i class="gr-num">${n.filter((c) => c.known).length}/${n.length}</i></button>`;
       }).join('');
@@ -1161,6 +1163,13 @@ export class Hud {
       const k = t.closest<HTMLElement>('[data-k]');
       if (k) {
         this.bsKind = k.dataset.k as BeastKind | 'all';
+        render();
+        return;
+      }
+      if (t.closest('.bs-all') && h.claim) {
+        let n = 0;
+        for (const c of h.get()) while (c.tiers.some((x) => x.state === 'ready') && h.claim(c.id) && ++n < 999) c.tiers = h.get().find((x) => x.id === c.id)!.tiers;
+        if (n) this.toast(`${n} palier${n > 1 ? 's' : ''} récupéré${n > 1 ? 's' : ''} !`, 1600);
         render();
         return;
       }
