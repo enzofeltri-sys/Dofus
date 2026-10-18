@@ -25,7 +25,9 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'scaraRouge' | 'scaraBleu' | 'scaraVert' | 'scaraBlanc' | 'scaraNoir' | 'scaraImmature' | 'scarabosse'
   | 'boostache' | 'boostachePrepubere' | 'gargrouille' | 'ashimagari'
   | 'kwakVent' | 'kwakereVent' | 'bwakVent' | 'kwakFlamme' | 'kwakereFlamme' | 'bwakFlamme' | 'kwakGlace' | 'kwakereGlace' | 'bwakGlace' | 'kwakTerre' | 'kwakereTerre' | 'bwakTerre' | 'kwakwa'
-  | 'wabbit' | 'blackWabbit' | 'tiwabbit' | 'blackTiwabbit' | 'tiwabbitKiafin' | 'woWabbit' | 'grandPaWabbit' | 'waWabbit';
+  | 'wabbit' | 'blackWabbit' | 'tiwabbit' | 'blackTiwabbit' | 'tiwabbitKiafin' | 'woWabbit' | 'grandPaWabbit' | 'waWabbit'
+  | 'blopCoco' | 'blopIndigo' | 'blopGriotte' | 'blopReinette' | 'gloutoblop' | 'blopignon' | 'tronkoblop'
+  | 'blopCocoRoyal' | 'blopIndigoRoyal' | 'blopGriotteRoyal' | 'blopReinetteRoyal';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -53,9 +55,11 @@ export const FLAMES: CritterKind[] = ['feuVif', 'feuJoie', 'feuFurieux', 'feuFol
 /** Kwaks, Kwakeres, Bwaks (Montagne des Craqueleurs, Nid du Kwakwa) et le Kwakwa : oiseaux élémentaires. */
 export const KWAKS: CritterKind[] = ['kwakVent', 'kwakereVent', 'bwakVent', 'kwakFlamme', 'kwakereFlamme', 'bwakFlamme', 'kwakGlace', 'kwakereGlace', 'bwakGlace', 'kwakTerre', 'kwakereTerre', 'bwakTerre', 'kwakwa'];
 export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille', 'ashimagari'];
+/** Blops (Lac de Cania, Clos des Blops) : gelées translucides à fleur (rig des gelées : flaque, corps, visage). */
+export const BLOPS: CritterKind[] = ['blopCoco', 'blopIndigo', 'blopGriotte', 'blopReinette', 'gloutoblop', 'blopignon', 'tronkoblop', 'blopCocoRoyal', 'blopIndigoRoyal', 'blopGriotteRoyal', 'blopReinetteRoyal'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
-    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
+    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
 const PLANT_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [76, 112], leafF: [64, 114], head: [70, 96] };
@@ -90,6 +94,7 @@ export const CRITTER_PIVOTS = {
   milimulou: { tail: [110, 112], legB: [96, 122], body: [80, 132], legF: [64, 96], head: [56, 86], horn: [58, 74] },
   ...Object.fromEntries(['milirat', 'ramane', 'scelerat', 'mobEponge'].map((k) => [k, { legB: [80, 118], legF: [62, 118], stem: [70, 142], leafB: [92, 84], leafF: [52, 86], head: [68, 82] }])),
   ...Object.fromEntries(['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'].map((k) => [k, { wingB: [94, 98], legB: [102, 106], legF: [68, 122], body: [72, 132], crest: [74, 84], wingF: [74, 112] }])),
+  ...Object.fromEntries(BLOPS.map((k) => [k, k === 'tronkoblop' ? { back: [70, 150], body: [70, 150], face: [70, 60] } : JELLY_PIVOTS])),
   ...Object.fromEntries(WABBITS.map((k) => [k, { legB: [84, 122], legF: [62, 122], stem: [72, 140], leafB: [94, 100], leafF: [54, 102], head: [66, 96] }])),
   ...Object.fromEntries(KWAKS.map((k) => [k, { wingB: [100, 98], legB: [86, 128], legF: [68, 128], body: [78, 128], crest: [62, 84], wingF: [80, 104] }])),
   ...Object.fromEntries(['tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant', 'tofuVentripotent', 'batofu', 'bomberfu', 'tofuMalefique'].map((k) => [k, { wingB: [104, 92], legB: [86, 146], legF: [58, 146], body: [74, 140], crest: [72, 64], wingF: [82, 112] }])),
@@ -1554,6 +1559,93 @@ function wabbitSvg(kind: CritterKind, part?: CritterPart): string {
   return assemble(kind, P, part);
 }
 
+
+/**
+ * Blops (d'après les illustrations DofusDB) : gelées translucides en forme de goutte, fleur posée sur la tête, petits yeux sur le côté.
+ * Coco jaune-vert, Indigo turquoise, Griotte rouge, Reinette vert menthe ; les Royaux portent une couronne de feuilles et un dôme à boule d'or.
+ * Gloutoblop : deux gelées l'une sur l'autre ; Blopignon : gelée en champignon ; Tronkoblop : tronc fin couronné de petites gelées.
+ */
+const BLOP_PAL: Record<string, { top: string; bot: string; ink: string }> = {
+  Coco: { top: '#f4f8b8', bot: '#e8d040', ink: '#8aa010' },
+  Indigo: { top: '#d4f4f4', bot: '#1e8a88', ink: '#0e5a5a' },
+  Griotte: { top: '#fbd8d0', bot: '#e02a10', ink: '#9a1a08' },
+  Reinette: { top: '#d8f8e4', bot: '#2aa858', ink: '#106a30' },
+};
+
+function blopGel(d: string, C: { top: string; bot: string; ink: string }, hl: [number, number, number, number]): string {
+  const g = uid('bg');
+  const [hx, hy, hrx, hry] = hl;
+  return `<linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.top}"/><stop offset="0.55" stop-color="${C.top}"/><stop offset="1" stop-color="${C.bot}"/></linearGradient>` +
+    `<path d="${d}" fill="url(#${g})" fill-opacity="0.9" stroke="${C.ink}" stroke-width="${LW}" stroke-linejoin="round"/>` +
+    `<ellipse cx="${hx}" cy="${hy}" rx="${hrx}" ry="${hry}" fill="#ffffff" opacity="0.6" transform="rotate(-20 ${hx} ${hy})"/>` +
+    `<circle cx="${hx + hrx * 2.6}" cy="${hy + hry * 3.4}" r="${hrx * 0.55}" fill="#ffffff" opacity="0.35"/>`;
+}
+/** Fleur de nénuphar posée sur la tête des Blops : pétales clairs, cœur jaune, feuilles. */
+const blopFlower = (x: number, y: number, s: number, petal: string, leaf: string) =>
+  `<g transform="translate(${x},${y}) scale(${s})">` +
+  blob('M-16,4 L-8,-6 L0,2 L8,-6 L16,4 Q0,10 -16,4 Z', leaf, { ink: '#3a5a10', w: 1.3, rim: false }) +
+  [-10, 0, 10].map((a) => blob(`M${a - 5},2 Q${a},-16 ${a + 5},2 Z`, petal, { ink: '#8a6a3a', w: 1.2, rim: false })).join('') +
+  blob(circle(0, -2, 5.5), '#f8c838', { ink: '#8a5a10', w: 1.2 }) + '</g>';
+/** Couronne des Blops Royaux : feuilles en éventail, dôme orange et violet, boule d'or, anneau doré. */
+const blopCrown = (x: number, y: number) =>
+  [-30, -20, -10, 0, 10, 20, 30].map((dx) => blob(`M${x + dx - 7},${y + 2} Q${x + dx * 1.35},${y - 26 - (30 - Math.abs(dx)) * 0.35} ${x + dx + 7},${y + 2} Z`, Math.abs(dx) % 20 ? '#5aa82a' : '#7ac83a', { ink: '#1e4a10', w: 1.3, rim: false })).join('') +
+  blob(`M${x - 22},${y - 2} Q${x},${y - 34} ${x + 22},${y - 2} Z`, '#f0901a', { ink: '#6a3008', w: 1.4 }) +
+  blob(`M${x - 22},${y - 2} Q${x - 18},${y - 22} ${x - 6},${y - 26} Q${x - 8},${y - 10} ${x - 10},${y - 2} Z`, '#7a6ad8', { ink: '#2a1a6a', w: 1.2, rim: false }) +
+  blob(`M${x + 22},${y - 2} Q${x + 18},${y - 22} ${x + 6},${y - 26} Q${x + 8},${y - 10} ${x + 10},${y - 2} Z`, '#7a6ad8', { ink: '#2a1a6a', w: 1.2, rim: false }) +
+  blob(circle(x, y - 32, 6), '#f8d040', { ink: '#8a5a10', w: 1.3 }) +
+  blob(ellipse(x, y + 2, 34, 6), '#f0c43a', { ink: '#6a4a08', w: 1.5 });
+const blopEye = (cx: number, cy: number, r: number, ink: string) =>
+  `<circle cx="${cx}" cy="${cy}" r="${r + 2}" fill="${ink}" opacity="0.5"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="#ffffff" opacity="0.9"/>` +
+  `<circle cx="${cx - r * 0.25}" cy="${cy + r * 0.15}" r="${r * 0.42}" fill="#101418"/><circle cx="${cx - r * 0.4}" cy="${cy - r * 0.1}" r="${r * 0.15}" fill="#fff"/>`;
+
+function blopSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const royal = kind.endsWith('Royal');
+  const col = kind === 'gloutoblop' ? 'Indigo' : kind === 'blopignon' ? 'Reinette' : (kind.replace(/^blop/, '').replace(/Royal$/, '') || 'Coco');
+  const C = BLOP_PAL[col] ?? BLOP_PAL.Coco;
+  const shadow = (rx: number) => `<ellipse cx="70" cy="146" rx="${rx}" ry="${rx * 0.2}" fill="#1a2a20" opacity="0.28"/>`;
+  if (kind === 'tronkoblop') {
+    // tronc fin et noueux, couronné de trois petites gelées (rouge, verte, bleue) et d'une fleur
+    push(P, 'back', shadow(22), blob('M60,148 L56,140 L66,142 L70,134 L74,142 L84,140 L80,148 Z', '#4a6a1a', { ink: '#1e3008', w: 1.2, rim: false }));
+    push(P, 'body', tube('M70,146 Q64,110 72,84 Q76,66 70,52', 8, '#8a6a3a', '#3a2410'),
+      `<path d="M68,120 l6,-4 M70,96 l-6,-3 M72,74 l5,-3" stroke="#3a2410" stroke-width="1.6"/>`);
+    push(P, 'face', blopGel(ellipse(56, 46, 12, 10), BLOP_PAL.Griotte, [52, 42, 3, 2]), blopGel(ellipse(84, 44, 12, 10), BLOP_PAL.Reinette, [80, 40, 3, 2]),
+      blopGel(ellipse(70, 54, 12, 9), BLOP_PAL.Indigo, [66, 50, 3, 2]), blopFlower(70, 34, 0.8, '#f8f0e0', '#c8a040'), blopEye(64, 54, 3, BLOP_PAL.Indigo.ink), blopEye(74, 54, 3, BLOP_PAL.Indigo.ink));
+    return assemble(kind, P, part);
+  }
+  if (kind === 'blopignon') {
+    // champignon de gelée : grand chapeau menthe, petit pied turquoise avec deux yeux, fleur et caillou
+    push(P, 'back', shadow(40));
+    push(P, 'body', blopGel('M52,146 Q48,124 56,112 L86,112 Q94,124 90,146 Q70,152 52,146 Z', BLOP_PAL.Indigo, [62, 120, 5, 3]),
+      blopGel('M20,112 Q16,66 70,60 Q124,66 120,112 Q96,104 70,106 Q44,104 20,112 Z', C, [48, 74, 12, 6]));
+    push(P, 'face', blopEye(70, 130, 3.4, BLOP_PAL.Indigo.ink), blopEye(80, 130, 3.4, BLOP_PAL.Indigo.ink),
+      blob('M28,84 L44,78 L40,94 Z', '#c8a878', { ink: '#5a4020', w: 1.3 }), blopFlower(74, 62, 1.1, '#e8f0ff', '#c8a878'));
+    return assemble(kind, P, part);
+  }
+  if (kind === 'gloutoblop') {
+    // deux gelées turquoise l'une sur l'autre, la plus petite penchée, fleurs collées dessus
+    push(P, 'back', shadow(50));
+    push(P, 'body', blopGel('M22,118 Q20,82 62,80 Q112,80 118,114 Q120,148 70,148 Q24,148 22,118 Z', C, [44, 94, 12, 7]),
+      blopGel('M26,72 Q30,44 62,42 Q92,44 96,66 Q92,86 62,88 Q32,88 26,72 Z', C, [42, 54, 9, 5]));
+    push(P, 'face', `<path d="M44,64 q6,-3 12,0 M66,62 q6,-3 12,0" fill="none" stroke="${C.ink}" stroke-width="2.4" stroke-linecap="round"/>`,
+      `<ellipse cx="46" cy="72" rx="5" ry="2.6" fill="#f0a0a8" opacity="0.6"/>`,
+      blopFlower(60, 42, 0.8, '#e8f0ff', '#c8a878'), blopFlower(40, 112, 0.7, '#f8f0c8', '#5aa82a'), blopFlower(96, 130, 0.6, '#f8d0a0', '#c8a040'));
+    return assemble(kind, P, part);
+  }
+  // Blop et Blop Royal : goutte (plus large et plus basse pour les Royaux)
+  push(P, 'back', shadow(royal ? 50 : 42));
+  push(P, 'body', royal
+    ? blopGel('M22,140 Q16,108 30,92 Q46,80 70,80 Q94,80 110,92 Q124,108 118,140 Q70,152 22,140 Z', C, [42, 98, 11, 6])
+    : blopGel('M28,140 Q20,104 36,72 Q50,48 70,48 Q90,48 104,72 Q120,104 112,140 Q70,152 28,140 Z', C, [46, 72, 10, 7]));
+  if (royal) push(P, 'face', `<path d="M42,110 q6,-3 12,0" fill="none" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/><path d="M64,108 q6,-4 12,0" fill="none" stroke="${C.ink}" stroke-width="2.6" stroke-linecap="round"/>`,
+    `<ellipse cx="44" cy="120" rx="6" ry="3" fill="#f0a0a8" opacity="0.65"/><ellipse cx="80" cy="118" rx="5" ry="2.6" fill="#f0a0a8" opacity="0.5"/>`, blopCrown(70, 84));
+  else push(P, 'face', blopEye(46, 80, 6, C.ink), blopEye(62, 78, 5, C.ink),
+    `<ellipse cx="48" cy="96" rx="6" ry="3" fill="#f0a0a8" opacity="0.6"/>`,
+    blopFlower(70, 50, 1.45, col === 'Griotte' ? '#c8d0f8' : '#f8f0e0', col === 'Indigo' ? '#5aa82a' : '#e8902a'));
+  return assemble(kind, P, part);
+}
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1575,6 +1667,7 @@ export const CRITTER_SVG = {
   boostache: (p) => ghostSvg('boostache', p), boostachePrepubere: (p) => ghostSvg('boostachePrepubere', p), gargrouille: (p) => gargrouilleSvg(p), ashimagari: (p) => ashimagariSvg(p),
   ...(Object.fromEntries(KWAKS.map((k) => [k, (p?: CritterPart) => kwakSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(WABBITS.map((k) => [k, (p?: CritterPart) => wabbitSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
+  ...(Object.fromEntries(BLOPS.map((k) => [k, (p?: CritterPart) => blopSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
