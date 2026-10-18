@@ -19,4 +19,4 @@ Jeu privé (jamais publié publiquement) : roguelite d'action en temps réel, po
 - Interface : `src/ui/hud.ts` (+ vues `*-view.ts`), rendu PixiJS dans `src/main.ts`, dessins SVG dans `src/art/`.
 - Navigateur : serveur `npx vite --port 5173`, parcours `node tools/{flow,inventory,progress,artisan,search,forge,weapon,champs}.mjs` (captures dans `shots/`).
 - Équilibrage : `npx vite-node tools/balance.ts`, `npx vite-node tools/career.ts [joueurs] [parties] zone=champs|crypte [arme=<id>] [joueur=bon]` (carrière d'un nouveau joueur).
-- Publication : `npm run build:single` → `dist-single/dofus.html` (artifact).
+- Publication : `npm run build:split` → `dist-split/dofus.html` + `jeu.js` + `style.css`, publiés ensemble sur l'artifact (`files`) ; la page seule ne passait plus la validation du serveur à 15 Mo. `npm run build:single` (un seul fichier) reste disponible pour les tests hors ligne.
