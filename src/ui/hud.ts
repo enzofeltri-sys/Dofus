@@ -1337,6 +1337,7 @@ export class Hud {
       detail.querySelector('.det-card')!.innerHTML = `
         <div class="det-head"><span class="det-ico r${d.rarity}">${d.icon}</span><div><h3 class="gr-h3 rar-${d.rarity}">${d.name}</h3><span class="det-sub">${d.sub}</span></div>
           ${d.marks ? `<div class="det-marks"><button type="button" class="mark fav ${d.marks.fav ? 'on' : ''}" data-mark="fav" aria-label="Favori">${STAR_SVG}</button><button type="button" class="mark lock ${d.marks.lock ? 'on' : ''}" data-mark="lock" aria-label="Verrouiller">${LOCK_SVG}</button></div>` : ''}</div>
+        ${d.weapon ? `<div class="det-weapon"><span class="gr-label">Dommages de l’arme</span>${d.weapon.lines.map((l) => `<div class="wl el-${l.el}"><i></i><span>${l.text}</span><small>${l.range}</small></div>`).join('')}<small class="wi">${d.weapon.info}</small></div>` : ''}
         ${d.lines.length ? `<div class="det-lines">${d.lines.map((l) => `<div><span>${l.text}</span>${l.range ? `<small>${l.range}</small>` : ''}</div>`).join('')}</div>` : ''}
         ${d.set && setGo ? `<button type="button" class="det-setlink" data-go="${setGo}"><span>${d.set.name.split(" · ")[0]}</span><b class="gr-num">${d.set.count}/${d.set.total}</b><i>›</i></button>` : ''}
         ${d.diffTitle ? `<div class="det-diff"><span class="gr-label">${d.diffTitle}</span>${d.diff.length ? d.diff.map((x) => `<span class="${x.up ? 'up' : 'down'}">${x.text}</span>`).join('') : '<span>Aucun changement</span>'}</div>` : ''}

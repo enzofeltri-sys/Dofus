@@ -1,3 +1,4 @@
+import { WEAPON_POWER } from '../game/data/hero';
 import { fmtLine, isSpecial, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, type StatPath } from '../game/data/items';
 import { canEquip, compare, instance, isWorn, itemLines, setBonus, setCounts, type Inventory } from '../game/inventory';
 import type { Facets } from '../game/search';
@@ -46,12 +47,30 @@ export interface ItemDetail {
   links: Link[];
   /** Familier ou Dofus : pas de fusion, de brisage ni de forgemagie. */
   special?: boolean;
+  /** Arme : lignes de dommages (élément, valeurs de Dofus et en jeu), PA, portée, critique. */
+  weapon?: { lines: { el: string; text: string; range: string }[]; info: string };
   /** Familier : croissance (%) et Super Croquettes en stock. */
   pet?: { pct: number; food: number };
 }
 
 /** Cases sans objet possible pour l'instant (familiers et Dofus sont arrivés). */
 const NOT_YET: SlotId[] = [];
+
+const EL_NAME: Record<string, string> = { neutre: 'Neutre', terre: 'Terre', feu: 'Feu', eau: 'Eau', air: 'Air' };
+/** Fiche d'arme (demandé par Enzo) : dommages par élément — valeurs de Dofus, et par coup en jeu (×WEAPON_POWER) —, PA, portée, critique. */
+export function weaponBlock(id: number): ItemDetail['weapon'] {
+  const w = item(id).weapon;
+  if (!w) return undefined;
+  const conv = (v: number) => Math.max(1, Math.round(v * WEAPON_POWER));
+  return {
+    lines: w.lines.map(([el, a, b, steal]) => ({
+      el,
+      text: `${steal ? 'Vol de vie' : 'Dommages'} ${EL_NAME[el]} ${a === b ? a : `${a} à ${b}`}`,
+      range: `base en jeu ${conv(a) === Math.max(conv(a), conv(b)) ? conv(a) : `${conv(a)} à ${Math.max(conv(a), conv(b))}`}`,
+    })),
+    info: `${w.pa} PA · portée ${w.minRange === w.range ? w.range : `${w.minRange} à ${w.range}`} · critique ${w.crit} %${w.critBonus ? ` (+${w.critBonus} dommages)` : ''}`,
+  };
+}
 
 /** Haut de la fourchette (ou bas pour un malus). */
 const top = (a: number, b: number) => (Math.abs(b) >= Math.abs(a) ? b : a);
@@ -169,6 +188,7 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number, food
     lines,
     set: d.set ? setBlock(d.set, setCounts(inv).get(d.set) ?? 0, 'portés') : null,
     special: isSpecial(it.id),
+    weapon: weaponBlock(it.id),
     pet: d.slot === 'familier' ? { pct: it.food ?? 100, food } : undefined,
     diff: compare(inv, uid, level).map(([p, v]) => ({ text: `${v > 0 ? '+' : ''}${v} ${statLabel(p)}`, up: v > 0 })),
     diffTitle: worn ? 'Si tu le retires' : 'Si tu l’équipes',
@@ -213,6 +233,7 @@ export function catalogDetail(inv: Inventory, id: number): ItemDetail {
     set: d.set && own ? setBlock(d.set, SETS[d.set].items.filter((i) => own.has(i)).length, 'possédées') : null,
     diff: [], diffTitle: '', action: null, note: '',
     sources: src.length ? src.map((s) => s.text) : ['Pas encore obtenable dans le jeu.'],
+    weapon: weaponBlock(id),
     marks: null,
     links,
   };

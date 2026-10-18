@@ -687,6 +687,17 @@ html, body {
 .inv-acts .ia-hint { flex: 1; font-size: 13px; color: var(--ink-soft); font-weight: 700; }
 .inv-cell.off { opacity: .35; filter: grayscale(.7); }
 .inv-cell.sel { box-shadow: inset 0 0 0 3px var(--coral), 0 2px 0 rgba(59,36,20,.3); transform: translateY(-1px); }
+.det-weapon { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.det-weapon .wl { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: var(--t-md, 16px); }
+.det-weapon .wl i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.35); flex-shrink: 0; }
+.det-weapon .wl span { flex: 1; }
+.det-weapon .wl small { color: var(--ink-soft); font-weight: 600; }
+.det-weapon .el-terre { color: #8a5424; } .det-weapon .el-terre i { background: #a8642a; }
+.det-weapon .el-feu { color: #c8341e; } .det-weapon .el-feu i { background: #e8482a; }
+.det-weapon .el-eau { color: #2068c0; } .det-weapon .el-eau i { background: #3a8ae0; }
+.det-weapon .el-air { color: #2e8a3a; } .det-weapon .el-air i { background: #48b050; }
+.det-weapon .el-neutre { color: #5a5a5a; } .det-weapon .el-neutre i { background: #8a8a8a; }
+.det-weapon .wi { color: var(--ink-soft); }
 .det-pet { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .det-pet .track { flex: 1; height: 10px; border-radius: 6px; background: var(--parchment-3); overflow: hidden; }
 .det-pet .fill { display: block; height: 100%; width: var(--v); background: var(--leaf); }
