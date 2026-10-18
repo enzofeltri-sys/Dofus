@@ -469,72 +469,78 @@ function vampireChibiSvg(kind: 'vampire' | 'maitreVampire', part?: ChaferPart): 
 }
 
 /**
- * Bworks (Campement, Village, Donjon des Bworks) : grosses brutes à peau verte, défenses, cuir et os.
- * Bwork : épaulière d'os à pointes, couperet ; Mage : bandeau à plume rouge, bâton enflammé ; Archer : crâne en épaulière, arc et carquois ;
- * Bworkette (boss) : longue mèche noire à plumes, fleur orange, collier d'os, gourdin sur l'épaule.
+ * Bworks (Campement, Village, Donjon des Bworks), d'après les illustrations : grosses brutes voûtées, tête basse enfoncée entre d'énormes épaules,
+ * bras épais bandés, jambes courtes et bottes de cuir. Bwork : casque à cornes, grande épaulière d'os à pointes, bloc de pierre ;
+ * Mage : oreilles pointues, plume rouge et corne, livre rouge à la ceinture, bâton à tête enflammée ; Archer : touffe blonde, bandeau de fourrure,
+ * crâne peint sur l'épaule, carquois, petit arc ; Bworkette (boss) : carré noir, plumes violettes, fleur orange, collier d'os, hachoir d'os sur l'épaule.
  */
 function bworkChibiSvg(kind: 'bwork' | 'bworkMage' | 'bworkArcher' | 'bworkette', part?: ChaferPart): string {
   begin();
   const P = empty();
-  const SKIN = kind === 'bworkette' ? '#8ab030' : '#7a9a2a', INK = '#26300a', LEATHER = '#7a5632', LINK = '#2e1e0e';
-  const fat = kind === 'bwork' ? 1 : 0;
-  // dos : carquois de l'Archer, plumes de la Bworkette
+  const SKIN = kind === 'bworkette' ? '#8aa832' : '#7e9426', INK = '#222a08', BELLY = kind === 'bworkette' ? '#a6c040' : '#a2b432';
+  const LEATHER = '#7a5030', DARK = '#4a2e16', LINK = '#26160a', BAND = '#e2d6b0';
+  const bands = (x1: number, y1: number, x2: number, y2: number, n: number) =>
+    Array.from({ length: n }, (_, i) => { const t = (i + 1) / (n + 1), x = x1 + (x2 - x1) * t, y = y1 + (y2 - y1) * t; return `<path d="M${x - 11},${y - 3} Q${x},${y + 4} ${x + 11},${y - 3}" fill="none" stroke="${BAND}" stroke-width="4.5" stroke-linecap="round"/><path d="M${x - 11},${y - 3} Q${x},${y + 4} ${x + 11},${y - 3}" fill="none" stroke="#6a5a3a" stroke-width="1" opacity="0.6"/>`; }).join('');
+  // dos : carquois (Archer), hachoir d'os (Bworkette)
   if (kind === 'bworkArcher') {
-    P.cape.push(blob('M96,52 L112,46 L120,104 L104,108 Z', LEATHER, { ink: LINK }));
-    for (const x of [100, 106, 112]) P.cape.push(`<path d="M${x},50 L${x + 2},28" stroke="#5a3a1a" stroke-width="2.4"/>`, blob(`M${x + 2},28 l-5,-8 l5,2 l5,-2 Z`, '#e8e2d0', { ink: '#5a4a2a', w: 1, rim: false }));
+    P.cape.push(blob('M96,34 L118,26 L128,92 L108,98 Z', LEATHER, { ink: LINK }));
+    for (const [x, y] of [[100, 30], [108, 26], [116, 24]]) P.cape.push(`<path d="M${x},${y + 6} L${x - 12},${y - 12}" stroke="#5a3a1a" stroke-width="2.6"/>`, blob(`M${x - 12},${y - 12} l-10,-4 l12,0 l4,-6 Z`, '#ece2c4', { ink: '#5a4a2a', w: 1.1 }));
   }
-  // bras arrière : gros biceps vert, brassard de cuir
-  P.armB.push(blob('M94,66 Q114,72 112,98 Q108,114 98,112 Q94,96 88,84 Z', SKIN, { ink: INK }));
-  P.armB.push(blob('M98,98 L112,96 L112,106 L98,108 Z', LEATHER, { ink: LINK, w: 1.2, rim: false }), blob(ellipse(104, 116, 8, 7), SKIN, { ink: INK }));
-  // jambes trapues, pieds nus griffus
+  if (kind === 'bworkette') P.cape.push(`<path d="M104,64 L124,22" stroke="#6a4a24" stroke-width="7" stroke-linecap="round"/>`,
+    blob('M112,30 Q124,4 144,10 Q150,30 136,46 Q124,48 112,30 Z', '#ece2c4', { ink: '#5a4a2a' }), `<circle cx="132" cy="24" r="5" fill="#3a2a1a"/>`);
+  // bras arrière : énorme, bandé
+  P.armB.push(blob('M98,48 Q128,50 130,80 Q132,104 120,114 Q108,116 104,102 Q104,80 92,66 Z', SKIN, { ink: INK, hl: [0.4, 0.2] }), bands(116, 66, 120, 110, 3));
+  P.armB.push(blob('M106,104 Q122,100 128,112 Q126,124 112,124 Q102,120 106,104 Z', SKIN, { ink: INK }));
+  // jambes courtes et grosses bottes
   const leg = (arr: string[], x: number) => {
-    arr.push(blob(`M${x - 9},112 L${x + 9},112 L${x + 8},150 L${x - 8},150 Z`, SKIN, { ink: INK }));
-    arr.push(blob(`M${x - 16},146 Q${x},138 ${x + 12},146 L${x + 12},160 Q${x - 2},166 ${x - 18},160 Z`, SKIN, { ink: INK }));
-    arr.push(`<path d="M${x - 16},158 l-3,4 M${x - 8},160 l-2,5 M${x},160 l0,5" stroke="#e8e2d0" stroke-width="2.4" stroke-linecap="round"/>`);
-    arr.push(`<path d="M${x - 9},132 L${x + 9},130" stroke="${LEATHER}" stroke-width="4"/>`);
+    arr.push(blob(`M${x - 12},106 L${x + 12},106 L${x + 11},140 L${x - 11},140 Z`, SKIN, { ink: INK }));
+    arr.push(bands(x, 112, x, 140, 1));
+    arr.push(blob(`M${x - 20},136 Q${x},128 ${x + 15},136 L${x + 16},158 Q${x},166 ${x - 24},160 Q${x - 26},150 ${x - 20},136 Z`, LEATHER, { ink: LINK }));
+    arr.push(`<path d="M${x - 20},146 Q${x - 2},140 ${x + 15},146" fill="none" stroke="${DARK}" stroke-width="2"/>`);
   };
-  leg(P.legB, 98);
-  leg(P.legF, 72);
-  // pagne de cuir, ceinture à boucle d'os
-  P.pelvis.push(blob('M60,96 L108,96 L110,124 L98,118 L90,130 L80,118 L68,126 L58,118 Z', LEATHER, { ink: LINK }));
-  P.pelvis.push(blob('M60,94 L108,94 L108,102 L60,102 Z', '#4a3218', { ink: LINK, w: 1.2, rim: false }), blob(ellipse(84, 98, 6, 5), '#e8e2d0', { ink: '#5a4a2a', w: 1.2 }));
-  // torse massif
-  P.chest.push(blob(`M${54 - 4 * fat},70 Q84,${54 - 4 * fat} ${114 + 4 * fat},70 Q118,92 108,100 Q84,108 60,100 Q50,88 ${54 - 4 * fat},70 Z`, SKIN, { ink: INK, hl: [0.3, 0.2] }));
-  P.chest.push(`<path d="M72,78 Q84,84 96,78 M84,84 L84,98" fill="none" stroke="${shade(SKIN, -0.35)}" stroke-width="1.8"/>`);
-  if (kind === 'bworkette') P.chest.push(`<path d="M62,72 Q84,92 106,72" fill="none" stroke="#5a3a1a" stroke-width="2"/>` + [64, 72, 80, 88, 96, 104].map((x, i) => blob(`M${x},${74 + (i < 3 ? i * 3 : (5 - i) * 3)} l3,8 l3,-8 Z`, '#f0e8d4', { ink: '#5a4a2a', w: 1, rim: false })).join(''));
-  else P.chest.push(`<path d="M60,68 L104,100" stroke="${LEATHER}" stroke-width="7"/><path d="M60,68 L104,100" stroke="#4a3218" stroke-width="2" stroke-dasharray="3 5"/>`);
-  // épaulière (épaule arrière) : os à pointes (Bwork), crâne (Archer)
-  if (kind === 'bwork') P.chest.push(blob('M88,52 Q110,44 122,60 Q124,74 112,78 Q96,76 88,66 Z', '#d8ccaa', { ink: '#4a3a1e' }), blob('M104,48 L110,30 L114,50 Z M116,56 L132,48 L120,64 Z', '#f0e8d4', { ink: '#4a3a1e', w: 1.2 }));
-  if (kind === 'bworkArcher') P.chest.push(blob(ellipse(108, 62, 12, 11), '#f0e8d4', { ink: '#4a3a1e' }), `<circle cx="104" cy="62" r="3" fill="#2a1a10"/><circle cx="112" cy="62" r="3" fill="#2a1a10"/>`);
-  // bras avant et arme
-  const fist = (x: number, y: number) => blob(ellipse(x, y, 9, 8), SKIN, { ink: INK });
-  P.armF.push(blob('M76,68 Q56,70 48,88 Q46,98 56,98 Q64,88 76,84 Z', SKIN, { ink: INK }));
-  if (kind === 'bwork') {
-    P.armF.push(`<path d="M50,96 L42,124" stroke="#4a3218" stroke-width="6" stroke-linecap="round"/>`, blob('M30,118 L58,112 L64,150 Q46,160 28,150 Z', '#8a8c96', { ink: '#26262e' }),
-      `<path d="M30,148 Q46,156 62,148" fill="none" stroke="#e8eaf0" stroke-width="2.4"/>`, fist(50, 96));
-  } else if (kind === 'bworkMage') {
-    P.armF.push(`<path d="M44,150 L56,16" stroke="#3a2410" stroke-width="7" stroke-linecap="round"/><path d="M44,150 L56,16" stroke="#9a6a3a" stroke-width="4" stroke-linecap="round"/>`,
-      blob('M56,18 Q46,8 52,-6 Q56,4 62,0 Q60,8 66,6 Q66,18 56,18 Z', '#ff8a2a', { ink: '#8a2a0a', w: 1.3 }), blob('M56,16 Q52,10 56,4 Q58,10 61,9 Q61,15 56,16 Z', '#ffe27a', { ink: '#c86a10', w: 1, rim: false }), fist(51, 92));
-  } else if (kind === 'bworkArcher') {
-    P.armF.push(`<path d="M38,40 Q12,96 40,150" fill="none" stroke="#3a2410" stroke-width="6" stroke-linecap="round"/><path d="M38,40 Q12,96 40,150" fill="none" stroke="#9a6a3a" stroke-width="3" stroke-linecap="round"/>`,
-      `<path d="M38,40 L40,150" stroke="#e8e2d0" stroke-width="1.2"/>`, fist(30, 94));
-  } else {
-    P.armF.push(fist(52, 92), `<path d="M52,92 Q60,60 80,34" stroke="#3a2410" stroke-width="9" stroke-linecap="round"/><path d="M52,92 Q60,60 80,34" stroke="#a87a44" stroke-width="6" stroke-linecap="round"/>`,
-      blob(ellipse(82, 30, 10, 8), '#8a5a2a', { ink: '#3a2410' }));
-  }
-  // tête : mâchoire carrée, défenses, petits yeux sous un sourcil épais
+  leg(P.legB, 100);
+  leg(P.legF, 70);
+  // pagne et grosse ceinture
+  P.pelvis.push(blob('M50,92 L120,92 L122,120 L108,114 L98,126 L86,114 L74,126 L62,114 L48,120 Z', kind === 'bworkMage' ? '#7a1a1a' : LEATHER, { ink: LINK }));
+  P.pelvis.push(blob('M48,88 L122,88 L122,100 L48,100 Z', DARK, { ink: LINK, w: 1.3, rim: false }), blob('M78,86 L92,86 L92,102 L78,102 Z', '#c8a040', { ink: '#5a4008', w: 1.2 }));
+  if (kind === 'bworkMage') P.pelvis.push(blob('M100,94 L118,90 L122,116 L104,120 Z', '#a8201a', { ink: '#3a0806' }), `<path d="M104,98 L118,95" stroke="#e8d0a0" stroke-width="2"/>`);
+  // torse massif, ventre clair
+  P.chest.push(blob('M42,64 Q52,34 88,32 Q124,34 128,66 Q130,92 112,104 Q86,112 58,104 Q38,90 42,64 Z', SKIN, { ink: INK, hl: [0.3, 0.2] }));
+  P.chest.push(blob('M60,70 Q84,62 108,70 Q112,92 98,102 Q82,106 66,100 Q56,88 60,70 Z', BELLY, { ink: shade(BELLY, -0.45), w: 1.2, rim: false }));
+  if (kind === 'bworkette') P.chest.push(`<path d="M54,52 Q84,78 118,52" fill="none" stroke="#5a3a1a" stroke-width="2.4"/>` + [60, 70, 80, 90, 100, 110].map((x, i) => blob(`M${x},${56 + (i < 3 ? i * 4 : (5 - i) * 4)} l4,10 l4,-10 Z`, '#f2ead6', { ink: '#5a4a2a', w: 1, rim: false })).join('') + blob(ellipse(84, 72, 7, 7), '#c8c8d0', { ink: '#3a3a44', w: 1.2 }));
+  else P.chest.push(`<path d="M50,52 L116,98" stroke="${LEATHER}" stroke-width="9"/><path d="M50,52 L116,98" stroke="${DARK}" stroke-width="2" stroke-dasharray="4 6"/>`);
+  // épaulière (épaule arrière)
+  if (kind === 'bwork') P.chest.push(blob('M88,30 Q118,18 136,40 Q142,62 124,70 Q100,68 88,50 Z', '#d6caa4', { ink: '#4a3a1e' }),
+    blob('M104,28 L106,4 L116,26 Z M124,34 L144,20 L132,44 Z M134,52 L154,52 L136,62 Z', '#f2ead6', { ink: '#4a3a1e', w: 1.3 }),
+    `<path d="M94,46 Q114,42 132,58" fill="none" stroke="#9a8a62" stroke-width="2"/>`);
+  if (kind === 'bworkArcher') P.chest.push(blob(ellipse(112, 52, 14, 13), '#f2ead6', { ink: '#4a3a1e', w: 1.3, rim: false }), `<circle cx="107" cy="50" r="3.4" fill="${SKIN}"/><circle cx="117" cy="50" r="3.4" fill="${SKIN}"/><path d="M108,58 L116,58" stroke="${SKIN}" stroke-width="2"/>`);
+  if (kind === 'bworkMage') P.chest.push(blob('M96,40 Q116,36 124,52 Q116,60 100,56 Z', '#a8201a', { ink: '#3a0806' }));
+  // bras avant, poing et arme
+  const fist = (x: number, y: number) => blob(ellipse(x, y, 12, 11), SKIN, { ink: INK });
+  P.armF.push(blob('M76,52 Q50,50 40,72 Q34,92 46,100 Q62,96 70,80 Z', SKIN, { ink: INK, hl: [0.35, 0.2] }), bands(52, 66, 44, 96, 2));
+  if (kind === 'bwork') P.armF.push(`<path d="M44,98 L34,116" stroke="${DARK}" stroke-width="7" stroke-linecap="round"/>`,
+    blob('M8,104 L44,96 L52,128 Q34,142 12,136 Z', '#6a6c62', { ink: '#22231e' }), `<path d="M12,134 Q30,138 50,126" fill="none" stroke="#9a9c90" stroke-width="2.4"/><path d="M16,108 L42,102" stroke="#4a4c44" stroke-width="2"/>`, fist(44, 96));
+  else if (kind === 'bworkMage') P.armF.push(`<path d="M34,160 L48,30" stroke="#3a1a08" stroke-width="9" stroke-linecap="round"/><path d="M34,160 L48,30" stroke="#b0602a" stroke-width="5" stroke-linecap="round"/>`,
+    blob('M48,34 Q36,22 42,10 Q48,20 52,14 Q54,22 60,18 Q62,30 48,34 Z', '#ff8a1a', { ink: '#8a2a06', w: 1.3 }), blob('M48,32 Q44,24 48,18 Q50,24 54,22 Q54,30 48,32 Z', '#ffe070', { ink: '#c86a10', w: 1, rim: false }),
+    `<path d="M40,72 L46,84" stroke="#e8e0c8" stroke-width="3"/>`, fist(44, 90));
+  else if (kind === 'bworkArcher') P.armF.push(`<path d="M30,54 Q8,100 32,140" fill="none" stroke="#2a1606" stroke-width="7" stroke-linecap="round"/><path d="M30,54 Q8,100 32,140" fill="none" stroke="#8a5a2a" stroke-width="4" stroke-linecap="round"/>`,
+    `<path d="M30,54 L32,140" stroke="#ece2c4" stroke-width="1.2"/>`, fist(22, 96));
+  else P.armF.push(fist(64, 66));
+  // tête : basse, mâchoire large, défenses, sourcil épais, petits yeux
   const h = P.head;
-  if (kind === 'bworkette') h.push(blob('M70,18 Q96,6 108,24 Q118,46 106,74 Q100,56 92,46 Q90,30 70,18 Z', '#2a1a2e', { ink: '#0e0610' }),
-    blob('M104,20 L124,0 L118,22 Z M110,30 L132,20 L120,38 Z', '#c84a2a', { ink: '#5a1a0a', w: 1.2 }));
-  h.push(blob('M42,44 C40,24 54,14 70,14 C88,14 98,26 96,46 C96,62 86,72 70,72 C54,72 42,62 42,44 Z', SKIN, { ink: INK }));
-  h.push(blob('M86,30 L104,22 L96,40 Z', SKIN, { ink: INK, w: 1.3 }));
-  h.push(`<path d="M44,36 Q56,30 70,36" fill="none" stroke="${shade(SKIN, -0.5)}" stroke-width="4" stroke-linecap="round"/>`);
-  h.push(`<circle cx="54" cy="42" r="3.4" fill="#1a1a0a"/><circle cx="68" cy="42" r="3" fill="#1a1a0a"/><circle cx="53" cy="41" r="1.1" fill="#fff"/>`);
-  h.push(blob('M46,52 Q60,60 80,54 Q80,66 62,68 Q48,64 46,52 Z', shade(SKIN, -0.12), { ink: INK, w: 1.3 }));
-  h.push(blob('M50,58 l-2,-12 l6,10 Z', '#f4eedc', { ink: '#5a4a2a', w: 1.1 }), blob('M74,56 l2,-12 l4,12 Z', '#f4eedc', { ink: '#5a4a2a', w: 1.1 }));
-  if (kind === 'bwork') h.push(blob('M42,30 Q60,10 90,20 Q96,28 92,34 Q66,26 44,36 Z', '#8a8c96', { ink: '#26262e' }), blob('M48,22 L36,6 L54,18 Z M84,18 L92,0 L92,22 Z', '#f0e8d4', { ink: '#4a3a1e', w: 1.2 }));
-  if (kind === 'bworkMage') h.push(`<path d="M42,30 Q68,22 94,30" fill="none" stroke="#c8a040" stroke-width="5"/>`, blob('M88,26 Q104,6 112,10 Q102,20 96,32 Z', '#d8302a', { ink: '#5a0a08', w: 1.2 }));
-  if (kind === 'bworkArcher') h.push(blob('M40,34 Q50,8 72,10 Q94,10 98,30 Q74,22 40,34 Z', '#f0e8d4', { ink: '#4a3a1e' }), `<path d="M52,16 L46,4 M84,14 L90,2" stroke="#4a3a1e" stroke-width="2.4" stroke-linecap="round"/>`);
-  if (kind === 'bworkette') h.push(blob(ellipse(46, 30, 7, 7), '#ff8a2a', { ink: '#8a3a0a', w: 1.2 }), `<circle cx="46" cy="30" r="2.4" fill="#ffd84a"/>`);
+  if (kind === 'bworkette') h.push(blob('M34,46 Q30,14 62,10 Q92,8 96,40 Q96,58 90,68 Q86,48 76,40 Q58,42 44,52 Q40,58 34,46 Z', '#1e1424', { ink: '#08040a' }),
+    blob('M70,14 Q76,2 90,-2 Q86,8 96,4 Q92,12 102,12 Q90,18 76,18 Z', '#5a2a7a', { ink: '#1e0a2a', w: 1.3 }));
+  h.push(blob('M38,58 C36,36 50,26 66,26 C84,26 96,38 94,58 C94,74 82,84 66,84 C50,84 38,74 38,58 Z', SKIN, { ink: INK }));
+  if (kind === 'bworkMage') h.push(blob('M88,46 L112,32 L98,58 Z', SKIN, { ink: INK, w: 1.3 }), blob('M36,48 L18,38 L34,60 Z', SKIN, { ink: INK, w: 1.3 }));
+  h.push(`<path d="M40,50 Q52,42 66,48 M72,48 Q82,42 90,48" fill="none" stroke="${shade(SKIN, -0.55)}" stroke-width="5" stroke-linecap="round"/>`);
+  h.push(`<ellipse cx="52" cy="55" rx="4.4" ry="3.6" fill="#fff6c8"/><ellipse cx="80" cy="55" rx="3.8" ry="3.2" fill="#fff6c8"/><circle cx="51" cy="55.5" r="2.4" fill="#1a1a0a"/><circle cx="79" cy="55.5" r="2.1" fill="#1a1a0a"/>`);
+  h.push(blob('M42,66 Q66,62 90,66 Q90,80 66,84 Q44,82 42,66 Z', shade(SKIN, -0.1), { ink: INK, w: 1.4 }));
+  h.push(blob('M48,70 l-2,-14 l8,12 Z', '#f6f0de', { ink: '#5a4a2a', w: 1.1 }), blob('M82,70 l3,-14 l5,13 Z', '#f6f0de', { ink: '#5a4a2a', w: 1.1 }));
+  if (kind === 'bwork') h.push(blob('M36,46 Q42,20 66,18 Q92,18 98,44 Q68,34 36,46 Z', '#6a4426', { ink: LINK }), `<path d="M38,44 Q66,32 96,42" fill="none" stroke="${BAND}" stroke-width="5"/>`,
+    blob('M44,30 Q26,22 24,4 Q36,14 50,22 Z', '#f2ead6', { ink: '#4a3a1e', w: 1.3 }), blob('M86,26 Q100,16 102,4 Q108,18 94,34 Z', '#f2ead6', { ink: '#4a3a1e', w: 1.3 }));
+  if (kind === 'bworkMage') h.push(blob('M64,26 Q70,12 80,4 Q78,14 72,28 Z', '#f2ead6', { ink: '#4a3a1e', w: 1.2 }), blob('M74,10 L58,2 L66,12 L50,10 L70,18 Z', '#d8301e', { ink: '#5a0a06', w: 1.2 }));
+  if (kind === 'bworkArcher') h.push(blob('M36,46 Q44,24 66,24 Q90,24 98,44 Q68,36 36,46 Z', '#8a6038', { ink: LINK }), `<path d="M38,42 Q66,30 96,40" fill="none" stroke="${BAND}" stroke-width="6"/>`,
+    blob('M56,28 Q52,12 62,2 Q66,12 72,6 Q74,16 80,12 Q80,24 72,30 Z', '#f0e2b4', { ink: '#8a7a4a', w: 1.2 }));
+  if (kind === 'bworkette') h.push(blob(ellipse(40, 40, 8, 8), '#ff7a1a', { ink: '#8a3a0a', w: 1.2 }), `<circle cx="40" cy="40" r="3" fill="#ffd84a"/>`, `<path d="M58,76 Q66,80 74,76" fill="none" stroke="#c8303a" stroke-width="2.4" stroke-linecap="round"/>`);
   return assemble(P, part);
 }
