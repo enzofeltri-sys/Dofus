@@ -359,7 +359,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - Simulation (joueurs moyens) : Champs ≈ 3 parties, Pâturages ≈ 4, Forêt ≈ 1-2, Cimetière ≈ 1-2 (Épée de Boisaille, niveau 7). Les monstres qui restaient coincés derrière un obstacle le contournent désormais : la Crypte devient plus dure (≈ 25-35 % de victoires en 12 parties au niveau 10 avec l'Épée, contre ≈ 55 % avant) — Enzo garde cette difficulté.
 
 ### 8.3 bis Idées validées en stock (plus tard)
-- **Boss Rush** : mini-jeu uniquement avec des boss de donjons, par tranches 1-20, 21-30, 31-40… ; 6 salles au plus, chacune avec 1 boss et ses sbires. Quand il y aura 3 ou 4 donjons.
+- **Boss Rush** : mini-jeu uniquement avec des boss de donjons ; 6 salles au plus, chacune avec 1 boss et ses sbires. **Décision d'Enzo : il commence avec les donjons de niveau 100** (pas de Boss Rush pour les tranches 1-40) ; à faire quand le jeu atteindra ce niveau.
 - **Expédition (farm hors ligne)** depuis le camp sur une carte terminée ; récompenses au retour, plafond 8 h, ≈ 25 % du rendement actif, ressources et XP seulement (pas d'équipement). Chiffres à confirmer.
 - **Auto-farm** en direct (sans toucher le téléphone) sur une carte terminée, récompenses réduites : après l'expédition, si Enzo le veut toujours.
 
