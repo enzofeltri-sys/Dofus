@@ -376,6 +376,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 ---
 
 ### 8.5 Inventaire : recherche, Encyclopédie, favoris, verrou (validé)
+- **Rangement (demandé par Enzo)** : l'Encyclopédie est rangée avec le **Bestiaire** (onglets Bestiaire | Encyclopédie, triée du plus bas niveau au plus haut) ; l'inventaire garde Équipements et Ressources. Sur la fiche d'un objet, la panoplie n'est plus qu'une ligne cliquable (« Panoplie du Jeune Aventurier 5/6 › ») qui ouvre la panoplie dans l'Encyclopédie.
 - **Barre de recherche** dans l'Inventaire (Équipements, Ressources, Encyclopédie) et à l'Atelier :
   - sans accents ni majuscules, tous les mots doivent correspondre ;
   - nom, type, panoplie, ingrédients, monstres qui le lâchent ;

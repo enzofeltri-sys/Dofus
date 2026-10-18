@@ -415,13 +415,13 @@ html, body {
 
 /* ---------- Inventaire ---------- */
 .it-ico { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; image-rendering: auto; }
-.inv {
+.inv, .encyclo {
   position: absolute; inset: 0; z-index: 45; pointer-events: auto; overflow-y: auto;
   display: flex; flex-direction: column; gap: 10px;
   padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 18px);
 }
-.inv[hidden] { display: none; }
-.inv > * { width: min(440px, 100%); margin: 0 auto; }
+.inv[hidden], .encyclo[hidden] { display: none; }
+.inv > *, .encyclo > * { width: min(440px, 100%); margin: 0 auto; }
 .inv-doll { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
 .inv-doll .col { display: flex; flex-direction: column; gap: 8px; }
 .inv-doll .mid { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; min-width: 0; }
@@ -755,10 +755,10 @@ html, body {
   animation: pulse-badge 1.4s ease-in-out infinite;
 }
 .nav-tab .badge[hidden] { display: none; }
-.camp-nav:not([hidden]) ~ :is(.sheet, .inv, .atelier, .look) { padding-bottom: calc(var(--safe-bottom) + 96px); }
+.camp-nav:not([hidden]) ~ :is(.sheet, .inv, .encyclo, .atelier, .look) { padding-bottom: calc(var(--safe-bottom) + 96px); }
 .camp-nav:not([hidden]) ~ * .inv-detail { padding-bottom: calc(var(--safe-bottom) + 96px); }
-:is(.sheet, .inv, .atelier, .look) > .sh-head { order: -2; }
-:is(.sheet, .inv, .atelier, .look) > .sec-tabs { order: -1; }
+:is(.sheet, .inv, .encyclo, .atelier, .look, .bestiary) > .sh-head { order: -2; }
+:is(.sheet, .inv, .encyclo, .atelier, .look, .bestiary) > .sec-tabs { order: -1; }
 .sec-tabs {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px;
   background: rgba(59,36,20,.14); box-shadow: inset 0 0 0 2px rgba(59,36,20,.35);
@@ -773,7 +773,7 @@ html, body {
   font: 800 11px/18px var(--f-body); color: var(--ink); background: var(--gold); box-shadow: inset 0 0 0 1.5px var(--ink);
 }
 /* les blocs des panneaux ne rétrécissent pas : le panneau défile (sinon le bas passe sous la barre d'onglets) */
-:is(.sheet, .inv, .atelier, .look) > :not(.inv-detail) { flex-shrink: 0; }
+:is(.sheet, .inv, .encyclo, .atelier, .look) > :not(.inv-detail) { flex-shrink: 0; }
 
 /* ---------- Écran Donjons : arbre des zones ---------- */
 .atlas {
@@ -942,7 +942,7 @@ html, body {
 .dj-card .go:disabled { filter: grayscale(1); opacity: .55; }
 
 /* ---------- Hauteur (validé par Enzo) : la fiche et l'inventaire tiennent dans l'écran, seul le tableau des caractéristiques défile ---------- */
-.sheet, .inv { gap: 7px; padding-top: calc(var(--safe-top) + 10px); }
+.sheet, .inv, .encyclo { gap: 7px; padding-top: calc(var(--safe-top) + 10px); }
 .sh-carac { padding: 3px 8px; }
 .sh-carac .ico svg { width: 26px; height: 26px; }
 .sh-carac .add { height: 30px; min-width: 38px; }

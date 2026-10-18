@@ -139,7 +139,7 @@ export class Hud {
         <button type="button" class="gr-btn ghost sm inv-sets-btn">Panoplies</button>
         <div class="inv-sets" hidden></div>
         <div class="flt inv-flt"></div>
-        <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button><button type="button" class="gr-tab" data-t="2">Encyclopédie</button></div>
+        <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button></div>
         <div class="inv-acts" hidden></div>
         <div class="inv-grid"></div>
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
@@ -163,7 +163,17 @@ export class Hud {
         <p class="det-note">Les sorts débloqués par ton niveau sortent dans les cartes entre les salles. Touche ★ pour un favori : il sort plus souvent.</p>
         <div class="gm-list"></div>
       </div>
+      <div class="encyclo gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="bestiary">Bestiaire</button><button type="button" class="sec-tab" data-panel="encyclo">Encyclopédie</button></div>
+        <div class="sh-head"><h2 class="gr-h2">Encyclopédie</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="flt inv-flt"></div>
+        <div class="inv-acts" hidden></div>
+        <div class="inv-grid"></div>
+        <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
+        <div class="inv-detail inv-modal" hidden><div class="det-card gr-panel gold"></div></div>
+      </div>
       <div class="bestiary gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="bestiary">Bestiaire</button><button type="button" class="sec-tab" data-panel="encyclo">Encyclopédie</button></div>
         <div class="sh-head"><h2 class="gr-h2">Bestiaire</h2><span class="gr-chip lvl bs-count"></span><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="bs-kinds"></div>
         <div class="bs-grid"></div>
@@ -423,7 +433,7 @@ export class Hud {
   }
 
   get overlayOpen(): boolean {
-    return ['.overlay', '.pausemenu', '.picker', '.camp', '.summary', '.sheet', '.inv', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.pausemenu', '.picker', '.camp', '.summary', '.sheet', '.inv', '.encyclo', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -442,8 +452,8 @@ export class Hud {
     const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
     if (look) this.setHeroLook(look.get());
-    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary' | 'grimoire';
-    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire' | 'grimoire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire', grimoire: 'grimoire' };
+    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary' | 'encyclo' | 'grimoire';
+    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire' | 'grimoire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire', encyclo: 'bestiaire', grimoire: 'grimoire' };
     let current: Panel | null = null;
     const open: Record<Panel, () => Promise<void>> = {
       sheet: () => this.charSheet(sheet, act),
@@ -452,6 +462,7 @@ export class Hud {
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
       atlas: () => (zones ? this.atlas(zones, () => el.querySelector<HTMLButtonElement>('.enter')!.click()) : Promise.resolve()),
       bestiary: () => (beasts ? this.bestiary(beasts) : Promise.resolve()),
+      encyclo: () => (inv ? this.inventory(inv, true) : Promise.resolve()),
       grimoire: () => (spells ? this.grimoire(spells) : Promise.resolve()),
     };
     /** Carte « Entrer » : l'étape choisie dans l'écran Donjons. */
@@ -1176,8 +1187,11 @@ export class Hud {
   /** Encyclopédie : 0 = objets, 1 = panoplies. */
   private catMode = 0;
   /** Inventaire : équipement porté autour du Sacrieur, sac (équipements / ressources), Encyclopédie, fiche d'objet. */
-  inventory(h: InvHooks): Promise<void> {
-    const el = this.root.querySelector<HTMLElement>('.inv')!;
+  inventory(h: InvHooks, encyclo = false): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>(encyclo ? '.encyclo' : '.inv')!;
+    if (!encyclo && this.invTab > 1) this.invTab = 0;
+    /** Onglet affiché : l'Encyclopédie est son propre panneau, rangé avec le Bestiaire (demandé par Enzo). */
+    const tab = () => (encyclo ? 2 : this.invTab);
     const detail = el.querySelector<HTMLElement>('.inv-detail')!;
     const fbox = el.querySelector<HTMLElement>('.inv-flt')!;
     type Open = { kind: 'uid'; uid: number } | { kind: 'res'; id: number } | { kind: 'cat'; id: number };
@@ -1189,7 +1203,7 @@ export class Hud {
     let chosen: number[] = [];
     const forgeOf = () => new Map((this.work?.forge() ?? []).map((r) => [r.uid, r]));
     const renderActs = (any: boolean) => {
-      acts.hidden = this.invTab !== 0 || !this.work || !any;
+      acts.hidden = tab() !== 0 || !this.work || !any;
       acts.innerHTML = !pick
         ? '<button type="button" class="gr-btn magic sm ia-fuse">Fusion</button><button type="button" class="gr-btn coral sm ia-break">Briser</button>'
         : `<span class="ia-hint">${pick === 'fuse' ? 'Touche l’objet à faire monter de rareté' : `Touche les objets à briser · ${chosen.length} choisi${chosen.length > 1 ? 's' : ''}`}</span>
@@ -1206,14 +1220,16 @@ export class Hud {
     const fvTag = (v: number | null) => (v !== null ? `<span class="fv gr-num">${v > 0 ? '+' : ''}${v}</span>` : '');
     /** Objets portés qui correspondent à la recherche (allumés sur le Sacrieur). */
     let hit = new Set<number>();
-    const listKey = () => (this.invTab === 0 ? 'eq' : this.invTab === 1 ? 'res' : this.catMode === 0 ? 'cat' : 'sets');
-    el.querySelector<HTMLButtonElement>('.inv-sets-btn')!.onclick = () => {
+    const listKey = () => (tab() === 0 ? 'eq' : tab() === 1 ? 'res' : this.catMode === 0 ? 'cat' : 'sets');
+    const setsBtn = el.querySelector<HTMLButtonElement>('.inv-sets-btn');
+    if (setsBtn) setsBtn.onclick = () => {
       const box = el.querySelector<HTMLElement>('.inv-sets')!;
       box.hidden = !box.hidden;
       const b = el.querySelector<HTMLButtonElement>('.inv-sets-btn')!;
       b.textContent = b.textContent!.replace(' ▲', '') + (box.hidden ? '' : ' ▲');
     };
     const renderDoll = (v: InvView) => {
+      if (!el.querySelector('.inv-doll')) return;
       const by = new Map(v.slots.map((s) => [s.slot, s]));
       el.querySelector('.inv-doll .left')!.innerHTML = (['chapeau', 'amulette', 'anneau1', 'anneau2'] as const).map((k) => slotHtml(by.get(k)!)).join('');
       el.querySelector('.inv-doll .right')!.innerHTML = (['cape', 'ceinture', 'bottes', 'arme'] as const).map((k) => slotHtml(by.get(k)!)).join('');
@@ -1230,17 +1246,17 @@ export class Hud {
     };
     const renderList = (): number => {
       const v = h.get();
-      const f = this.filters(listKey(), listKey() === 'res' ? () => ({ ...emptyFilters(), sort: 'levelAsc' }) : emptyFilters);
+      const f = this.filters(listKey(), listKey() === 'eq' ? emptyFilters : () => ({ ...emptyFilters(), sort: 'levelAsc' }));
       const focus = focusStat(f);
       const searching = !!f.q.trim() || activeCount(f) > 0;
-      el.querySelectorAll<HTMLElement>('.inv-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.invTab));
+      el.querySelectorAll<HTMLElement>('.inv-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === tab()));
       const grid = el.querySelector<HTMLElement>('.inv-grid')!;
-      grid.classList.toggle('sets', this.invTab === 2 && this.catMode === 1);
-      const mode = this.invTab === 2
+      grid.classList.toggle('sets', tab() === 2 && this.catMode === 1);
+      const mode = tab() === 2
         ? `<div class="cat-mode gr-tabs"><button type="button" class="flt-chip ${this.catMode === 0 ? 'on' : ''}" data-mode="0">Objets</button><button type="button" class="flt-chip ${this.catMode === 1 ? 'on' : ''}" data-mode="1">Panoplies</button></div>`
         : '';
       let n = 0;
-      if (this.invTab === 0) {
+      if (tab() === 0) {
         const rows = applyFilters(v.equipment, f);
         hit = new Set(searching ? rows.filter((r) => r.worn).map((r) => r.uid) : []);
         n = rows.length;
@@ -1250,7 +1266,7 @@ export class Hud {
           ? rows.map((e) => `<button type="button" class="inv-cell r${e.rarity} ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''} ${can(e.uid) ? '' : 'off'} ${chosen.includes(e.uid) ? 'sel' : ''}" data-uid="${e.uid}">
               ${e.icon}<span class="lv gr-num">${e.level}</span>${marks(e.fav, e.lock)}${fvTag(focusValue(e.facets, focus))}${e.worn ? '<span class="tag">porté</span>' : e.fresh ? '<span class="tag new">nouveau</span>' : ''}</button>`).join('')
           : `<p class="inv-empty">${v.equipment.length ? 'Aucun équipement ne correspond.' : 'Aucun équipement.'}</p>`;
-      } else if (this.invTab === 1) {
+      } else if (tab() === 1) {
         hit = new Set();
         const rows = applyFilters(v.resources, f);
         n = rows.length;
@@ -1305,7 +1321,8 @@ export class Hud {
           toggles: [['owned', 'Commencées'], ['complete', 'Complètes'], ['usable', 'Équipable maintenant']],
           sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
         };
-      this.filterBar(fbox, k, cfg, renderList, k === 'res' ? () => ({ ...emptyFilters(), sort: 'levelAsc' }) : emptyFilters);
+      // ressources et Encyclopédie : du plus bas niveau au plus haut (les pièces de panoplie au-delà du niveau 40 en dernier)
+      this.filterBar(fbox, k, cfg, renderList, k === 'eq' ? emptyFilters : () => ({ ...emptyFilters(), sort: 'levelAsc' }));
     };
     const showDetail = (d: ItemDetail | null) => {
       if (!d) {
@@ -1341,11 +1358,14 @@ export class Hud {
       const [kind, id] = target.split(':');
       showDetail(null);
       if (kind === 'set') {
-        this.invTab = 2;
         this.catMode = 1;
         this.flt.sets = { ...emptyFilters(), set: Number(id) };
+        if (!encyclo) {
+          this.secGo?.('encyclo');
+          return;
+        }
         bar();
-        el.querySelector('.inv-tabs')!.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        el.querySelector('.inv-grid')!.scrollIntoView({ block: 'start', behavior: 'smooth' });
       } else if (this.work) {
         await this.atelier(this.work, kind === 'uses' ? `ing:${id}` : `id:${id}`);
         bar();

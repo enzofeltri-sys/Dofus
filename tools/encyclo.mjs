@@ -1,0 +1,40 @@
+// Encyclopédie rangée avec le Bestiaire (demandé par Enzo) ; le lien « panoplie » d'une fiche d'équipement y mène.
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push(e.message));
+const ready = async () => { await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 }); await p.waitForSelector('.camp:not([hidden]) .play', { timeout: 20000 }); };
+await p.goto('http://localhost:5173/');
+await p.evaluate(() => localStorage.clear());
+await p.reload(); await ready();
+await p.evaluate(async () => {
+  const inv = await import('/src/game/inventory.ts');
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { xp: 9000, carac: {} }, inventory: inv.starterInventory(), resources: {} }));
+});
+await p.reload(); await ready();
+await p.click('.nav-tab[data-sec="equip"]');
+await p.waitForTimeout(400);
+console.log('onglets inventaire :', await p.$$eval('.inv .inv-tabs .gr-tab', (e) => e.map((x) => x.textContent).join(', ')));
+await p.click('.nav-tab[data-sec="bestiaire"]');
+await p.waitForTimeout(500);
+await p.screenshot({ path: 'shots/encyclo_bestiaire.png' });
+await p.click('.bestiary .sec-tab[data-panel="encyclo"]');
+await p.waitForTimeout(700);
+await p.screenshot({ path: 'shots/encyclo_objets.png' });
+console.log('encyclopédie ouverte :', await p.evaluate(() => !document.querySelector('.encyclo').hidden), '| cases :', await p.$$eval('.encyclo .inv-grid [data-cat]', (e) => e.length), '| onglet actif :', await p.$eval('.nav-tab.on', (e) => e.dataset.sec));
+await p.click('.encyclo .inv-grid [data-cat]');
+await p.waitForTimeout(400);
+await p.screenshot({ path: 'shots/encyclo_fiche.png' });
+await p.click('.encyclo .inv-detail:not(.inv-modal) .det-close');
+// depuis une fiche d'équipement, le lien panoplie ouvre l'Encyclopédie sur la panoplie
+await p.click('.nav-tab[data-sec="equip"]');
+await p.waitForTimeout(500);
+await p.click('.inv-doll [data-slot="amulette"]');
+await p.waitForTimeout(400);
+await p.click('.det-setlink');
+await p.waitForTimeout(900);
+await p.screenshot({ path: 'shots/encyclo_pano.png' });
+console.log('après le lien : encyclopédie', await p.evaluate(() => !document.querySelector('.encyclo').hidden), '| inventaire caché', await p.evaluate(() => document.querySelector('.inv').hidden), '| panoplies :', await p.$$eval('.encyclo .set-row b', (e) => e.map((x) => x.textContent).join(', ')));
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();
