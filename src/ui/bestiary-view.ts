@@ -11,7 +11,7 @@ function beastSvg(d: MonsterDef): string {
   const a = d.art;
   if (a === 'kardorim') return kardorimChibiSvg();
   if (a === 'kardorib') return kardoribChibiSvg();
-  if (['debutant', 'furtif', 'piquier', 'sergent', 'eclaireur'].includes(a)) return chaferChibiSvg(a as ChaferKind);
+  if (['debutant', 'furtif', 'piquier', 'sergent', 'eclaireur', 'fantassin', 'primitif', 'ronin', 'vampire', 'maitreVampire'].includes(a)) return chaferChibiSvg(a as ChaferKind);
   return CRITTER_SVG[a as CritterKind]();
 }
 const art = new Map<string, string>();

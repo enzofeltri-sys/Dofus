@@ -38,7 +38,7 @@ export function placesOf(id: string): string[] {
 /** Monstres présents dans le jeu (rencontrables), dans l'ordre des niveaux. */
 export function allBeasts(): MonsterDef[] {
   return Object.values(MONSTERS)
-    .filter((d) => placesOf(d.id).length > 0)
+    .filter((d) => d.dofusId > 0 && placesOf(d.id).length > 0)
     .sort((a, b) => a.grades[0].level - b.grades[0].level || a.name.localeCompare(b.name));
 }
 

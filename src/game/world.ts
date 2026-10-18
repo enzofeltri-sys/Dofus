@@ -552,7 +552,7 @@ export class World {
       const a = k * 2.4, d = k * 3;
       const px = Math.max(this.bounds.x0 + r, Math.min(this.bounds.x1 - r, x + Math.cos(a) * d));
       const py = Math.max(this.bounds.y0 + 80, Math.min(this.bounds.y1 - 300, y + Math.sin(a) * d * PERSP));
-      if (this.shape.holes.every((o) => flatDist(px, py, obstacleCore(o, px), o.y) > o.r + r + 20)) return { x: Math.round(px), y: Math.round(py) };
+      if (this.shape.holes.every((o) => flatDist(px, py, obstacleCore(o, px), o.y) > o.r + r + 50)) return { x: Math.round(px), y: Math.round(py) };
     }
     return { x, y };
   }

@@ -105,6 +105,24 @@ d('scaraImmature', 798, 'scaraImmature', 'caster', 90, 26, 0.85,
   'Scarapoison : Terre 10, 1-3 cases ; Scarasoin : soigne un allié de 7 % de ses PV, 1 fois par tour ; 3 PM. Résiste à 100 % à la Terre',
   ", support: { name: 'Scarasoin', every: 4, radius: 180, healPct: [7, 7] }")
 
+# Cimetière, Cryptes et Donjon des Squelettes (validés par Enzo). Coup du Chafer : Terre 31-40 au contact
+CHAFER_ATK = "{ shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.42, recover: 0.25, cooldown: [1.0, 1.4], roll: roll('terre', 8, 10) }"
+d('chafer', 54, 'debutant', 'melee', 150, 24, 1, CHAFER_ATK, 'Coup du Chafer : Terre 31-40 au corps à corps ; 5 PM')
+d('chaferInvisible', 110, 'furtif', 'stealth', 150, 24, 1, CHAFER_ATK, 'Coup du Chafer : Terre 31-40 au corps à corps ; Camouflage → devient invisible par moments. Pantalonnade (Terre 17-20 à distance) non reprise')
+d('chaferFantassin', 396, 'fantassin', 'melee', 160, 26, 1.05, CHAFER_ATK, 'Coup du Chafer : Terre 31-40 au corps à corps ; 6 PM')
+d('rib', 108, 'rib', 'melee', 165, 30, 1.4, "{ shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.36, recover: 0.22, cooldown: [1.0, 1.3], roll: neutre(1, 2) }",
+  'Embrochement : Neutre 3-6 au corps à corps, 3 fois par tour (Force 250) ; 6 PM. Disruption (renvoi de dommages) non reprise')
+d('tofuMalefique', 111, 'tofuMalefique', 'melee', 200, 22, 0.9, "{ shape: 'circle', trigger: 120, size: 60, spread: 0, offset: 64, windup: 0.38, recover: 0.22, cooldown: [0.9, 1.3], roll: roll('air', 4, 5), steal: true }",
+  'Béco Maléfique : Air 15-18 et vol de vie Air 15-18, 1-2 cases ; 10 PM. Maléfice (érosion) et Punksnotdède non repris')
+d('kwoan', 154, 'kwoan', 'melee', 120, 24, 0.8, "{ shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.45, recover: 0.25, cooldown: [1.2, 1.6], roll: neutre(5, 7) }",
+  'Frappe Gerbante : Neutre 21-30 au corps à corps ; 4 PM. Confusion Optique (-3 PO) et Déplacement Libre non repris')
+d('vampire', 127, 'vampire', 'melee', 130, 26, 1.05, "{ shape: 'circle', trigger: 120, size: 62, spread: 0, offset: 64, windup: 0.45, recover: 0.25, cooldown: [1.1, 1.5], roll: roll('eau', 4, 6), steal: true }",
+  'Vol de Vie : vol de vie Eau 15-22, 1-2 cases ; 4 PM. Nosfuraté et Force des Âmes Putrides non repris')
+d('maitreVampire', 124, 'maitreVampire', 'brute', 130, 30, 1.2, "{ shape: 'circle', trigger: 100, size: 66, spread: 0, offset: 58, windup: 0.5, recover: 0.3, cooldown: [1.3, 1.7], roll: neutre(8, 12) }",
+  'Éventration : Neutre 31-50 au corps à corps, 2 fois par tour ; Vol de Vie (Eau 15-22) non repris ; 4 PM')
+d('chaferPrimitif', 3240, 'primitif', 'melee', 130, 26, 1, "{ shape: 'circle', trigger: 100, size: 62, spread: 0, offset: 56, windup: 0.4, recover: 0.24, cooldown: [1.0, 1.3], roll: roll('eau', 5, 6) }",
+  'Curare : Eau 13-16 puis 6, au corps à corps, 3 fois par tour ; 4 PM. Élancé de Couteau et Robustesse non repris')
+
 # archimonstres : même dessin, mêmes sorts que leur monstre de base
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
@@ -112,7 +130,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2272, 'pichonVert'), (2338, 'pichonBleu'), (2340, 'pichonOrange'), (2346, 'pichonBlanc'),
          (2315, 'bouftonBlanc'), (2316, 'bouftonNoir'), (2317, 'bouftou'), (2324, 'chefBouftou'), (2333, 'milimulou'), (2349, 'prespic'), (2353, 'sanglier'),
          (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts'),
-         (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert')]
+         (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert'),
+         (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -120,7 +139,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

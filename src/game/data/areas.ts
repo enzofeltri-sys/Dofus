@@ -8,7 +8,7 @@ import { CRYPT_POOL } from './monsters';
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
-  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon';
+  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -293,6 +293,36 @@ export const SCARA_DONJON: AreaDef = {
   theme: 'scaraDonjon',
 };
 
+/* Cimetière (sous-zone 6) et Cryptes du Cimetière (7) → Donjon des Squelettes (516), validés par Enzo : après le Donjon des Bouftous.
+   Laissés de côté : Roub' Ignolles (quête), Sousouris (niveau 1), Noeul (20-24), Chafers Lancier, Archer et d'Élite (42-50), Jorbak et Vampire Dupyr (boss 150+). */
+export const CIMETIERE_AMAKNA: AreaDef = {
+  id: 'cimetiereAmakna', name: 'Cimetière d’Amakna', kind: 'map', zone: 'amakna', level: 34, winsNeeded: 3,
+  sub: '5 salles · élite : Chafer Fantassin d’élite · 3 victoires',
+  rooms: 5, pool: ['chafer', 'chafer', 'rib', 'chaferInvisible', 'tofuMalefique', 'kwoan', 'chaferFantassin'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'fantassinElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2319', 'archi2276', 'archi2321', 'archi2357', 'archi2522', 'archi2421'],
+  theme: 'cimetiereAmakna',
+};
+
+export const CRYPTES: AreaDef = {
+  id: 'cryptes', name: 'Cryptes du Cimetière', kind: 'map', zone: 'amakna', level: 36, winsNeeded: 3,
+  sub: '5 salles · élite : Maître Vampire d’élite · 3 victoires',
+  rooms: 5, pool: ['chafer', 'rib', 'tofuMalefique', 'kwoan', 'chaferFantassin', 'vampire', 'vampire', 'maitreVampire'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'maitreVampireElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2319', 'archi2276', 'archi2357', 'archi2522', 'archi2421', 'archi2302', 'archi2532'],
+  theme: 'cryptes',
+};
+
+export const SQUELETTES: AreaDef = {
+  id: 'squelettes', name: 'Donjon des Squelettes', kind: 'dungeon', zone: 'amakna', level: 40,
+  sub: '7 salles · mini-boss · Chafer Rōnin',
+  rooms: 7, pool: ['chafer', 'rib', 'chaferInvisible', 'chaferFantassin', 'chaferPrimitif', 'chaferPrimitif'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'primitifElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'ronin', grade: 5, adds: 3 },
+  archis: ['archi2319', 'archi2276', 'archi2321', 'archi2421'],
+  theme: 'squelettes',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -362,6 +392,14 @@ export const ZONES: Zone[] = [
     ],
   },
   {
+    id: 'squelettes', name: 'Amakna : le Cimetière',
+    nodes: [
+      { id: 'cimetiereAmakna', name: 'Cimetière d’Amakna', level: 34, kind: 'map', area: CIMETIERE_AMAKNA, needs: ['cour'] },
+      { id: 'cryptes', name: 'Cryptes du Cimetière', level: 36, kind: 'map', area: CRYPTES, needs: ['cimetiereAmakna'] },
+      { id: 'squelettes', name: 'Donjon des Squelettes', level: 40, kind: 'dungeon', area: SQUELETTES, needs: ['cimetiereAmakna', 'cryptes'] },
+    ],
+  },
+  {
     id: 'scarafeuilles', name: 'Amakna : les Scarafeuilles',
     nodes: [
       { id: 'plaineScara', name: 'Plaine des Scarafeuilles', level: 36, kind: 'map', area: PLAINE_SCARA, needs: ['cour'] },
@@ -376,6 +414,7 @@ export const AREAS: Record<string, AreaDef> = {
   lisiere: LISIERE, dunes: DUNES, calanques: CALANQUES, plage: PLAGE, chateau: CHATEAU,
   tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
   ingalsse: INGALSSE, tofus: TOFULAILLER, plaineScara: PLAINE_SCARA, scaraDonjon: SCARA_DONJON,
+  cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES,
 };
 
 /** Étapes jouables et débloquées. */

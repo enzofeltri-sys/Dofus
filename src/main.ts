@@ -149,14 +149,16 @@ async function main() {
       const d = MONSTERS[id], sm = d.boss?.summon;
       for (const x of [d.summons?.id, ...(Array.isArray(sm) ? sm : [sm])]) if (x) ids.add(x);
     }
-    const kinds = [...new Set([...ids].map((id) => MONSTERS[id].art))].filter((k): k is CritterKind => isCritter(k) && !chaferTex[k]);
-    await Promise.all(kinds.map(async (k) => {
-      chaferTex[k] = await Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))));
+    const arts = [...new Set([...ids].map((id) => MONSTERS[id].art))].filter((k) => !chaferTex[k]);
+    await Promise.all(arts.map(async (k) => {
+      chaferTex[k] = isCritter(k)
+        ? await Promise.all(partsOf(k).map((p) => svgTexture(CRITTER_SVG[k](p), CR * artScale(k))))
+        : await Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k as ChaferKind, p), CR * artScale(k))));
     }));
   };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) ? 'jelly'
+    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) || k === 'kwoan' ? 'jelly'
       : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(

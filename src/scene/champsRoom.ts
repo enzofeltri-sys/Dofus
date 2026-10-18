@@ -77,7 +77,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -110,6 +110,11 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     abords: { ...base, ...green, flowers: 25, land: { sky, hills: ['#8ac850', '#6aa83a'], far: 'houses', border: 'sandwall', wallCol: ['#d8ccb0', '#4a6a9a', '#3a3a34'], water, pens: true, wheat: 0, dirt: 6, grassy: 1, arch: ['#e8e4d8', '#a8a498', '#4a4a44'] } },
     // Champ des Ingalsse : herbe vert vif, chemins de terre, arbres d'automne au loin
     ingalsse: { ...base, ...green, grass: ['#b2d64a', '#a4ca42', '#94bc3a'], flowers: 30, land: { sky, hills: ['#a8d050', '#88b83e'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 7, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
+    // Cimetière d'Amakna : herbe vert vif, marais turquoise (les trous), arbres d'automne au loin
+    cimetiereAmakna: { ...base, ...green, grass: ['#9ccc40', '#8ebe3a', '#7eae32'], flowers: 15, land: { sky, hills: ['#6aa83a', '#4e8a2a'], far: 'trees', border: 'hedge', water: ['#3ab8a8', '#1e8a80', '#14605a'], wheat: 0, dirt: 4, grassy: 1, arch: ['#c8c0a0', '#8a8466', '#3a3626'] } },
+    // Cryptes et Donjon des Squelettes : voûtes de pierre ocre éclairées en doré, dalles, terre
+    cryptes: { ...base, grass: ['#6e6440', '#645a38', '#5a5032'], light: '#a89a5a', dark: '#2e2814', tuftTones: ['#5a6a2a', '#6a7a32', '#8a9a40'], touch: ['#c8b870', '#4a4020'], stone: '#a89a6a', cliff: ['#5a5034', '#3e3824', '#221e12'], land: { sky: ['#14100a', '#221c10'], hills: ['#6a5a34', '#4e4226'], far: 'wall', border: 'wall', water: ['#3a4a2a', '#2a361e', '#1a2412'], floor: 'slabs', wheat: 0, dirt: 3, grassy: 0.3, arch: ['#c8b880', '#8a7a4a', '#3a3018'] } },
+    squelettes: { ...base, grass: ['#5e5838', '#545032', '#4a462c'], light: '#9a8e52', dark: '#262210', tuftTones: ['#5a6a2a', '#6a7a32', '#8a9a40'], touch: ['#c8b870', '#4a4020'], stone: '#9a8e60', cliff: ['#5a5034', '#3e3824', '#221e12'], land: { sky: ['#100c08', '#1c180e'], hills: ['#5e5030', '#443a22'], far: 'wall', border: 'wall', water: ['#2a3420', '#1e2616', '#12180c'], floor: 'slabs', wheat: 0, dirt: 4, grassy: 0.25, arch: ['#c8b880', '#8a7a4a', '#3a3018'] } },
     // Plaine des Scarafeuilles : herbe vert vif, larges chemins de terre, arbres d'automne
     plaineScara: { ...base, ...green, grass: ['#b0d44a', '#a2c842', '#92ba38'], flowers: 25, land: { sky, hills: ['#a8d050', '#88b83e'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 9, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
     // Donjon des Scarafeuilles : grotte-jungle sombre, lianes, puits de lumière, mousse

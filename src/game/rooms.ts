@@ -216,6 +216,10 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   tofus: { block: [['haystack', 0.9, 1.1], ['crates', 0.9, 1.1], ['barrels', 0.9, 1.05], ['haystack', 0.9, 1.1]], decor: ['pebbles'] },
   // Plaine des Scarafeuilles : prairie, arbres d'automne, ruines de pierre, étals ; Donjon : grotte-jungle moussue
   plaineScara: { block: [['autumnTree', 1.05, 1.25], ['stall', 0.9, 1.05], ['mossrock', 0.85, 1.05], ['autumnTree', 1.05, 1.25], ['block', 0.8, 1]], decor: ['flowers'] },
+  // Cimetière d'Amakna : îlots d'herbe dans un marais, tombes, arbres d'automne, lanternes ; Cryptes et Donjon : pierre, tombes, lanternes
+  cimetiereAmakna: { block: [['tomb', 0.9, 1.05], ['autumnTree', 1.05, 1.25], ['tomb', 0.9, 1.05], ['lantern', 1, 1], ['mossrock', 0.85, 1]], decor: ['flowers'] },
+  cryptes: { block: [['tomb', 0.9, 1.05], ['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['lantern', 1, 1]], decor: ['bones'] },
+  squelettes: { block: [['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['deadtree', 1, 1.2], ['lantern', 1, 1]], decor: ['bones'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 
@@ -238,7 +242,7 @@ export function islandLayout(theme: Exclude<Theme, 'crypt'>, room: Room, rnd: ()
   const P = ISLAND_PROPS[theme];
   const out: PropPlacement[] = [...extra];
   const free = (x: number, y: number, r: number, gap: number) =>
-    room.holes.every((o) => flat(x, y, Math.max(o.x - o.hx, Math.min(o.x + o.hx, x)), o.y) > o.r + r + 30) &&
+    room.holes.every((o) => flat(x, y, Math.max(o.x - o.hx, Math.min(o.x + o.hx, x)), o.y) > o.r + r + 60) && // le héros (44 px) passe toujours entre un trou et un objet
     room.keep.every((k) => flat(x, y, k.x, k.y) > k.r + r) &&
     out.every((p) => flat(x, y, p.x, p.y) > gap + (BLOCK[p.kind] ? BLOCK[p.kind] * (p.scale ?? 1) : 0)) &&
     !(Math.abs(x - 360) < 100 && y < room.y0 + 220); // allée de la sortie

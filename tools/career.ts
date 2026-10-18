@@ -46,12 +46,18 @@ for (let p = 1; p <= players; p++) {
     const w = new World(p * 1000 + r, startingHero(prof, gearFor(levelForXp(prof.xp)), weapon), area);
     w.setPlayBottom(1380);
     w.startRoom(0);
-    const mem = { lag: { x: 0, y: 0 } as Vec, next: 0 };
-    const cardRnd = rng(p * 77 + r);
+    const mem = { lag: { x: 0, y: 0 } as Vec, next: 0, px: 0, py: 0, still: 0, unstick: 0, side: { x: 0, y: 0 } as Vec };
+    const cardRnd = rng(p * 77 + r), sideRnd = rng(p * 91 + r);
     let t = 0;
     while (t < 1200) {
       let input: Vec;
-      if (good) input = autopilotInput(w);
+      // salle vidée : marcher vers la sortie ne demande pas de réflexes (sinon le délai fait osciller devant un passage étroit)
+      if (w.phase === 'cleared') {
+        // coincé derrière un objet (l'autopilote va tout droit) : il se dégage un instant par le côté, comme un vrai joueur
+        if (Math.hypot(w.hero.x - mem.px, w.hero.y - mem.py) > 30) { mem.px = w.hero.x; mem.py = w.hero.y; mem.still = t; }
+        if (t - mem.still > 1.5) { mem.unstick = t + 0.6; mem.still = t; mem.side = { x: sideRnd() * 2 - 1, y: 1 }; }
+        input = t < mem.unstick ? mem.side : autopilotInput(w);
+      } else if (good) input = autopilotInput(w);
       else {
         if (t >= mem.next) { mem.lag = autopilotInput(w); mem.next = t + 0.25; }
         input = mem.lag;

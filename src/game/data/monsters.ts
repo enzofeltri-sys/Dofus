@@ -1,4 +1,5 @@
 import type { CritterKind } from '../../art/champs-chibi';
+import type { ChaferKind } from '../../art/chafer';
 import { baseStats, type DamageRoll, type Stats } from '../formulas';
 import { astrubMonsters } from './monsters.astrub';
 
@@ -116,7 +117,7 @@ export interface MonsterDef {
 }
 
 /** Dessin : Chafers et Kardorim (rig des Chafers), ou une des bestioles d'Incarnam et d'Astrub. */
-export type MonsterArt = 'debutant' | 'furtif' | 'piquier' | 'sergent' | 'eclaireur' | 'kardorim' | 'kardorib' | CritterKind;
+export type MonsterArt = ChaferKind | 'kardorim' | 'kardorib' | CritterKind;
 
 export interface BossKit {
   /** Craquement d'Os : accélère le boss et ses alliés proches (s) ; 0 = pas de craquement. */
@@ -203,6 +204,9 @@ export const MONSTERS: Record<string, MonsterDef> = {
   tofuMutantElite: eliteOf(ASTRUB.tofuMutant, 'tofuMutantElite', 'Tofu Mutant d’élite'),
   scaraVertElite: eliteOf(ASTRUB.scaraVert, 'scaraVertElite', 'Scarafeuille Vert d’élite'),
   scaraNoirElite: eliteOf(ASTRUB.scaraNoir, 'scaraNoirElite', 'Scarafeuille Noir d’élite'),
+  fantassinElite: eliteOf(ASTRUB.chaferFantassin, 'fantassinElite', 'Chafer Fantassin d’élite'),
+  maitreVampireElite: eliteOf(ASTRUB.maitreVampire, 'maitreVampireElite', 'Maître Vampire d’élite'),
+  primitifElite: eliteOf(ASTRUB.chaferPrimitif, 'primitifElite', 'Chafer Primitif d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
    * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
@@ -246,6 +250,27 @@ export const MONSTERS: Record<string, MonsterDef> = {
     behavior: 'boss', speed: 100, radius: 48, art: 'scarabosse', scale: 1.6,
     attack: { shape: 'circle', trigger: 190, size: 90, spread: 0, offset: 110, windup: 0.85, recover: 0.5, cooldown: [3.6, 4.4], roll: { min: 11, max: 15, critBonus: 3, critBase: 3, element: 'eau' }, multi: ['eau', 'terre', 'air', 'feu'], multiCycle: [2, 1], steal: true },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 10, summonEvery: 1e9, summon: 'scaraImmature', maxSummons: 5, summonCount: 5, heal: { every: 12, min: 17, max: 26, spell: 'Premiers soins' } },
+  },
+  /**
+   * Chafer Rōnin (3238) : boss du Donjon des Squelettes, niveau 40, 680 à 1 000 PV, Force et Intelligence 200 ; 4 PM, 10 PA.
+   * Bushido : vol de vie Terre 31-35 au contact, 4 fois par tour (valeur réelle) ;
+   * Kikoha : Feu 19-23 et -1 PM, 1-6 cases, 3 fois par tour → tir en ligne de loin toutes les 4 s ;
+   * Bunshin : crée 4 illusions de lui-même (elles ne frappent pas et disparaissent au premier coup), au plus tous les 3 tours → toutes les 12 s.
+   */
+  ronin: {
+    id: 'ronin', name: 'Chafer Rōnin', dofusId: 3238,
+    grades: ([[680, 17000], [760, 21000], [840, 25000], [920, 30000], [1000, 34560]] as const).map(([hp, xp]) => g(40, hp, 200, [0, 0, 0, 0, 0], xp, 0, 0, 12, 24, { intelligence: 200 })),
+    behavior: 'boss', speed: 130, radius: 40, art: 'ronin', scale: 1.5,
+    attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.55, recover: 0.3, cooldown: [1.0, 1.3], roll: { min: 31, max: 35, critBonus: 4, critBase: 3, element: 'terre' }, steal: true },
+    charge: { every: 4, dash: 0, attack: { shape: 'line', trigger: 380, size: 400, spread: 24, offset: 0, windup: 0.75, recover: 0.4, cooldown: [1.2, 1.6], roll: { min: 19, max: 23, critBonus: 3, critBase: 3, element: 'feu' } } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 6, summonEvery: 12, summon: 'roninIllusion', maxSummons: 4, summonCount: 4 },
+  },
+  /** Illusion du Chafer Rōnin (Bunshin) : son apparence, aucun dégât, disparaît au premier coup ; ne rapporte rien. */
+  roninIllusion: {
+    id: 'roninIllusion', name: 'Illusion du Chafer Rōnin', dofusId: 0,
+    grades: [g(40, 1, 0, [0, 0, 0, 0, 0], 0, 0, 0, 0, 0)],
+    behavior: 'melee', speed: 130, radius: 32, art: 'ronin', scale: 1.5,
+    attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.55, recover: 0.3, cooldown: [1.0, 1.3], roll: { min: 0, max: 0, critBonus: 0, critBase: 0, element: 'terre' } },
   },
   /**
    * Mob l'Éponge (928) : boss du Château Ensablé, niveau 20, 280 à 420 PV, toutes caractéristiques 80, résistances 14 %, 3 PM.
