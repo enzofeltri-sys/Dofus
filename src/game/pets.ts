@@ -20,6 +20,7 @@ export const ZONE_PETS: Record<string, number[]> = {
   amakna: [11858, 10865], // Gwo Tofu Ventripotent, Tofoudre
   scarafeuilles: [12988, 8154], // Scarakiri, El Scarador
   squelettes: [10106, 7518], // Vampyrette, Fotome
+  kwaks: [2076, 2075, 2074, 2077], // Bwaks d'Air, d'Eau, de Feu, de Terre
 };
 
 /**
@@ -30,6 +31,7 @@ export const BOSS_DOFUS: Record<string, number> = {
   kardorim: 7113, // Dofawa (niveau 6, +1 Vitalité) — Incarnam
   tournesolAffame: 30356, // Jyfus (niveau 20, +20 Vitalité)
   mobEponge: 19629, // Dofus Argenté (niveau 20)
+  kwakwa: 20987, // Dofus Cacao (niveau 50)
 };
 
 export const SPECIAL_CHANCE = {

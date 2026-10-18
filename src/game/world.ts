@@ -161,6 +161,7 @@ export interface Monster {
   healT?: number;
   fearT?: number;
   reviveT?: number;
+  regenT?: number;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
   detourT: number;
@@ -1151,6 +1152,16 @@ export class World {
         this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.heal.spell ?? 'Soin Feuillu' });
       }
     }
+    if (b.regen) {
+      m.regenT = (m.regenT ?? b.regen.every * 0.5) - STEP;
+      // Reconstitution Bwork : seulement une fois bien entamé (moins de 60 % de ses PV)
+      if (m.regenT <= 0 && m.hp < m.maxHp * 0.6) {
+        m.regenT = b.regen.every;
+        const amount = Math.min(m.maxHp - m.hp, Math.round(m.maxHp * b.regen.pct / 100));
+        m.hp += amount;
+        this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount, spell: b.regen.spell });
+      }
+    }
     if (b.crackEvery > 0) m.crackT -= STEP;
     if (b.crackEvery > 0 && m.crackT <= 0) {
       m.crackT = b.crackEvery;
@@ -1230,7 +1241,8 @@ export class World {
       const ang = (k.count ?? 1) > 1 ? Math.PI * (0.15 + (0.7 * i) / Math.max(1, (k.count ?? 1) - 1)) : this.rnd() < 0.5 ? Math.PI : 0;
       const x = Math.max(this.bounds.x0 + 30, Math.min(this.bounds.x1 - 30, m.x + Math.cos(ang) * 90));
       const [sx, sy] = this.pushOut(x, m.y + 30 + Math.sin(ang) * 60 * PERSP, 26);
-      const id = Array.isArray(k.id) ? k.id[Math.floor(this.rnd() * k.id.length)] : k.id;
+      // plusieurs d'un coup dans une liste (Kwarmée Kwayal : les 4 Bwaks) : un de chaque ; sinon au hasard
+      const id = !Array.isArray(k.id) ? k.id : (k.count ?? 1) > 1 ? k.id[i % k.id.length] : k.id[Math.floor(this.rnd() * k.id.length)];
       const s = this.makeMonster(MONSTERS[id], 1, sx, sy);
       s.summoner = m.uid;
       this.pending.push(s);
@@ -1413,6 +1425,12 @@ export class World {
     h.maxHp -= eroded;
     h.eroded += eroded;
     h.hp = Math.min(h.hp, h.maxHp);
+    // Kwakoukas Kwayal : repousse le héros dans l'axe de l'attaque
+    if (m.atk.push && h.hp > 0) {
+      [h.x, h.y] = this.pushOut(h.x + m.dir.x * m.atk.push * CELL, h.y + m.dir.y * m.atk.push * CELL * PERSP, h.def.radius);
+      h.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, h.x));
+      h.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, h.y));
+    }
     // Enchevêtrement (Ashi-magari) : le héros ne peut plus bouger
     if (m.atk.root) {
       h.rootT = Math.max(h.rootT, m.atk.root);

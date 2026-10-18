@@ -8,7 +8,8 @@ import { CRYPT_POOL } from './monsters';
 export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | 'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange'
   | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau'
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
-  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome';
+  | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome'
+  | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -334,6 +335,55 @@ export const MAISON_FANTOME: AreaDef = {
   theme: 'maisonFantome',
 };
 
+/** Niveaux 41-50 (validés par Enzo) : Montagne des Craqueleurs puis Nid du Kwakwa, après le Donjon des Tofus. */
+export const CRAQUELEURS: AreaDef = {
+  id: 'craqueleurs', name: 'Montagne des Craqueleurs', kind: 'map', zone: 'amakna', level: 45, winsNeeded: 3,
+  sub: '5 salles · élite : Kwakere de Flamme d’élite · 3 victoires',
+  rooms: 5, pool: ['kwakVent', 'kwakFlamme', 'kwakGlace', 'kwakTerre', 'kwakereVent', 'kwakereFlamme', 'kwakereGlace', 'kwakereTerre'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'kwakereElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2367', 'archi2368', 'archi2369', 'archi2451'],
+  theme: 'craqueleurs',
+};
+
+export const NID_KWAKWA: AreaDef = {
+  id: 'nidKwakwa', name: 'Nid du Kwakwa', kind: 'dungeon', zone: 'amakna', level: 50,
+  sub: '7 salles · mini-boss · Kwakwa',
+  rooms: 7, pool: ['kwakVent', 'kwakFlamme', 'kwakGlace', 'kwakTerre', 'kwakereVent', 'kwakereFlamme', 'kwakereGlace', 'kwakereTerre', 'bwakVent', 'bwakFlamme', 'bwakGlace', 'bwakTerre'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'kwakereTerreElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'kwakwa', grade: 5, adds: 3 },
+  archis: ['archi2367', 'archi2368', 'archi2369', 'archi2451'],
+  theme: 'nidKwakwa',
+};
+
+/** Campement, Village et Donjon des Bworks (validés par Enzo), après la Maison Fantôme. */
+export const CAMPEMENT_BWORKS: AreaDef = {
+  id: 'campementBworks', name: 'Campement des Bworks', kind: 'map', zone: 'amakna', level: 44, winsNeeded: 3,
+  sub: '5 salles · élite : Bwork d’élite · 3 victoires',
+  rooms: 5, pool: ['bwork', 'bwork', 'bworkArcher', 'bworkArcher', 'bworkMage'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'bworkElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2416', 'archi2417', 'archi2418'],
+  theme: 'campementBworks',
+};
+
+export const VILLAGE_BWORKS: AreaDef = {
+  id: 'villageBworks', name: 'Village des Bworks', kind: 'map', zone: 'amakna', level: 47, winsNeeded: 3,
+  sub: '5 salles · élite : Bwork Mage d’élite · 3 victoires',
+  rooms: 5, pool: ['bwork', 'bworkArcher', 'bworkMage', 'bworkMage'], count: { base: 5, perRoom: 0.8, max: 9 }, waveFrom: 2,
+  elite: { room: 4, id: 'bworkMageElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2416', 'archi2417', 'archi2418'],
+  theme: 'villageBworks',
+};
+
+export const DONJON_BWORKS: AreaDef = {
+  id: 'donjonBworks', name: 'Donjon des Bworks', kind: 'dungeon', zone: 'amakna', level: 50,
+  sub: '7 salles · mini-boss · Bworkette',
+  rooms: 7, pool: ['bwork', 'bwork', 'bworkArcher', 'bworkMage'], count: { base: 5, perRoom: 0.8, max: 10 }, waveFrom: 2,
+  elite: { room: 3, id: 'bworkArcherElite', grade: 5, adds: 4, addGrade: 3 },
+  boss: { id: 'bworkette', grade: 5, adds: 3 },
+  archis: ['archi2416', 'archi2417', 'archi2418'],
+  theme: 'donjonBworks',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -418,6 +468,21 @@ export const ZONES: Zone[] = [
       { id: 'scaraDonjon', name: 'Donjon des Scarafeuilles', level: 40, kind: 'dungeon', area: SCARA_DONJON, needs: ['plaineScara'] },
     ],
   },
+  {
+    id: 'kwaks', name: 'Amakna : les Kwaks',
+    nodes: [
+      { id: 'craqueleurs', name: 'Montagne des Craqueleurs', level: 45, kind: 'map', area: CRAQUELEURS, needs: ['tofus'] },
+      { id: 'nidKwakwa', name: 'Nid du Kwakwa', level: 50, kind: 'dungeon', area: NID_KWAKWA, needs: ['craqueleurs'] },
+    ],
+  },
+  {
+    id: 'bworks', name: 'Amakna : les Bworks',
+    nodes: [
+      { id: 'campementBworks', name: 'Campement des Bworks', level: 44, kind: 'map', area: CAMPEMENT_BWORKS, needs: ['maisonFantome'] },
+      { id: 'villageBworks', name: 'Village des Bworks', level: 47, kind: 'map', area: VILLAGE_BWORKS, needs: ['campementBworks'] },
+      { id: 'donjonBworks', name: 'Donjon des Bworks', level: 50, kind: 'dungeon', area: DONJON_BWORKS, needs: ['campementBworks', 'villageBworks'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -427,6 +492,7 @@ export const AREAS: Record<string, AreaDef> = {
   tainela: TAINELA, coinBouftous: COIN_BOUFTOUS, coinBoos: COIN_BOOS, abords: ABORDS, cour: COUR,
   ingalsse: INGALSSE, tofus: TOFULAILLER, plaineScara: PLAINE_SCARA, scaraDonjon: SCARA_DONJON,
   cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES, maisonFantome: MAISON_FANTOME,
+  craqueleurs: CRAQUELEURS, nidKwakwa: NID_KWAKWA, campementBworks: CAMPEMENT_BWORKS, villageBworks: VILLAGE_BWORKS, donjonBworks: DONJON_BWORKS,
 };
 
 /** Étapes jouables et débloquées. */
@@ -435,6 +501,7 @@ export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.incl
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
+  kwaks: [41, 50], bworks: [41, 50],
 };
 
 /** Zone de l'arbre qui contient cette carte ou ce donjon. */

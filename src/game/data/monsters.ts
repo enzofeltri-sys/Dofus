@@ -58,6 +58,8 @@ export interface MonsterAttack {
   erosion?: number;
   /** Immobilise le héros (s) : Enchevêtrement de l'Ashi-magari. */
   root?: number;
+  /** Repousse le héros touché de `push` cases (Kwakoukas Kwayal du Kwakwa : 4). */
+  push?: number;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -143,6 +145,8 @@ export interface BossKit {
   fear?: { every: number; radius: number; push: number; pa: number; spell: string };
   /** L'Enfer des Zombies (Boostache) : réanime le dernier allié mort (100 % de ses PV), au plus toutes les `every` s. */
   revive?: { every: number; spell: string };
+  /** Grand soin (Reconstitution Bwork de la Bworkette) : `pct` % des PV max, au plus toutes les `every` s, quand il est blessé. */
+  regen?: { every: number; pct: number; spell: string };
 }
 
 const neutre = (min: number, max: number): DamageRoll => ({ min, max, critBonus: 2, critBase: 3, element: 'neutre' });
@@ -216,6 +220,12 @@ export const MONSTERS: Record<string, MonsterDef> = {
   maitreVampireElite: eliteOf(ASTRUB.maitreVampire, 'maitreVampireElite', 'Maître Vampire d’élite'),
   primitifElite: eliteOf(ASTRUB.chaferPrimitif, 'primitifElite', 'Chafer Primitif d’élite'),
   gargrouilleElite: eliteOf(ASTRUB.gargrouille, 'gargrouilleElite', 'Gargrouille d’élite'),
+  // niveaux 41-50 (élites : créations)
+  kwakereElite: eliteOf(ASTRUB.kwakereFlamme, 'kwakereElite', 'Kwakere de Flamme d’élite'),
+  kwakereTerreElite: eliteOf(ASTRUB.kwakereTerre, 'kwakereTerreElite', 'Kwakere de Terre d’élite'),
+  bworkElite: eliteOf(ASTRUB.bwork, 'bworkElite', 'Bwork d’élite'),
+  bworkMageElite: eliteOf(ASTRUB.bworkMage, 'bworkMageElite', 'Bwork Mage d’élite'),
+  bworkArcherElite: eliteOf(ASTRUB.bworkArcher, 'bworkArcherElite', 'Bwork Archer d’élite'),
   /**
    * Bouftou Royal (147) : boss du Donjon des Bouftous, niveau 30, 610 à 900 PV, toutes caractéristiques 120,
    * résistances Neutre 35, Terre 20, Feu 20, Eau 25, Air 5 ; 5 PM.
@@ -289,6 +299,41 @@ export const MONSTERS: Record<string, MonsterDef> = {
     attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.55, recover: 0.3, cooldown: [1.0, 1.3], roll: { min: 31, max: 40, critBonus: 4, critBase: 3, element: 'air' }, steal: true, erosion: 30 },
     boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 8, summonEvery: 12, summon: 'ashiMagari', maxSummons: 3,
       fear: { every: 12, radius: 150, push: 3, pa: 2, spell: 'Frayeurs' }, revive: { every: 4, spell: 'L’Enfer des Zombies' } },
+  },
+  /**
+   * Kwakwa (2995) : boss du Nid du Kwakwa, niveau 50, 1 100 à 1 600 PV, toutes caractéristiques 300, Sagesse 150,
+   * résistances 80 % partout (plafonnées à 50 %) ; 7 PM, 9 PA. Valeurs réelles (comme les autres boss) :
+   * Kwabolition : 7-9 Feu, Eau, Terre et Air d'un coup au contact, 1 fois par tour → toutes les 4 s ;
+   * Kwakoukas Kwayal : Neutre 11-15 et repousse de 4 cases, 1-7 cases → tir en ligne de loin toutes les 6 s ;
+   * Kwarmée Kwayal : invoque les 4 Bwaks (Vent, Glace, Terre, Flamme) d'un coup, tous les 5 tours → toutes les 20 s ;
+   * Kwaristocratie : +2 PA pendant 1 tour, tous les 4 tours → plus rapide pendant 4 s, toutes les 16 s (les +30 Puissance ne sont pas repris).
+   * Wakpot Kwayal (vol de vie 8-11 dans les 4 éléments, 1-3 cases) n'est pas repris.
+   */
+  kwakwa: {
+    id: 'kwakwa', name: 'Kwakwa', dofusId: 2995,
+    grades: ([[1100, 30000], [1200, 37000], [1300, 45000], [1500, 52000], [1600, 60000]] as const).map(([hp, xp]) => g(50, hp, 300, [80, 80, 80, 80, 80], xp, 150, 20, -4, 0, { intelligence: 300, chance: 300, agilite: 300 })),
+    behavior: 'boss', speed: 160, radius: 44, art: 'kwakwa', scale: 1.6,
+    attack: { shape: 'circle', trigger: 130, size: 90, spread: 0, offset: 74, windup: 0.6, recover: 0.35, cooldown: [3.6, 4.4], roll: { min: 7, max: 9, critBonus: 2, critBase: 3, element: 'feu' }, multi: ['feu', 'eau', 'terre', 'air'] },
+    charge: { every: 6, dash: 0, attack: { shape: 'line', trigger: 420, size: 440, spread: 26, offset: 0, windup: 0.8, recover: 0.45, cooldown: [1.0, 1.4], roll: { min: 11, max: 15, critBonus: 3, critBase: 3, element: 'neutre' }, push: 4 } },
+    boss: { crackEvery: 16, crackDuration: 4, haste: 1.4, crackRadius: 0, summonFirst: 6, summonEvery: 20, summon: ['bwakVent', 'bwakGlace', 'bwakTerre', 'bwakFlamme'], maxSummons: 4, summonCount: 4 },
+  },
+  /**
+   * Bworkette (792) : boss du Donjon des Bworks, niveau 50, 1 600 à 2 300 PV, Force 240, Intelligence 380, Agilité 140,
+   * résistances Neutre 33, Terre 33, Feu 48, Eau 18, Air 28 ; 5 PM, 9 PA. Valeurs réelles :
+   * Mot Croisé : Feu 15-18 sur ses ennemis et soin 15-18 de ses alliés (elle comprise), 0-6 cases, 2 fois par tour
+   * → un coup à distance toutes les 2 s et un soin de 15-18 PV toutes les 4 s ;
+   * Charge : Terre 21-40 au contact, tous les 2 tours → elle fonce sur le héros toutes les 8 s ;
+   * Reconstitution Bwork : se soigne de 50 % de ses PV max, tous les 6 tours → au plus toutes les 24 s.
+   * Abolissement (Neutre 200) ne touche que les invocations : sans objet ici. Rage (+6-10 dommages) n'est pas reprise.
+   */
+  bworkette: {
+    id: 'bworkette', name: 'Bworkette', dofusId: 792,
+    grades: ([[1600, 30000], [1800, 37000], [1900, 45000], [2100, 52000], [2300, 60000]] as const).map(([hp, xp]) => g(50, hp, 240, [33, 33, 48, 18, 28], xp, 0, 0, 7, 10, { intelligence: 380, agilite: 140 })),
+    behavior: 'boss', speed: 140, radius: 44, art: 'bworkette', scale: 1.5,
+    attack: { shape: 'circle', trigger: 240, size: 70, spread: 0, offset: 0, windup: 0.75, recover: 0.35, cooldown: [1.6, 2.2], roll: { min: 15, max: 18, critBonus: 3, critBase: 3, element: 'feu' }, atTarget: true },
+    charge: { every: 8, dash: 240, attack: { shape: 'line', trigger: 380, size: 300, spread: 30, offset: 0, windup: 0.85, recover: 0.5, cooldown: [1.2, 1.6], roll: { min: 21, max: 40, critBonus: 4, critBase: 3, element: 'terre' } } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 999, summonEvery: 999, summon: 'bwork', maxSummons: 0,
+      heal: { every: 4, min: 15, max: 18, spell: 'Mot Croisé' }, regen: { every: 24, pct: 50, spell: 'Reconstitution Bwork' } },
   },
   /** Ashi-magari (2976) : invocation du Boostache, 150 PV ; Enchevêtrement : immobilise ce qui l'entoure pendant 1 tour (4 s), sans dommages. */
   ashiMagari: {

@@ -221,6 +221,13 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   cryptes: { block: [['tomb', 0.9, 1.05], ['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['lantern', 1, 1]], decor: ['bones'] },
   squelettes: { block: [['tomb', 0.9, 1.05], ['block', 0.85, 1.05], ['deadtree', 1, 1.2], ['lantern', 1, 1]], decor: ['bones'] },
   maisonFantome: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['deadtree', 1, 1.15], ['lantern', 1, 1]], decor: ['bones'] },
+  // Niveaux 41-50, d'après les vraies cartes : Craqueleurs (herbe sur falaises beiges, arbres d'automne), Nid du Kwakwa (dalles au-dessus des nuages),
+  // Campement et Village des Bworks (herbe ocre, roches claires, huttes, arbres morts), Donjon des Bworks (souterrain sombre, caisses, ossements)
+  craqueleurs: { block: [['quarry', 0.85, 1.05], ['autumnTree', 1.05, 1.25], ['mossrock', 0.85, 1.05], ['quarry', 0.85, 1.05], ['hut', 1.0, 1.1]], decor: ['flowers'] },
+  nidKwakwa: { block: [['sandrock', 0.9, 1.1], ['autumnTree', 1.0, 1.2], ['mossrock', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['pebbles'] },
+  campementBworks: { block: [['hut', 1.0, 1.15], ['deadtree', 1, 1.2], ['quarry', 0.85, 1.05], ['crates', 0.9, 1.05], ['autumnTree', 1, 1.15]], decor: ['bones'] },
+  villageBworks: { block: [['hut', 1.0, 1.15], ['barrels', 0.9, 1.05], ['quarry', 0.85, 1.05], ['deadtree', 1, 1.2], ['crates', 0.9, 1.05]], decor: ['bones'] },
+  donjonBworks: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['block', 0.85, 1.05], ['lantern', 1, 1]], decor: ['bones'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 

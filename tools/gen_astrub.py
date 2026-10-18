@@ -131,6 +131,24 @@ d('boostachePrepubere', 3235, 'boostachePrepubere', 'stealth', 130, 22, 0.85, "{
   'Boorrade : Neutre 17-24 au contact ; Timidité → invisible par moments ; Caresse Effrayante : soigne un allié de 21-30 PV (valeur réelle) toutes les 4 s ; 4 PM',
   ", support: { name: 'Caresse Effrayante', every: 4, radius: 110, heal: [21, 30] }")
 
+# Niveaux 41-50 (validés par Enzo) : Montagne des Craqueleurs et Nid du Kwakwa. Valeurs du grade 1 × 0,25, comme les autres monstres
+# (dans Dofus, tous les Kwaks frappent en Feu, quel que soit leur élément ; leur résistance à leur élément est de 75 %, -54 % à l'opposé)
+for el, did_k, did_ke, did_b in [('Vent', 81, 272, 3281), ('Flamme', 83, 269, 3283), ('Glace', 84, 271, 3282), ('Terre', 235, 270, 3284)]:
+    d(f'kwak{el}', did_k, f'kwak{el}', 'melee', 140, 26, 1, MEL('feu', 5, 8),
+      'Éventrement : Feu 21-30 au corps à corps ; 4 PM. Kwakoukas (Feu 11-15 et repousse de 3, 1-7 cases) et Wakpot non repris')
+    d(f'kwakere{el}', did_ke, f'kwakere{el}', 'melee', 155, 26, 1.05, MEL('feu', 6, 9),
+      'Griffes Acérées : Feu 26-35 au corps à corps ; 5 PM ; 100 % de résistance à son élément. Wakolanterne et Wakzefeute non repris')
+    d(f'bwak{el}', did_b, f'bwak{el}', 'caster', 110, 22, 0.8, "{ shape: 'circle', trigger: 300, size: 60, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.7, 2.3], roll: roll('feu', 2, 3), atTarget: true }",
+      'Bwakikui : Feu 9-13, 1-5 cases ; 3 PM. Bwakitori (repousse de 2) non repris')
+# Campement, Village et Donjon des Bworks
+d('bwork', 876, 'bwork', 'brute', 150, 28, 1.15, MEL('neutre', 8, 12, (1.0, 1.4)),
+  'Éventration : Neutre 31-50 au corps à corps, 2 fois par tour ; 5 PM. Rage (+6-10 dommages) et Soufflette non repris')
+d('bworkMage', 53, 'bworkMage', 'caster', 120, 26, 1.05, "{ shape: 'circle', trigger: 280, size: 62, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.5, 2.0], roll: roll('feu', 1, 2), atTarget: true }",
+  'Éclair en Série : Feu 5-9, 3-6 cases ; Invocation de Tofu Maléfique tous les 6 tours ; 5 PM. Tornade (Air 3-6 au contact) non reprise',
+  ", summons: { first: 6, every: 24, id: 'tofuMalefique', max: 1 }")
+d('bworkArcher', 74, 'bworkArcher', 'lancer', 130, 26, 1.05, "{ shape: 'line', trigger: 300, size: 320, spread: 22, offset: 0, windup: 0.6, recover: 0.3, cooldown: [1.4, 1.9], roll: roll('air', 4, 5) }",
+  'Flèche Trouveuse : Air 16-20, 1-8 cases en ligne ; 4 PM. Maîtrise des Armes de Jet et Projectile Puissant non repris')
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -139,7 +157,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2334, 'milirat'), (2350, 'scelerat'), (2393, 'arakneEgouts'),
          (2355, 'tofuJaune'), (2280, 'scaraBlanc'), (2281, 'scaraBleu'), (2282, 'scaraRouge'), (2283, 'scaraVert'),
          (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire'),
-         (2549, 'boostachePrepubere')]
+         (2549, 'boostachePrepubere'),
+         (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -147,7 +166,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

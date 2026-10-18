@@ -44,14 +44,19 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 54, 108, 110, 111, 154, 396, 127, 124, 3240, 3238,
                 2319, 2276, 2321, 2357, 2522, 2421, 2302, 2532,
                 # Maison Fantôme (+ archimonstre Boostif l'Affamé, Boostache et son Ashi-magari)
-                498, 3235, 2549, 2975, 2976]
+                498, 3235, 2549, 2975, 2976,
+                # niveaux 41-50 : Montagne des Craqueleurs et Nid du Kwakwa (Kwaks, Kwakeres, Bwaks, archimonstres, Kwakwa)
+                81, 83, 84, 235, 269, 270, 271, 272, 3281, 3282, 3283, 3284, 2367, 2368, 2369, 2451, 2995,
+                # Campement, Village et Donjon des Bworks (+ archimonstres, Bworkette)
+                876, 53, 74, 2416, 2417, 2418, 792]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
 EXTRA_ITEMS = [2473, 2474, 2475, 2476, 2477, 2478,
                # familiers des zones (validés par Enzo), Super Croquette (leur nourriture), premiers Dofus
                1711, 7523, 7712, 7711, 7708, 7709, 7710, 7713, 7707, 11858, 10865, 12988, 8154, 10106, 7518,
-               20040, 7113, 19629, 30356]
+               2076, 2075, 2074, 2077,  # Bwaks (zone des Kwaks)
+               20040, 7113, 19629, 30356, 20987]
 
 # superType DofusDB → emplacement (None = ressource)
 SLOT = {1: 'amulette', 2: 'arme', 3: 'anneau', 4: 'ceinture', 5: 'bottes', 7: 'bouclier', 10: 'chapeau', 11: 'cape', 12: 'familier', 13: 'dofus'}
@@ -229,7 +234,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570, 'maisonFantome': 11799}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570, 'maisonFantome': 11799, 'nidKwakwa': 12017, 'donjonBworks': 8135}
 dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')
@@ -245,12 +250,12 @@ for kid in DUNGEON_KEYS.values():
     recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': ings}
 
 # 2 quinquies) Équipement de zone (validé par Enzo : « tout doit être droppable ») : tous les vrais équipements jusqu'au
-# niveau 40, armes comprises ; sauf ceux sans caractéristique et les objets de quête liés au personnage (non échangeables).
+# niveau 50, armes comprises ; sauf ceux sans caractéristique et les objets de quête liés au personnage (non échangeables).
 ZONE_TYPES = [1, 9, 10, 11, 16, 17, 82, 2, 3, 4, 5, 6, 7, 8, 19, 22, 271]
 zone_equip = []
 for t in ZONE_TYPES:
-    for skip in range(0, 1000, 50):
-        page = get(f'/items?typeId={t}&level[$lte]=40&$limit=50&$skip={skip}')
+    for skip in range(0, 2000, 50):
+        page = get(f'/items?typeId={t}&level[$lte]=50&$limit=50&$skip={skip}')
         for d in page.get('data', []):
             if d.get('exchangeable') is False:
                 continue
@@ -359,7 +364,7 @@ for r in sorted(recipes.values(), key=lambda x: (x['level'], x['id'])):
 out.append('];')
 out.append('')
 out.append('/** Clés de donjon réelles (étape 9c) : donjon → objet clé (fabricable). */')
-out.append('/** Équipement de zone : tous les vrais équipements (niveau ≤ 40) qui peuvent tomber dans la tranche de leur zone. */')
+out.append('/** Équipement de zone : tous les vrais équipements (niveau ≤ 50) qui peuvent tomber dans la tranche de leur zone. */')
 out.append('export const ZONE_EQUIP: number[] = ' + json.dumps(zone_equip) + ';')
 out.append('')
 out.append('export const DUNGEON_KEYS: Record<string, number> = ' + json.dumps(DUNGEON_KEYS) + ';')
