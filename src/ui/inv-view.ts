@@ -1,4 +1,5 @@
-import { WEAPON_POWER } from '../game/data/hero';
+import { weaponDef } from '../game/data/hero';
+import { baseStats, finalMultiplier, rawDamage, type Stats } from '../game/formulas';
 import { fmtLine, isSpecial, ITEMS, item, SETS, SLOT_NAME, SLOTS, statLabel, type SlotId, type StatPath } from '../game/data/items';
 import { canEquip, compare, instance, isWorn, itemLines, setBonus, setCounts, type Inventory } from '../game/inventory';
 import type { Facets } from '../game/search';
@@ -57,17 +58,27 @@ export interface ItemDetail {
 const NOT_YET: SlotId[] = [];
 
 const EL_NAME: Record<string, string> = { neutre: 'Neutre', terre: 'Terre', feu: 'Feu', eau: 'Eau', air: 'Air' };
-/** Fiche d'arme (demandé par Enzo) : dommages par élément — valeurs de Dofus, et par coup en jeu (×WEAPON_POWER) —, PA, portée, critique. */
-export function weaponBlock(id: number): ItemDetail['weapon'] {
+const span = (a: number, b: number) => (a === b ? `${a}` : `${a} à ${b}`);
+/**
+ * Fiche d'arme (demandé par Enzo) : dommages par élément — valeur de Dofus, et dommages réels en jeu avec les caractéristiques actuelles
+ * du Sacrieur (même calcul qu'en combat, sur une cible sans résistance ; critique entre parenthèses) —, PA, portée, critique.
+ */
+export function weaponBlock(id: number, stats?: Stats): ItemDetail['weapon'] {
   const w = item(id).weapon;
   if (!w) return undefined;
-  const conv = (v: number) => Math.max(1, Math.round(v * WEAPON_POWER));
+  const def = weaponDef(id);
+  const s = stats ?? baseStats();
+  const mult = finalMultiplier({ melee: !def.ranged, source: 'arme' }, s, baseStats());
+  const hit = (base: number, el: (typeof def.lines)[number]['element'], crit: boolean) => Math.floor(rawDamage(base, el, s, crit) * mult);
   return {
-    lines: w.lines.map(([el, a, b, steal]) => ({
-      el,
-      text: `${steal ? 'Vol de vie' : 'Dommages'} ${EL_NAME[el]} ${a === b ? a : `${a} à ${b}`}`,
-      range: `base en jeu ${conv(a) === Math.max(conv(a), conv(b)) ? conv(a) : `${conv(a)} à ${Math.max(conv(a), conv(b))}`}`,
-    })),
+    lines: w.lines.map(([el, a, b, steal], i) => {
+      const L = def.lines[i];
+      return {
+        el,
+        text: `${steal ? 'Vol de vie' : 'Dommages'} ${EL_NAME[el]} ${span(a, b)}`,
+        range: `en jeu ${span(hit(L.min, L.element, false), hit(L.max, L.element, false))} (critique ${span(hit(L.min + L.critBonus, L.element, true), hit(L.max + L.critBonus, L.element, true))})`,
+      };
+    }),
     info: `${w.pa} PA · portée ${w.minRange === w.range ? w.range : `${w.minRange} à ${w.range}`} · critique ${w.crit} %${w.critBonus ? ` (+${w.critBonus} dommages)` : ''}`,
   };
 }
@@ -167,7 +178,7 @@ function setBlock(setId: number, count: number, label: string): ItemDetail['set'
 }
 
 /** Fiche d'un équipement possédé : jets, panoplie, comparaison, bouton. */
-export function equipmentDetail(inv: Inventory, uid: number, level: number, food = 0): ItemDetail {
+export function equipmentDetail(inv: Inventory, uid: number, level: number, food = 0, stats?: Stats): ItemDetail {
   const it = instance(inv, uid)!;
   const d = item(it.id);
   const worn = isWorn(inv, uid);
@@ -188,7 +199,7 @@ export function equipmentDetail(inv: Inventory, uid: number, level: number, food
     lines,
     set: d.set ? setBlock(d.set, setCounts(inv).get(d.set) ?? 0, 'portés') : null,
     special: isSpecial(it.id),
-    weapon: weaponBlock(it.id),
+    weapon: weaponBlock(it.id, stats),
     pet: d.slot === 'familier' ? { pct: it.food ?? 100, food } : undefined,
     diff: compare(inv, uid, level).map(([p, v]) => ({ text: `${v > 0 ? '+' : ''}${v} ${statLabel(p)}`, up: v > 0 })),
     diffTitle: worn ? 'Si tu le retires' : 'Si tu l’équipes',
@@ -219,7 +230,7 @@ export function resourceDetail(id: number, count: number, marks: { fav: boolean;
 }
 
 /** Fiche Encyclopédie d'un équipement (possédé ou non) : fourchettes, panoplie complète, provenance. */
-export function catalogDetail(inv: Inventory, id: number): ItemDetail {
+export function catalogDetail(inv: Inventory, id: number, stats?: Stats): ItemDetail {
   const d = item(id);
   const owned = inv.items.filter((i) => i.id === id).length;
   const src = sourcesOf(id);
@@ -233,7 +244,7 @@ export function catalogDetail(inv: Inventory, id: number): ItemDetail {
     set: d.set && own ? setBlock(d.set, SETS[d.set].items.filter((i) => own.has(i)).length, 'possédées') : null,
     diff: [], diffTitle: '', action: null, note: '',
     sources: src.length ? src.map((s) => s.text) : ['Pas encore obtenable dans le jeu.'],
-    weapon: weaponBlock(id),
+    weapon: weaponBlock(id, stats),
     marks: null,
     links,
   };

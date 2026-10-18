@@ -33,8 +33,9 @@ export function lockZoom() {
   document.addEventListener('touchend', (e) => {
     const now = e.timeStamp;
     const t = e.target as HTMLElement | null;
-    // double tap trop rapide = zoom de Safari : on l'annule (sauf dans les champs de saisie)
-    if (now - last < 320 && !(t && t.closest('input, textarea, select'))) e.preventDefault();
+    // double tap trop rapide = zoom de Safari : on l'annule (sauf dans les champs de saisie et sur les boutons, déjà protégés par
+    // « touch-action: manipulation » — sinon deux touches rapides sur un bouton, comme deux runes en forgemagie, perdaient la 2e)
+    if (now - last < 320 && !(t && t.closest('input, textarea, select, button, [role="button"]'))) e.preventDefault();
     last = now;
   }, { passive: false });
   document.addEventListener('dblclick', stop, { passive: false });

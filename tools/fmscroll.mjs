@@ -1,0 +1,63 @@
+// Forgemagie sur téléphone (tactile) : la fenêtre défile-t-elle au doigt ? les touches rapides sur les runes passent-elles ?
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+const p = await ctx.newPage();
+const errors = [];
+p.on('pageerror', (e) => errors.push(e.message));
+const ready = async () => { await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 }); await p.waitForSelector('.camp:not([hidden]) .play', { timeout: 20000 }); };
+await p.goto('http://localhost:5173/');
+await p.evaluate(() => localStorage.clear());
+await p.reload(); await ready();
+await p.evaluate(async () => {
+  const inv = await import('/src/game/inventory.ts');
+  const f = await import('/src/game/forge.ts');
+  const pr = await import('/src/game/progression.ts');
+  let i = inv.starterInventory();
+  i = f.addNew(i, 2416, 2, Math.random);
+  const res = {};
+  for (const [id] of (await import('/src/game/data/items.gen.ts')).RUNE_DATA) res[id] = 30;
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 5, wins: 2, bestRoom: 9, bestWinTime: 220, xp: 0, jobXp: 0, profile: { ...pr.defaultProfile(), xp: pr.XP_TABLE[25] }, inventory: i, resources: res }));
+});
+await p.reload(); await ready();
+await p.tap('.nav-tab[data-sec="bestiaire"]');
+await p.waitForTimeout(400);
+await p.tap('.bestiary .sec-tab[data-panel="encyclo"]');
+await p.waitForTimeout(600);
+{ const c0 = await ctx.newCDPSession(p); await c0.send('Input.synthesizeScrollGesture', { x: 195, y: 600, yDistance: -300, speed: 800, gestureSourceType: 'touch' }); }
+await p.waitForTimeout(400);
+console.log('témoin : Encyclopédie défilée de', await p.evaluate(() => Math.round(document.querySelector('.encyclo').scrollTop)), 'px');
+await p.tap('.nav-tab[data-sec="equip"]');
+await p.waitForTimeout(400);
+await p.tap('.inv .sec-tab[data-panel="atelier"]');
+await p.waitForTimeout(500);
+await p.tap('.at-tabs .gr-tab[data-t="3"]');
+await p.waitForTimeout(500);
+await p.tap('.at-row.fm');
+await p.waitForTimeout(700);
+const dims = () => p.evaluate(() => { const c = document.querySelector('.at-modal .det-card'); return { scrollH: c.scrollHeight, clientH: c.clientHeight, top: Math.round(c.scrollTop) }; });
+console.log('fenêtre :', JSON.stringify(await dims()));
+console.log('chaîne :', await p.evaluate(() => { let e = document.elementFromPoint(195, 600); const out = []; while (e) { const cs = getComputedStyle(e); out.push(`${e.tagName.toLowerCase()}.${[...e.classList].join('.')}[ta=${cs.touchAction},ov=${cs.overflowY},pe=${cs.pointerEvents}]`); e = e.parentElement; } return out.join(' > '); }));
+await p.screenshot({ path: 'shots/fm_avant.png' });
+// glissé du doigt vers le haut au milieu de la fenêtre
+const cdp = await ctx.newCDPSession(p);
+await cdp.send('Input.synthesizeScrollGesture', { x: 195, y: 600, yDistance: -400, speed: 800, gestureSourceType: 'touch' });
+await p.waitForTimeout(500);
+console.log('après glissé :', JSON.stringify(await dims()));
+// touches rapides sur une rune (2 en 200 ms)
+const count = async () => p.evaluate(() => JSON.parse(localStorage.getItem('dofus-enzo-save')).resources);
+const before = await count();
+const btn = await p.$('.at-modal .fm-rune:not(.off)');
+const box = await btn.boundingBox();
+await p.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+await p.waitForTimeout(200);
+const btn2 = await p.$('.at-modal .fm-rune:not(.off)');
+const box2 = await btn2.boundingBox();
+await p.touchscreen.tap(box2.x + box2.width / 2, box2.y + box2.height / 2);
+await p.waitForTimeout(500);
+const after = await count();
+const used = Object.keys(before).reduce((a, k) => a + (before[k] - (after[k] ?? 0)), 0);
+console.log('runes posées sur 2 touches rapides :', used, '| défilement après :', JSON.stringify(await dims()));
+await p.screenshot({ path: 'shots/fm_apres.png' });
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();

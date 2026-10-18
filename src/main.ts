@@ -1001,7 +1001,7 @@ async function main() {
   const heroLevel = () => heroFromSave().level;
   const invHooks = {
     get: () => invView(save.inventory, save.resources, heroLevel(), freshItems, save.resMarks),
-    detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel(), save.resources[PET_FOOD] ?? 0),
+    detail: (uid: number) => equipmentDetail(save.inventory, uid, heroLevel(), save.resources[PET_FOOD] ?? 0, heroFromSave().stats),
     feed(uid: number, all: boolean) {
       const have = save.resources[PET_FOOD] ?? 0;
       const r = feedPet(save.inventory, uid, all ? have : Math.min(1, have));
@@ -1012,7 +1012,7 @@ async function main() {
       return `${item(it.id).name} a mangé ${r.eaten} Super Croquette${r.eaten > 1 ? 's' : ''} · croissance ${it.food} %`;
     },
     resource: (id: number) => resourceDetail(id, save.resources[id] ?? 0, { fav: save.resMarks.fav.includes(id), lock: save.resMarks.lock.includes(id) }),
-    catalog: (id: number) => catalogDetail(save.inventory, id),
+    catalog: (id: number) => catalogDetail(save.inventory, id, heroFromSave().stats),
     mark(kind: 'uid' | 'res', id: number, mark: 'fav' | 'lock') {
       if (kind === 'uid') save = { ...save, inventory: toggleMark(save.inventory, id, mark) };
       else {

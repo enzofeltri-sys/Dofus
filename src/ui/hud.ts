@@ -938,18 +938,22 @@ export class Hud {
       const draw = () => {
         const v = h.fm(uid);
         if (!v) return closeModal();
-        modal.querySelector('.det-card')!.innerHTML = `
+        // on garde la position de défilement et l'état de la section exo d'une rune à l'autre (sinon la fenêtre remonte en haut)
+        const card = modal.querySelector<HTMLElement>('.det-card')!;
+        const top = card.scrollTop, exoOpen = !!card.querySelector('details.fm-exo[open]');
+        card.innerHTML = `
           <div class="det-head"><span class="det-ico r${v.rarity}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.rarity}">${v.name}</h3><span class="det-sub">${v.sub}</span></div></div>
           ${last ? `<div class="fm-last ${last.outcome ?? ''}">${last.text}</div>` : ''}
           <div class="fm-puits"><span class="gr-label">Puits</span><span class="track"><span class="fill" style="--v:${Math.min(100, (100 * v.puits) / v.puitsMax)}%"></span></span><b class="gr-num">${v.puits}/${v.puitsMax}</b></div>
           <div class="fm-lines">${v.lines.map((l) => `
             <div class="fm-line ${l.kind} ${l.over ? 'over' : ''}"><div><b>${l.text}</b><small>${l.range}</small></div>
               <div class="fm-runes">${l.runes.length ? l.runes.map(btn).join('') : l.kind === 'bonus' ? '' : '<em>Pas de rune</em>'}</div></div>`).join('')}</div>
-          <div class="det-src"><span class="gr-label">Nouvelle ligne (exo)</span></div>
+          <details class="fm-exo" ${exoOpen ? 'open' : ''}><summary class="gr-label">Nouvelle ligne (exo) · ${v.exo.length} rune${v.exo.length > 1 ? 's' : ''} possible${v.exo.length > 1 ? 's' : ''}</summary>
           ${v.exoWhy ? `<p class="det-note">${v.exoWhy}</p>` : ''}
-          <div class="fm-lines">${v.exo.length ? v.exo.map((x) => `<div class="fm-line exo"><div><b>${x.label}</b></div><div class="fm-runes">${x.runes.map(btn).join('')}</div></div>`).join('') : '<p class="det-note">Aucune autre rune en stock (le Brisage en donne).</p>'}</div>
+          <div class="fm-lines">${v.exo.length ? v.exo.map((x) => `<div class="fm-line exo"><div><b>${x.label}</b></div><div class="fm-runes">${x.runes.map(btn).join('')}</div></div>`).join('') : '<p class="det-note">Aucune autre rune en stock (le Brisage en donne).</p>'}</div></details>
           <p class="det-note">Chances : succès critique / succès neutre / échec critique.</p>
           <div class="det-btns"><button type="button" class="gr-btn ghost sm md-close">Fermer</button></div>`;
+        card.scrollTop = top;
       };
       draw();
       modal.hidden = false;
