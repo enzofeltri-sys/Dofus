@@ -269,6 +269,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - **Bonus de panoplie** comme Dofus.
 
 - **Niveau requis réel** (panoplie Kardorim : niveau 12). Icônes officielles des objets (DofusDB), dans un cadre au style du jeu.
+- **Équipement de zone (validé par Enzo : « tout doit être droppable »)** : tous les vrais équipements de Dofus jusqu'au niveau 40 (armes comprises ; sauf ceux sans caractéristique et les objets de quête liés au personnage) tombent dans leur zone, selon leur niveau : **Incarnam 1-10, Astrub (Champs et Côte) 11-21, Astrub : les Bouftous 22-30, Amakna (Tofus, Cimetière, Scarafeuilles) 31-40**. Sur une carte, seulement les objets jusqu'au niveau de la carte + 2 (Champs d'Incarnam, niveau 3 : objets 1 à 5) ; en donjon, toute la tranche. Chance par monstre : **1 %** (élite, archimonstre, coffre gardé : ×3 ; boss : **50 %**), un objet tiré au hasard ; la Prospection et les paliers du bestiaire comptent. Mesuré (30 parties chacune) : cartes 0,23 à 0,33 objet par partie (27 à 82 objets possibles), donjons 0,6 à 0,8 (Château, Bouftous, Squelettes) et 1,6 à la Crypte (66 monstres). 629 équipements au total. Il tombe avec des jets et une rareté au hasard comme le reste ; la fabrication reste le moyen d'avoir un objet précis.
 - **Départ** : Panoplie du Jeune Aventurier sans le Chapeau (lâché par les Chafers : premier objectif) ; nombre de pièces ajusté par simulation pour garder le calibrage.
 
 ### 8.3 Zones, cartes de farm et arbre des donjons (validé par Enzo, étape 9 — remplace l'ancienne règle)
@@ -406,6 +407,8 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - Légendaire et Mythique : + **une ressource du boss**.
 
 - **Fait (8a)** : hors panoplie, 3 identiques à chaque rang (validé). Légendaire : 3 Crânes de Kardorim, Mythique : 10 (ressource du boss de la région). Le jet garde sa qualité (même position dans la nouvelle fourchette, dépassement conservé) ; l'objet principal garde son uid et reste équipé. Objets portés ou verrouillés jamais sacrifiés. XP d'Artisan.
+
+- **Où (choix d'Enzo)** : la Fusion et le Brisage ne sont plus des onglets de l'Artisanat (qui garde Fabrication et Forgemagie) : ils se font depuis **Équipement**, soit par les boutons « Fusionner » et « Briser » de la fiche d'un objet, soit par les petits boutons « Fusion » et « Briser » au-dessus de la grille, puis en touchant directement les objets (ceux qui ne peuvent pas l'être sont grisés ; on peut en briser plusieurs d'un coup).
 
 ### 9.3 Brisage
 Casser un objet → **runes** (Fo, Ine, Vi, PA…).

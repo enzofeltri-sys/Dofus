@@ -140,14 +140,16 @@ export class Hud {
         <div class="inv-sets" hidden></div>
         <div class="flt inv-flt"></div>
         <div class="gr-tabs inv-tabs"><button type="button" class="gr-tab on" data-t="0">Équipements</button><button type="button" class="gr-tab" data-t="1">Ressources</button><button type="button" class="gr-tab" data-t="2">Encyclopédie</button></div>
+        <div class="inv-acts" hidden></div>
         <div class="inv-grid"></div>
         <div class="inv-detail" hidden><div class="det-card gr-panel gold"></div></div>
+        <div class="inv-detail inv-modal" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="atelier gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
         <div class="sh-head"><div><h2 class="gr-h2">Artisan</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="at-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
-        <div class="gr-tabs at-tabs at-modes"><button type="button" class="gr-tab on" data-t="0">Fabrication</button><button type="button" class="gr-tab" data-t="1">Fusion</button><button type="button" class="gr-tab" data-t="2">Brisage</button><button type="button" class="gr-tab" data-t="3">Forge&shy;magie</button></div>
+        <div class="gr-tabs at-tabs at-modes"><button type="button" class="gr-tab on" data-t="0">Fabrication</button><button type="button" class="gr-tab" data-t="3">Forge&shy;magie</button></div>
         <div class="flt at-flt"></div>
         <div class="at-list"></div>
         <div class="inv-detail at-modal" hidden><div class="det-card gr-panel gold"></div></div>
@@ -738,13 +740,105 @@ export class Hud {
     update();
   }
 
+  /** Fenêtre de fusion d'un équipement (choix des 2 objets sacrifiés). */
+  private fusionModal(modal: HTMLElement, h: CraftHooks, uid: number, done: () => void) {
+    let picked: number[] = [];
+    const close = () => {
+      modal.hidden = true;
+      modal.onclick = null;
+    };
+    const draw = () => {
+      const v = h.fusion(uid);
+      if (!v) return close();
+      const costOk = !v.cost || (!v.cost.locked && v.cost.have >= v.cost.need);
+      const ready = picked.length === 2 && costOk;
+      const chosen = v.partners.filter((p) => picked.includes(p.uid));
+      modal.querySelector('.det-card')!.innerHTML = `
+        <div class="det-head"><span class="det-ico r${v.toRank - 1}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.toRank - 1}">${v.name}</h3><span class="det-sub">${v.from} → <b class="rar-${v.toRank}">${v.to}</b></span></div></div>
+        <div class="det-lines">${v.lines.map((l) => `<div><span>${l}</span></div>`).join('')}</div>
+        ${v.bonusNote ? `<p class="det-note">${v.bonusNote}</p>` : ''}
+        <div class="det-src"><span class="gr-label">À sacrifier : ${v.rule} (${picked.length}/2)</span></div>
+        <div class="fz-partners">${v.partners.map((p) => `<button type="button" class="inv-cell r${p.rarity} ${picked.includes(p.uid) ? 'sel' : ''}" data-p="${p.uid}" title="${p.name}">${p.icon}</button>`).join('')}</div>
+        ${chosen.length ? `<div class="fz-chosen">${chosen.map((p) => `<div><b>${p.name}</b> <small>${p.lines}</small></div>`).join('')}</div>` : ''}
+        ${v.cost ? `<div class="fz-cost ${costOk ? 'ok' : 'no'}">${v.cost.icon}<span>${v.cost.name} <b class="gr-num">${v.cost.have}/${v.cost.need}</b>${v.cost.locked ? ' · verrouillé' : ''}</span></div>` : ''}
+        <p class="det-note warn">Les 2 objets choisis seront détruits. ${v.name} garde ses jets (même qualité) et reste équipé s’il l’était.</p>
+        <div class="det-btns">
+          <button type="button" class="gr-btn magic sm fz-ok" ${ready ? '' : 'disabled'}>Fusionner</button>
+          <button type="button" class="gr-btn ghost sm md-close">Annuler</button>
+        </div>`;
+    };
+    const v0 = h.fusion(uid);
+    picked = v0 ? v0.partners.slice(0, 2).map((p) => p.uid) : [];
+    draw();
+    modal.hidden = false;
+    modal.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t === modal || t.closest('.md-close')) return close();
+      const p = t.closest<HTMLElement>('[data-p]');
+      if (p) {
+        const id = Number(p.dataset.p);
+        picked = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id].slice(-2);
+        draw();
+        return;
+      }
+      if (t.closest('.fz-ok')) {
+        const msg = h.fuse(uid, picked);
+        close();
+        this.toast(msg, 2200);
+        done();
+      }
+    };
+  }
+
+  /** Fenêtre de brisage d'un ou plusieurs équipements (runes obtenues, confirmation). */
+  private breakModal(modal: HTMLElement, h: CraftHooks, uids: number[], done: () => void) {
+    const views = uids.map((u) => h.breakInfo(u)).filter((v): v is BreakView => !!v);
+    if (!views.length) return;
+    const close = () => {
+      modal.hidden = true;
+      modal.onclick = null;
+    };
+    const runes = new Map<string, { icon: string; name: string; min: number; max: number }>();
+    for (const v of views) for (const r of v.runes) {
+      const x = runes.get(r.name) ?? { ...r, min: 0, max: 0 };
+      x.min += r.min;
+      x.max += r.max;
+      runes.set(r.name, x);
+    }
+    const one = views.length === 1 ? views[0] : null;
+    const why = views.find((v) => v.why)?.why ?? '';
+    modal.querySelector('.det-card')!.innerHTML = `
+      ${one
+        ? `<div class="det-head"><span class="det-ico r${one.rarity}">${one.icon}</span><div><h3 class="gr-h3 rar-${one.rarity}">${one.name}</h3><span class="det-sub">${one.sub}</span></div></div>`
+        : `<div class="det-head"><div><h3 class="gr-h3">Briser ${views.length} objets</h3></div></div><div class="fz-partners">${views.map((v) => `<span class="inv-cell r${v.rarity}" title="${v.name}">${v.icon}</span>`).join('')}</div>`}
+      <div class="det-src"><span class="gr-label">Runes obtenues</span></div>
+      <div class="br-runes">${runes.size ? [...runes.values()].map((r) => `<div class="br-rune">${r.icon}<span>${r.name}</span><b class="gr-num">${r.min === r.max ? r.max : `${r.min}–${r.max}`}</b></div>`).join('') : '<em>Aucune rune : pas de stat brisable.</em>'}</div>
+      <p class="det-note warn">${why || (one ? 'L’objet sera détruit définitivement.' : 'Ces objets seront détruits définitivement.')}</p>
+      <div class="det-btns">
+        <button type="button" class="gr-btn coral sm br-ok" ${why ? 'disabled' : ''}>Briser</button>
+        <button type="button" class="gr-btn ghost sm md-close">Annuler</button>
+      </div>`;
+    modal.hidden = false;
+    modal.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t === modal || t.closest('.md-close')) return close();
+      if (t.closest('.br-ok')) {
+        const msgs = views.map((v) => h.breakIt(v.uid));
+        close();
+        this.toast(msgs.length === 1 ? msgs[0] : `${msgs.length} objets brisés · ${msgs.map((m) => m.split(' · ')[0]).join(' · ')}`, 2600);
+        done();
+      }
+    };
+  }
+
   private atTab = 0;
-  /** Onglet de l'Atelier : 0 Fabrication, 1 Fusion, 2 Brisage, 3 Forgemagie. */
+  /** Onglet de l'Atelier : 0 Fabrication, 3 Forgemagie (Fusion et Brisage sont dans l'inventaire, choix d'Enzo). */
   private atMode = 0;
   private atOpen: number | null = null;
   private work: CraftHooks | null = null;
-  /** Atelier de l'Artisan : fabrication, fusion, brisage. `only` : filtre posé depuis un autre panneau. */
+  /** Atelier de l'Artisan : fabrication et forgemagie. `only` : filtre posé depuis un autre panneau. */
   atelier(h: CraftHooks, only?: string): Promise<void> {
+    if (this.atMode !== 0) this.atMode = 3;
     const el = this.root.querySelector<HTMLElement>('.atelier')!;
     const fbox = el.querySelector<HTMLElement>('.at-flt')!;
     const modal = el.querySelector<HTMLElement>('.at-modal')!;
@@ -759,7 +853,7 @@ export class Hud {
       const v = h.get();
       el.querySelector('.sh-head .lvl')!.textContent = `Niveau ${v.level}`;
       setXpBar(el.querySelector('.at-xp')!, { level: v.level, xpInto: v.into, xpNeed: v.need });
-      el.querySelectorAll<HTMLElement>('.at-tabs .gr-tab').forEach((t, i) => t.classList.toggle('on', i === this.atMode));
+      el.querySelectorAll<HTMLElement>('.at-tabs .gr-tab').forEach((t) => t.classList.toggle('on', Number(t.dataset.t) === this.atMode));
       return v;
     };
     const renderCraft = (): number => {
@@ -786,33 +880,6 @@ export class Hud {
         : `<p class="inv-empty">${this.atTab === 0 && !v.rows.some((r) => r.ok) ? 'Rien à fabriquer pour l’instant : il te faut plus de ressources (« Toutes les recettes » pour voir ce qu’il manque).' : 'Aucune recette ne correspond.'}</p>`);
       return rows.length;
     };
-    const forgeRowHtml = (r: ForgeRow, fuse: boolean, focus: string[]) => {
-      const fv = focusValue(r.facets, focus);
-      const ok = fuse ? r.fusable : r.breakable;
-      return `
-        <div class="at-row fg ${ok ? '' : 'off'}" data-uid="${r.uid}">
-          <div class="at-ico r${r.rarity}">${r.icon}</div>
-          <div class="at-main">
-            <b class="rar-${r.rarity}">${r.name}${fv !== null ? ` <span class="fv gr-num">${fv > 0 ? '+' : ''}${fv}</span>` : ''}</b>
-            <small>${r.sub}${r.worn ? ' · porté' : ''}${r.lock ? ' · verrouillé' : ''}</small>
-          </div>
-          <div class="at-btns">${ok
-            ? fuse ? `<button type="button" class="gr-btn magic sm fz-go">→ ${r.next}</button>` : '<button type="button" class="gr-btn coral sm br-go">Briser</button>'
-            : `<span class="at-why">${fuse ? r.fuseWhy : r.breakWhy}</span>`}</div>
-        </div>`;
-    };
-    const renderForge = (fuse: boolean) => (): number => {
-      head();
-      const f = this.filters(fuse ? 'fuse' : 'break');
-      const all = h.forge();
-      const rows = applyFilters(all, f).sort((a, b) => Number(fuse ? b.fusable : b.breakable) - Number(fuse ? a.fusable : a.breakable));
-      const focus = focusStat(f);
-      const intro = fuse
-        ? '<p class="at-intro">Commun → Rare : 3 objets identiques. Ensuite : 1 objet + 2 pièces de sa panoplie du même rang (3 identiques hors panoplie). Légendaire : +3 Crânes de Kardorim, Mythique : +10. Le jet garde sa qualité.</p>'
-        : '<p class="at-intro">L’objet est détruit et rend des runes de ses stats (plus il est haut niveau et rare, plus il en rend). Les objets portés ou verrouillés sont protégés.</p>';
-      list.innerHTML = intro + (rows.length ? rows.map((r) => forgeRowHtml(r, fuse, focus)).join('') : `<p class="inv-empty">${all.length ? 'Aucun objet ne correspond.' : 'Aucun équipement.'}</p>`);
-      return rows.length;
-    };
     const renderFm = (): number => {
       head();
       const f = this.filters('fm');
@@ -831,11 +898,11 @@ export class Hud {
       }).join('') : `<p class="inv-empty">${all.length ? 'Aucun objet ne correspond.' : 'Aucun équipement.'}</p>`);
       return rows.length;
     };
-    const forgeCfg = (fuse: boolean): BarCfg => ({
+    const fmCfg: BarCfg = {
       placeholder: 'Nom, rareté, stat, niveau…', slot: true, stat: true, set: true, rarity: true,
-      toggles: fuse ? [['fusable', 'Fusion possible'], ['fav', 'Favoris']] : [['breakable', 'Brisable'], ['fav', 'Favoris']],
+      toggles: [['fav', 'Favoris'], ['worn', 'Portés']],
       sorts: [['level', 'Niveau ↓'], ['levelAsc', 'Niveau ↑'], ['rarity', 'Rareté'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
-    });
+    };
     const bar = () => {
       fbox.hidden = false;
       if (this.atMode === 0) {
@@ -845,83 +912,12 @@ export class Hud {
           sorts: [['levelAsc', 'Niveau ↑'], ['level', 'Niveau ↓'], ['name', 'Nom'], ['stat', 'Valeur de la stat']],
           label: specialLabel,
         }, renderCraft, init);
-      } else if (this.atMode === 1) this.filterBar(fbox, 'fuse', forgeCfg(true), renderForge(true));
-      else if (this.atMode === 2) this.filterBar(fbox, 'break', forgeCfg(false), renderForge(false));
-      else this.filterBar(fbox, 'fm', { ...forgeCfg(false), toggles: [['fav', 'Favoris'], ['worn', 'Portés']] }, renderFm);
+      } else this.filterBar(fbox, 'fm', fmCfg, renderFm);
     };
 
-    /* fenêtres de fusion et de brisage (confirmation) */
-    let picked: number[] = [];
     const closeModal = () => {
       modal.hidden = true;
       modal.onclick = null;
-    };
-    const openFusion = (uid: number) => {
-      const draw = () => {
-        const v = h.fusion(uid);
-        if (!v) return closeModal();
-        const costOk = !v.cost || (!v.cost.locked && v.cost.have >= v.cost.need);
-        const ready = picked.length === 2 && costOk;
-        const chosen = v.partners.filter((p) => picked.includes(p.uid));
-        modal.querySelector('.det-card')!.innerHTML = `
-          <div class="det-head"><span class="det-ico r${v.toRank - 1}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.toRank - 1}">${v.name}</h3><span class="det-sub">${v.from} → <b class="rar-${v.toRank}">${v.to}</b></span></div></div>
-          <div class="det-lines">${v.lines.map((l) => `<div><span>${l}</span></div>`).join('')}</div>
-          ${v.bonusNote ? `<p class="det-note">${v.bonusNote}</p>` : ''}
-          <div class="det-src"><span class="gr-label">À sacrifier : ${v.rule} (${picked.length}/2)</span></div>
-          <div class="fz-partners">${v.partners.map((p) => `<button type="button" class="inv-cell r${p.rarity} ${picked.includes(p.uid) ? 'sel' : ''}" data-p="${p.uid}" title="${p.name}">${p.icon}</button>`).join('')}</div>
-          ${chosen.length ? `<div class="fz-chosen">${chosen.map((p) => `<div><b>${p.name}</b> <small>${p.lines}</small></div>`).join('')}</div>` : ''}
-          ${v.cost ? `<div class="fz-cost ${costOk ? 'ok' : 'no'}">${v.cost.icon}<span>${v.cost.name} <b class="gr-num">${v.cost.have}/${v.cost.need}</b>${v.cost.locked ? ' · verrouillé' : ''}</span></div>` : ''}
-          <p class="det-note warn">Les 2 objets choisis seront détruits. ${v.name} garde ses jets (même qualité) et reste équipé s’il l’était.</p>
-          <div class="det-btns">
-            <button type="button" class="gr-btn magic sm fz-ok" ${ready ? '' : 'disabled'}>Fusionner</button>
-            <button type="button" class="gr-btn ghost sm md-close">Annuler</button>
-          </div>`;
-      };
-      const v0 = h.fusion(uid);
-      picked = v0 ? v0.partners.slice(0, 2).map((p) => p.uid) : [];
-      draw();
-      modal.hidden = false;
-      modal.onclick = (e) => {
-        const t = e.target as HTMLElement;
-        if (t === modal || t.closest('.md-close')) return closeModal();
-        const p = t.closest<HTMLElement>('[data-p]');
-        if (p) {
-          const id = Number(p.dataset.p);
-          picked = picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id].slice(-2);
-          draw();
-          return;
-        }
-        if (t.closest('.fz-ok')) {
-          const msg = h.fuse(uid, picked);
-          closeModal();
-          this.toast(msg, 2200);
-          bar();
-        }
-      };
-    };
-    const openBreak = (uid: number) => {
-      const v = h.breakInfo(uid);
-      if (!v) return;
-      modal.querySelector('.det-card')!.innerHTML = `
-        <div class="det-head"><span class="det-ico r${v.rarity}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.rarity}">${v.name}</h3><span class="det-sub">${v.sub}</span></div></div>
-        <div class="det-src"><span class="gr-label">Runes obtenues</span></div>
-        <div class="br-runes">${v.runes.length ? v.runes.map((r) => `<div class="br-rune">${r.icon}<span>${r.name}</span><b class="gr-num">${r.min === r.max ? r.max : `${r.min}–${r.max}`}</b></div>`).join('') : '<em>Aucune rune : cet objet n’a pas de stat brisable.</em>'}</div>
-        <p class="det-note warn">${v.why ? v.why : 'L’objet sera détruit définitivement.'}</p>
-        <div class="det-btns">
-          <button type="button" class="gr-btn coral sm br-ok" ${v.why ? 'disabled' : ''}>Briser</button>
-          <button type="button" class="gr-btn ghost sm md-close">Annuler</button>
-        </div>`;
-      modal.hidden = false;
-      modal.onclick = (e) => {
-        const t = e.target as HTMLElement;
-        if (t === modal || t.closest('.md-close')) return closeModal();
-        if (t.closest('.br-ok')) {
-          const msg = h.breakIt(uid);
-          closeModal();
-          this.toast(msg, 2200);
-          bar();
-        }
-      };
     };
 
     /* fenêtre de forgemagie : une rune à la fois, le résultat s'affiche en haut */
@@ -982,15 +978,6 @@ export class Hud {
         return;
       }
       if (t.closest('.at-flt')) return;
-      const fg = t.closest<HTMLElement>('.at-row.fg');
-      if (fg) {
-        const uid = Number(fg.dataset.uid);
-        if (t.closest('.fz-go')) openFusion(uid);
-        else if (t.closest('.br-go')) openBreak(uid);
-        else if (this.atMode === 2) openBreak(uid);
-        else if (!fg.classList.contains('off')) openFusion(uid);
-        return;
-      }
       const mk = t.closest<HTMLElement>('.mk');
       const row = t.closest<HTMLElement>('.at-row');
       if (mk && row) {
@@ -1195,6 +1182,24 @@ export class Hud {
     const fbox = el.querySelector<HTMLElement>('.inv-flt')!;
     type Open = { kind: 'uid'; uid: number } | { kind: 'res'; id: number } | { kind: 'cat'; id: number };
     let open: Open | null = null;
+    const modal = el.querySelector<HTMLElement>('.inv-modal')!;
+    const acts = el.querySelector<HTMLElement>('.inv-acts')!;
+    /** Fusion et Brisage directement dans l'inventaire (choix d'Enzo) : mode de sélection et objets choisis. */
+    let pick: 'fuse' | 'break' | null = null;
+    let chosen: number[] = [];
+    const forgeOf = () => new Map((this.work?.forge() ?? []).map((r) => [r.uid, r]));
+    const renderActs = () => {
+      acts.hidden = this.invTab !== 0 || !this.work;
+      acts.innerHTML = !pick
+        ? '<button type="button" class="gr-btn magic sm ia-fuse">Fusion</button><button type="button" class="gr-btn coral sm ia-break">Briser</button>'
+        : `<span class="ia-hint">${pick === 'fuse' ? 'Touche l’objet à faire monter de rareté' : `Touche les objets à briser · ${chosen.length} choisi${chosen.length > 1 ? 's' : ''}`}</span>
+          ${pick === 'break' ? `<button type="button" class="gr-btn coral sm ia-ok" ${chosen.length ? '' : 'disabled'}>Briser${chosen.length ? ` (${chosen.length})` : ''}</button>` : ''}
+          <button type="button" class="gr-btn ghost sm ia-cancel">Annuler</button>`;
+    };
+    const endPick = () => {
+      pick = null;
+      chosen = [];
+    };
     const slotHtml = (s: InvView['slots'][number]) =>
       `<button type="button" class="inv-slot ${s.uid !== null ? `full r${s.rarity}` : ''} ${s.locked ? 'locked' : ''} ${s.uid !== null && hit.has(s.uid) ? 'hit' : ''}" data-uid="${s.uid ?? ''}" data-slot="${s.slot}" aria-label="${s.name}">${s.icon || `<span>${s.name}</span>`}</button>`;
     const marks = (fav: boolean, lock: boolean) => (fav || lock ? `<span class="mks">${lock ? LOCK_SVG : ''}${fav ? STAR_SVG : ''}</span>` : '');
@@ -1239,8 +1244,10 @@ export class Hud {
         const rows = applyFilters(v.equipment, f);
         hit = new Set(searching ? rows.filter((r) => r.worn).map((r) => r.uid) : []);
         n = rows.length;
+        const fr = pick ? forgeOf() : null;
+        const can = (uid: number) => !fr || (pick === 'fuse' ? fr.get(uid)?.fusable : fr.get(uid)?.breakable);
         grid.innerHTML = rows.length
-          ? rows.map((e) => `<button type="button" class="inv-cell r${e.rarity} ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''}" data-uid="${e.uid}">
+          ? rows.map((e) => `<button type="button" class="inv-cell r${e.rarity} ${e.worn ? 'worn' : ''} ${e.usable ? '' : 'nolvl'} ${e.fresh ? 'fresh' : ''} ${can(e.uid) ? '' : 'off'} ${chosen.includes(e.uid) ? 'sel' : ''}" data-uid="${e.uid}">
               ${e.icon}<span class="lv gr-num">${e.level}</span>${marks(e.fav, e.lock)}${fvTag(focusValue(e.facets, focus))}${e.worn ? '<span class="tag">porté</span>' : e.fresh ? '<span class="tag new">nouveau</span>' : ''}</button>`).join('')
           : `<p class="inv-empty">${v.equipment.length ? 'Aucun équipement ne correspond.' : 'Aucun équipement.'}</p>`;
       } else if (this.invTab === 1) {
@@ -1274,6 +1281,7 @@ export class Hud {
           : '<p class="inv-empty">Aucune panoplie ne correspond.</p>');
       }
       renderDoll(v);
+      renderActs();
       if (open) showDetail(open.kind === 'uid' ? h.detail(open.uid) : open.kind === 'res' ? h.resource(open.id) : h.catalog(open.id));
       return n;
     };
@@ -1306,6 +1314,7 @@ export class Hud {
         return;
       }
       const links = d.links.filter((l) => !(l.go.startsWith('uses:') || l.go.startsWith('recipe:')) || this.work);
+      const fg = open?.kind === 'uid' ? forgeOf().get(open.uid) : undefined;
       detail.querySelector('.det-card')!.innerHTML = `
         <div class="det-head"><span class="det-ico r${d.rarity}">${d.icon}</span><div><h3 class="gr-h3 rar-${d.rarity}">${d.name}</h3><span class="det-sub">${d.sub}</span></div>
           ${d.marks ? `<div class="det-marks"><button type="button" class="mark fav ${d.marks.fav ? 'on' : ''}" data-mark="fav" aria-label="Favori">${STAR_SVG}</button><button type="button" class="mark lock ${d.marks.lock ? 'on' : ''}" data-mark="lock" aria-label="Verrouiller">${LOCK_SVG}</button></div>` : ''}</div>
@@ -1315,6 +1324,11 @@ export class Hud {
         ${d.sources.length ? `<div class="det-src"><span class="gr-label">Où l’obtenir</span>${d.sources.map((s) => `<div>${s}</div>`).join('')}</div>` : ''}
         ${d.note ? `<p class="det-note">${d.note}</p>` : ''}
         ${links.length ? `<div class="det-links">${links.map((l) => `<button type="button" class="gr-btn sm turquoise link" data-go="${l.go}">${l.label}</button>`).join('')}</div>` : ''}
+        ${fg ? `<div class="det-forge">
+          <button type="button" class="gr-btn magic sm d-fuse" ${fg.fusable ? '' : 'disabled'}>Fusionner${fg.fusable ? ` → ${fg.next}` : ''}</button>
+          <button type="button" class="gr-btn coral sm d-break" ${fg.breakable ? '' : 'disabled'}>Briser</button>
+          ${!fg.fusable || !fg.breakable ? `<small>${[!fg.fusable ? `Fusion : ${fg.fuseWhy}` : '', !fg.breakable ? `Brisage : ${fg.breakWhy}` : ''].filter(Boolean).join(' · ')}</small>` : ''}
+        </div>` : ''}
         <div class="det-btns">
           ${d.action ? `<button type="button" class="gr-btn sm ${d.action.label === 'Retirer' ? 'ghost' : 'leaf'} act" ${d.action.enabled ? '' : 'disabled'}>${d.action.enabled ? d.action.label : d.action.reason}</button>` : ''}
           <button type="button" class="gr-btn ghost sm det-close">Fermer</button>
@@ -1340,6 +1354,7 @@ export class Hud {
       const tab = t.closest<HTMLElement>('.inv-tabs .gr-tab');
       if (tab) {
         this.invTab = Number(tab.dataset.t);
+        endPick();
         bar();
         return;
       }
@@ -1349,7 +1364,54 @@ export class Hud {
         bar();
         return;
       }
-      if (t.closest('.inv-flt')) return;
+      if (t.closest('.inv-flt') || t.closest('.inv-modal')) return;
+      const w = this.work;
+      if (w && t.closest('.ia-fuse, .ia-break')) {
+        pick = t.closest('.ia-fuse') ? 'fuse' : 'break';
+        chosen = [];
+        showDetail(null);
+        renderList();
+        return;
+      }
+      if (t.closest('.ia-cancel')) {
+        endPick();
+        renderList();
+        return;
+      }
+      if (w && t.closest('.ia-ok') && chosen.length) {
+        this.breakModal(modal, w, chosen, () => {
+          endPick();
+          renderList();
+        });
+        return;
+      }
+      if (w && open?.kind === 'uid' && t.closest('.d-fuse, .d-break')) {
+        const uid = open.uid;
+        if (t.closest('.d-fuse')) this.fusionModal(modal, w, uid, () => renderList());
+        else this.breakModal(modal, w, [uid], () => {
+          showDetail(null);
+          renderList();
+        });
+        return;
+      }
+      if (pick && w) {
+        const c = t.closest<HTMLElement>('.inv-grid [data-uid]');
+        if (!c) return;
+        const uid = Number(c.dataset.uid), r = forgeOf().get(uid);
+        if (!r) return;
+        if (pick === 'fuse') {
+          if (!r.fusable) this.toast(r.fuseWhy, 1800);
+          else this.fusionModal(modal, w, uid, () => {
+            endPick();
+            renderList();
+          });
+        } else if (!r.breakable) this.toast(r.breakWhy, 1800);
+        else {
+          chosen = chosen.includes(uid) ? chosen.filter((x) => x !== uid) : [...chosen, uid];
+          renderList();
+        }
+        return;
+      }
       if (t.closest('.det-close') || t === detail) {
         showDetail(null);
         return;
@@ -1381,12 +1443,15 @@ export class Hud {
     };
     open = null;
     detail.hidden = true;
+    modal.hidden = true;
+    endPick();
     bar();
     el.hidden = false;
     return new Promise((resolve) => {
       el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
         el.hidden = true;
         detail.hidden = true;
+        modal.hidden = true;
         resolve();
       };
     });

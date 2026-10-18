@@ -239,6 +239,27 @@ for kid in DUNGEON_KEYS.values():
     ings = [(i, q) for i, q in ings if i in dropped or i in recipes]
     recipes[kid] = {'id': kid, 'level': d['level'], 'ingredients': ings}
 
+# 2 quinquies) Équipement de zone (validé par Enzo : « tout doit être droppable ») : tous les vrais équipements jusqu'au
+# niveau 40, armes comprises ; sauf ceux sans caractéristique et les objets de quête liés au personnage (non échangeables).
+ZONE_TYPES = [1, 9, 10, 11, 16, 17, 82, 2, 3, 4, 5, 6, 7, 8, 19, 22, 271]
+zone_equip = []
+for t in ZONE_TYPES:
+    for skip in range(0, 1000, 50):
+        page = get(f'/items?typeId={t}&level[$lte]=40&$limit=50&$skip={skip}')
+        for d in page.get('data', []):
+            if d.get('exchangeable') is False:
+                continue
+            _cache[f"/items/{d['id']}"] = d
+            if not add_item(d['id']):
+                continue
+            it = items[d['id']]
+            if not (it['effects'] or (it.get('weapon') and it['weapon']['lines'])):
+                continue
+            zone_equip.append(d['id'])
+        if len(page.get('data', [])) < 50:
+            break
+zone_equip = sorted(set(zone_equip))
+
 # les objets des panoplies rencontrées (pour afficher la panoplie complète)
 for s in list(sets.values()):
     for iid in s['items']:
@@ -333,6 +354,9 @@ for r in sorted(recipes.values(), key=lambda x: (x['level'], x['id'])):
 out.append('];')
 out.append('')
 out.append('/** Clés de donjon réelles (étape 9c) : donjon → objet clé (fabricable). */')
+out.append('/** Équipement de zone : tous les vrais équipements (niveau ≤ 40) qui peuvent tomber dans la tranche de leur zone. */')
+out.append('export const ZONE_EQUIP: number[] = ' + json.dumps(zone_equip) + ';')
+out.append('')
 out.append('export const DUNGEON_KEYS: Record<string, number> = ' + json.dumps(DUNGEON_KEYS) + ';')
 out.append('')
 out.append('/** Runes de forgemagie réelles : rune, stat, valeur apportée. */')
@@ -344,6 +368,6 @@ open(OUT_TS, 'a').write('\n'.join(out) + '\n')
 print(f'{len(recipes)} recettes, {len(runes)} runes', file=sys.stderr)
 
 unknown = sorted({e for e, v in _effects.items() if CHAR.get(v.get('characteristic')) is None})
-print(f'{len(kept)} objets, {len(sets)} panoplies, {len(region)} lignes de butin de région', file=sys.stderr)
+print(f'{len(kept)} objets, {len(sets)} panoplies, {len(region)} lignes de butin de région, {len(zone_equip)} équipements de zone', file=sys.stderr)
 if unknown:
     print('effets ignorés :', unknown, file=sys.stderr)

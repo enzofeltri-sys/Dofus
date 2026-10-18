@@ -1,7 +1,7 @@
 import { rng } from '../iso';
 import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
-import { rollDrops } from './loot';
+import { rollDrops, zoneEquipPool } from './loot';
 import { startingHero, type HeroDef } from './data/hero';
 import { gradeStats, MONSTERS, type MonsterAttack, type MonsterDef } from './data/monsters';
 import { ARCHI_OF } from './data/monsters.astrub';
@@ -1117,7 +1117,7 @@ export class World {
     // butin : les invocations ne lâchent rien ; celui du boss n'est gagné qu'en cas de victoire
     if (m.summoner === null) {
       const boss = m === this.boss;
-      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)) }, this.lootRnd);
+      const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)), zonePool: zoneEquipPool(this.area.id) }, this.lootRnd);
       const bag = boss ? this.stats.bossLoot : this.stats.loot;
       for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
       if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });
@@ -1466,7 +1466,7 @@ export class World {
     const items: number[] = [];
     for (let i = 0; i < 3; i++) {
       const def = MONSTERS[this.area.pool[Math.floor(this.lootRnd() * this.area.pool.length)]];
-      items.push(...rollDrops({ dofusId: def.dofusId, boss: false, elite: true, prospection: prospectionOf(this.heroStats()) }, this.lootRnd));
+      items.push(...rollDrops({ dofusId: def.dofusId, boss: false, elite: true, prospection: prospectionOf(this.heroStats()), zonePool: zoneEquipPool(this.area.id) }, this.lootRnd));
     }
     for (const id of items) this.stats.loot[id] = (this.stats.loot[id] ?? 0) + 1;
     this.events.push({ type: 'chest', items, x: c.x, y: c.y });

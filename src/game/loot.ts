@@ -1,5 +1,6 @@
-import { isEquipment } from './data/items';
-import { DUNGEON_DROPS, REGION_DROPS } from './data/items.gen';
+import { isEquipment, ITEMS } from './data/items';
+import { DUNGEON_DROPS, REGION_DROPS, ZONE_EQUIP } from './data/items.gen';
+import { zoneEquipRange } from './data/areas';
 
 /**
  * Butin (document de design §8.1) : tables réelles de DofusDB, avec des multiplicateurs pour le rythme d'une partie
@@ -20,6 +21,26 @@ export const REGION_CHANCE = 0.1;
 /** Dans le butin de région, l'équipement pèse 10 fois moins que les ressources. */
 export const REGION_EQUIP_WEIGHT = 0.1;
 
+/** Équipement de zone (validé par Enzo) : chance par monstre tué de lâcher un équipement de la tranche de la zone. */
+export const ZONE_EQUIP_CHANCE = {
+  monster: 0.01,
+  /** Élite, archimonstre (et coffre gardé) : ×3. */
+  elite: 3,
+  boss: 0.5,
+};
+
+const poolCache = new Map<string, number[]>();
+/** Équipements qui peuvent tomber sur cette carte (vide si la carte n'est dans aucune zone). */
+export function zoneEquipPool(areaId: string): number[] {
+  let p = poolCache.get(areaId);
+  if (!p) {
+    const r = zoneEquipRange(areaId);
+    p = r ? ZONE_EQUIP.filter((id) => ITEMS[id] && ITEMS[id].level >= r.lo && ITEMS[id].level <= r.hi) : [];
+    poolCache.set(areaId, p);
+  }
+  return p;
+}
+
 export interface DropContext {
   /** Identifiant DofusDB du monstre (table de drop). */
   dofusId: number;
@@ -27,6 +48,8 @@ export interface DropContext {
   elite?: boolean;
   /** Prospection (100 = ×1). */
   prospection: number;
+  /** Équipement de zone de la carte (`zoneEquipPool`). */
+  zonePool?: number[];
 }
 
 /** Chance (0-1) qu'un objet de la table tombe, avec les multiplicateurs du jeu (prospection 100). */
@@ -56,6 +79,11 @@ export function rollDrops(ctx: DropContext, rnd: () => number): number[] {
         break;
       }
     }
+  }
+  const zp = ctx.zonePool;
+  if (zp?.length) {
+    const c = ctx.boss ? ZONE_EQUIP_CHANCE.boss : ZONE_EQUIP_CHANCE.monster * (ctx.elite ? ZONE_EQUIP_CHANCE.elite : 1);
+    if (rnd() < Math.min(1, c * pp)) out.push(zp[Math.floor(rnd() * zp.length)]);
   }
   return out;
 }

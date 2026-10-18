@@ -1,14 +1,14 @@
 import { isEquipment, item, statLabel } from './data/items';
-import { DUNGEON_DROPS, REGION_DROPS } from './data/items.gen';
+import { DUNGEON_DROPS, REGION_DROPS, ZONE_EQUIP } from './data/items.gen';
 import { MONSTERS } from './data/monsters';
 import { RECIPES, recipeFor } from './craft';
-import { DROP_MULT } from './loot';
+import { DROP_MULT, ZONE_EQUIP_CHANCE } from './loot';
 import { RUNE_STAT } from './forge';
-import { AREAS } from './data/areas';
+import { AREAS, ZONE_TIERS, ZONES } from './data/areas';
 
 /** Où obtenir un objet : fabrication, butin du donjon (chance réelle en jeu), butin de région. */
 export interface Source {
-  kind: 'craft' | 'dungeon' | 'region' | 'break';
+  kind: 'craft' | 'dungeon' | 'region' | 'break' | 'zone';
   text: string;
 }
 
@@ -32,6 +32,11 @@ export function sourcesOf(id: number): Source[] {
     const boss = BOSS_IDS.has(Number(mid));
     const chance = d[1] * (boss ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1) : isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource);
     out.push({ kind: 'dungeon', text: `${monsterName(Number(mid))}${boss ? ' (boss)' : ''} · ${placeOf(Number(mid))} · ${pct(chance)}` });
+  }
+  if (ZONE_EQUIP.includes(id)) {
+    const lv = item(id).level;
+    const zones = ZONES.filter((z) => ZONE_TIERS[z.id] && lv >= ZONE_TIERS[z.id][0] && lv <= ZONE_TIERS[z.id][1]).map((z) => z.name);
+    if (zones.length) out.push({ kind: 'zone', text: `Équipement de zone · ${zones.join(', ')} · ${pct(ZONE_EQUIP_CHANCE.monster * 100)} par monstre, ${pct(ZONE_EQUIP_CHANCE.boss * 100)} par boss (un objet au hasard de la zone)` });
   }
   const region = [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))];
   if (region.length) out.push({ kind: 'region', text: `Butin de région (Incarnam) · ${region.join(', ')}` });

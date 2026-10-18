@@ -419,3 +419,19 @@ export const AREAS: Record<string, AreaDef> = {
 
 /** Étapes jouables et débloquées. */
 export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.includes(n.id) || n.needs.every((id) => done.includes(id)));
+
+/** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
+export const ZONE_TIERS: Record<string, [number, number]> = {
+  incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
+};
+
+/** Niveaux de l'équipement de zone d'une carte : sa tranche, jusqu'au niveau de la carte + 2 (toute la tranche en donjon). */
+export function zoneEquipRange(areaId: string): { lo: number; hi: number; zone: string } | null {
+  for (const z of ZONES) {
+    const n = z.nodes.find((x) => x.area?.id === areaId);
+    const t = ZONE_TIERS[z.id];
+    if (!n || !t) continue;
+    return { lo: t[0], hi: n.kind === 'dungeon' ? t[1] : Math.max(t[0], Math.min(t[1], n.level + 2)), zone: z.name };
+  }
+  return null;
+}
