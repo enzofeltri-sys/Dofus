@@ -50,8 +50,8 @@ export interface SaveData {
   keys?: KeyState;
   /** Bestiaire : monstres vus et vaincus. */
   bestiary?: Bestiary;
-  /** Farm instantané du jour (nombre utilisé, date locale AAAA-MM-JJ). */
-  instant?: { used: number; day: string };
+  /** Farms instantanés du jour, par zone (date locale AAAA-MM-JJ). */
+  instant?: { used: Record<string, number>; day: string };
   /** Expédition en cours : carte et départ (horodatage en ms). */
   expedition?: { area: string; start: number };
 }

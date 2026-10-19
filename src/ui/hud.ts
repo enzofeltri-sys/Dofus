@@ -1147,11 +1147,11 @@ export class Hud {
         ${loot ? `<p class="gr-label">${loot.title}</p>${lootHtml(loot.rows)}` : ''}
         <section><b>Farm auto</b><small>Ton Sacrieur joue tout seul, les parties s'enchaînent. Récompenses normales ; s'arrête s'il perd.</small>
           <div class="farm-speeds">${[1, 2, 4].map((sp) => `<button type="button" class="gr-btn sm turquoise fauto" data-sp="${sp}" ${f.auto ? '' : 'disabled'}>×${sp}</button>`).join('')}</div></section>
-        ${f.instant >= 0 ? `<section><b>Farm instantané</b><small>Le butin d'une partie complète, tout de suite (sans XP). ${f.instant}/${f.instantMax} aujourd'hui.</small>
+        ${f.instant >= 0 ? `<section><b>Farm instantané</b><small>Le butin d'une partie complète, tout de suite (sans XP). ${f.instant}/${f.instantMax} aujourd'hui dans cette zone.</small>
           <button type="button" class="gr-btn sm magic finst" ${f.instant > 0 ? '' : 'disabled'}>Farmer maintenant</button></section>` : ''}
         ${f.expedition || a ? `<section><b>Expédition</b><small>${a
           ? `Ton Sacrieur farme ${a.here ? 'ici' : `à ${a.area}`} depuis ${fmtDur(a.seconds)} (${a.cap} h comptées au plus). Sans XP.`
-          : `Il part farmer tout seul, même téléphone fermé ; au retour, le butin du temps passé (${'8'} h au plus, un peu moins qu'en jouant). Sans XP.`}</small>
+          : `Il part farmer tout seul, même téléphone fermé ; au retour, le butin du temps passé (8 h au plus, 20 % de ce que rapporte une partie jouée). Sans XP.`}</small>
           ${a ? `<button type="button" class="gr-btn sm gold fcollect">Récupérer le butin</button>` : `<button type="button" class="gr-btn sm gold fsend">Envoyer en expédition</button>`}</section>` : ''}
       </div>`;
     };

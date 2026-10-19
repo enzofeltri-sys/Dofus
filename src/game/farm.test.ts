@@ -5,7 +5,7 @@ import { collectExpedition, FARM, instantFarm, instantLeft, runLoot, runSeconds,
 import { emptySave, type SaveData } from './save';
 import { rng } from '../iso';
 
-const done = (): SaveData => ({ ...emptySave(), done: ['champs', 'crypte', 'cite'] });
+const done = (): SaveData => ({ ...emptySave(), done: ['champs', 'paturages', 'crypte', 'cite'] });
 const count = (loot: Record<string, number>, equip: boolean) => Object.entries(loot).filter(([k]) => (item(Number(k)).slot !== null) === equip).reduce((a, [, n]) => a + n, 0);
 
 describe('Farm (validé par Enzo)', () => {
@@ -24,10 +24,10 @@ describe('Farm (validé par Enzo)', () => {
     expect(runSeconds(AREAS.cite)).toBeLessThan(150);
   });
 
-  it('farm instantané : seulement sur une carte terminée, 10 par jour, sans XP', () => {
+  it('farm instantané : seulement sur une carte terminée, 5 par jour et par zone, sans XP', () => {
     const now = new Date(2026, 9, 19, 12);
     let s = done();
-    expect(instantFarm(s, 'paturages', 100, rng(1), now)).toBeNull(); // pas terminée
+    expect(instantFarm(s, 'foret', 100, rng(1), now)).toBeNull(); // pas terminée
     expect(instantFarm(s, 'crypte', 100, rng(1), now)).toBeNull(); // donjon
     const xp = s.profile.xp;
     for (let i = 0; i < FARM.instantPerDay; i++) {
@@ -36,12 +36,14 @@ describe('Farm (validé par Enzo)', () => {
       s = r.save;
     }
     expect(s.profile.xp).toBe(xp);
-    expect(instantLeft(s, now)).toBe(0);
+    expect(instantLeft(s, 'cite', now)).toBe(0);
     expect(instantFarm(s, 'cite', 100, rng(99), now)).toBeNull();
-    expect(instantLeft(s, new Date(2026, 9, 20, 8))).toBe(FARM.instantPerDay); // le lendemain
+    expect(instantLeft(s, 'champs', now)).toBe(FARM.instantPerDay); // autre zone (Incarnam) : compteur à part
+    expect(instantFarm(s, 'paturages', 100, rng(98), now)).not.toBeNull();
+    expect(instantLeft(s, 'cite', new Date(2026, 9, 20, 8))).toBe(FARM.instantPerDay); // le lendemain
   });
 
-  it('expédition : une à la fois, butin selon le temps (plafond 8 h), 80 % d’une vraie partie, sans XP', () => {
+  it('expédition : une à la fois, butin selon le temps (plafond 8 h), 20 % d’une vraie partie, sans XP', () => {
     const t0 = Date.UTC(2026, 9, 19, 8);
     const s = startExpedition(done(), 'cite', t0)!;
     expect(startExpedition(s, 'champs', t0)).toBeNull();
@@ -50,8 +52,8 @@ describe('Farm (validé par Enzo)', () => {
     const h20 = collectExpedition(s, 100, rng(5), t0 + 20 * 3600e3)!;
     const runsPerHour = 3600 / runSeconds(AREAS.cite);
     const eq1 = count(h1.loot, true);
-    expect(eq1).toBeGreaterThan(runsPerHour * 0.8 * 0.6);
-    expect(eq1).toBeLessThan(runsPerHour * 0.8 * 2);
+    expect(eq1).toBeGreaterThan(runsPerHour * 0.2 * 0.6);
+    expect(eq1).toBeLessThan(runsPerHour * 0.2 * 2);
     expect(count(h8.loot, true)).toBeGreaterThan(eq1 * 5);
     expect(Math.abs(count(h20.loot, true) - count(h8.loot, true))).toBeLessThan(count(h8.loot, true) * 0.25); // plafonné
     expect(h1.save.expedition).toBeUndefined();

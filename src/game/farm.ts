@@ -14,10 +14,10 @@ import { addLoot, type SaveData } from './save';
  *   un peu sous le rendement d'une vraie partie.
  */
 export const FARM = {
-  /** Farms instantanés par jour. */
-  instantPerDay: 10,
-  /** Expédition : part du butin d'une vraie partie (« légèrement inférieur au drop normal »). */
-  expeditionRate: 0.8,
+  /** Farms instantanés par jour et par zone (choix d'Enzo). */
+  instantPerDay: 5,
+  /** Expédition : part du butin d'une vraie partie (choix d'Enzo : 10 à 20 % au plus ; avant 80 %, beaucoup trop). */
+  expeditionRate: 0.2,
   /** Expédition : durée prise en compte au plus (heures). */
   expeditionCapH: 8,
   /** Durée d'une partie selon le nombre de monstres (mesurée : ~25 monstres en 1,6 à 1,9 min). */
@@ -68,17 +68,21 @@ export const runSeconds = (A: AreaDef) => {
   return n * FARM.secondsPerKill;
 };
 
-/** Farms instantanés restants aujourd'hui. */
-export const instantLeft = (s: Pick<SaveData, 'instant'>, now = new Date()) =>
-  s.instant?.day === dayOf(now) ? Math.max(0, FARM.instantPerDay - s.instant.used) : FARM.instantPerDay;
+/** Farms instantanés restants aujourd'hui dans la zone de cette carte (5 par zone et par jour). */
+export const instantLeft = (s: Pick<SaveData, 'instant'>, id: string, now = new Date()) => {
+  const z = zoneIdOf(id) ?? id;
+  return s.instant?.day === dayOf(now) ? Math.max(0, FARM.instantPerDay - (s.instant.used[z] ?? 0)) : FARM.instantPerDay;
+};
 
 export interface FarmResult { save: SaveData; loot: Record<string, number>; fresh: number[] }
 
 /** Farm instantané : le butin d'une partie complète, tout de suite (pas d'XP). Null si impossible. */
 export function instantFarm(s: SaveData, id: string, prospection: number, rnd: () => number, now = new Date()): FarmResult | null {
-  if (!canFarm(s, id) || instantLeft(s, now) <= 0) return null;
+  if (!canFarm(s, id) || instantLeft(s, id, now) <= 0) return null;
   const loot = runLoot(AREAS[id], prospection, rnd);
-  const out: SaveData = { ...s, resources: { ...s.resources }, instant: { used: FARM.instantPerDay - instantLeft(s, now) + 1, day: dayOf(now) } };
+  const z = zoneIdOf(id) ?? id, day = dayOf(now);
+  const used = s.instant?.day === day ? s.instant.used : {};
+  const out: SaveData = { ...s, resources: { ...s.resources }, instant: { day, used: { ...used, [z]: (used[z] ?? 0) + 1 } } };
   const fresh = addLoot(out, { xp: 0, items: loot }, rnd, 'monster');
   return { save: out, loot, fresh };
 }

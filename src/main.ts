@@ -245,7 +245,7 @@ async function main() {
     farmInfo(id: string) {
       const e = save.expedition;
       return {
-        auto: save.done.includes(id), instant: canFarm(save, id) ? instantLeft(save) : -1, instantMax: FARM.instantPerDay, expedition: canFarm(save, id),
+        auto: save.done.includes(id), instant: canFarm(save, id) ? instantLeft(save, id) : -1, instantMax: FARM.instantPerDay, expedition: canFarm(save, id),
         away: e ? { area: AREAS[e.area]?.name ?? e.area, here: e.area === id, seconds: expeditionSeconds(e), cap: FARM.expeditionCapH } : null,
       };
     },
