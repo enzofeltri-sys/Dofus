@@ -16,8 +16,8 @@ import { addLoot, type SaveData } from './save';
 export const FARM = {
   /** Farms instantanés par jour et par zone (choix d'Enzo). */
   instantPerDay: 5,
-  /** Expédition : part du butin d'une vraie partie (choix d'Enzo : 10 à 20 % au plus ; avant 80 %, beaucoup trop). */
-  expeditionRate: 0.2,
+  /** Expédition : part du butin d'une vraie partie (choix d'Enzo : 10 % ; avant 80 %, beaucoup trop). */
+  expeditionRate: 0.1,
   /** Expédition : durée prise en compte au plus (heures). */
   expeditionCapH: 8,
   /** Durée d'une partie selon le nombre de monstres (mesurée : ~25 monstres en 1,6 à 1,9 min). */

@@ -1,0 +1,46 @@
+// Expédition depuis le camp : envoyer sur une carte terminée, puis (départ reculé de 3 h) récupérer le butin.
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
+await p.goto('http://localhost:5173/');
+await p.evaluate(async () => {
+  const pr = await import('/src/game/progression.ts');
+  const inv = await import('/src/game/inventory.ts');
+  localStorage.setItem('dofus-enzo-save', JSON.stringify({ v: 5, runs: 9, wins: 9, bestRoom: 9, bestWinTime: 200, xp: 0, resources: {}, profile: { ...pr.defaultProfile(), xp: pr.XP_TABLE[20] }, inventory: inv.starterInventory(), done: ['champs', 'paturages', 'crypte', 'cite'], area: 'cite' }));
+});
+const boot = async () => {
+  await p.reload();
+  await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
+  await p.waitForSelector('.camp:not([hidden]) .play', { timeout: 20000 });
+};
+await boot();
+console.log('bouton :', await p.$eval('.camp-exp', (e) => (e.hidden ? 'caché' : e.textContent)));
+await p.screenshot({ path: 'shots/exp_camp.png' });
+await p.click('.camp-exp');
+await p.waitForTimeout(300);
+console.log('cartes proposées :', await p.$$eval('.exp-map b', (e) => e.map((x) => x.textContent).join(', ')));
+await p.screenshot({ path: 'shots/exp_choix.png' });
+await p.click('.exp-map[data-id="cite"]');
+await p.waitForTimeout(300);
+console.log('en cours :', await p.$eval('.farm-card section small', (e) => e.textContent));
+await p.click('.farm-modal .fclose');
+await p.waitForTimeout(200);
+console.log('bouton :', await p.$eval('.camp-exp', (e) => e.textContent));
+await p.evaluate(() => { const s = JSON.parse(localStorage.getItem('dofus-enzo-save')); s.expedition.start -= 3 * 3600e3; localStorage.setItem('dofus-enzo-save', JSON.stringify(s)); });
+await boot();
+console.log('après 3 h :', await p.$eval('.camp-exp', (e) => e.textContent));
+await p.screenshot({ path: 'shots/exp_retour_camp.png' });
+await p.click('.camp-exp');
+await p.waitForTimeout(300);
+await p.click('.farm-modal .fcollect');
+await p.waitForTimeout(300);
+const n = await p.$$eval('.farm-loot .fl b', (e) => e.reduce((a, x) => a + +x.textContent, 0));
+console.log('butin 3 h :', n, 'objets ; équipements différents :', await p.$$eval('.farm-loot .fl.eq', (e) => e.length));
+await p.screenshot({ path: 'shots/exp_butin.png' });
+await p.click('.farm-modal .fclose');
+await p.waitForTimeout(200);
+console.log('bouton après :', await p.$eval('.camp-exp', (e) => e.textContent));
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();

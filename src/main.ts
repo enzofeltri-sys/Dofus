@@ -269,6 +269,7 @@ async function main() {
       storeSave(save);
       return true;
     },
+    farmMaps: () => ZONES.flatMap((z) => z.nodes.filter((n) => canFarm(save, n.id)).map((n) => ({ id: n.id, name: n.name, level: n.level, zone: z.name }))),
     expeditionCollect() {
       const r = collectExpedition(save, prospectionOf(game.heroStats()), Math.random);
       if (!r) return null;

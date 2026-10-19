@@ -43,7 +43,7 @@ describe('Farm (validé par Enzo)', () => {
     expect(instantLeft(s, 'cite', new Date(2026, 9, 20, 8))).toBe(FARM.instantPerDay); // le lendemain
   });
 
-  it('expédition : une à la fois, butin selon le temps (plafond 8 h), 20 % d’une vraie partie, sans XP', () => {
+  it('expédition : une à la fois, butin selon le temps (plafond 8 h), 10 % d’une vraie partie, sans XP', () => {
     const t0 = Date.UTC(2026, 9, 19, 8);
     const s = startExpedition(done(), 'cite', t0)!;
     expect(startExpedition(s, 'champs', t0)).toBeNull();
@@ -52,8 +52,8 @@ describe('Farm (validé par Enzo)', () => {
     const h20 = collectExpedition(s, 100, rng(5), t0 + 20 * 3600e3)!;
     const runsPerHour = 3600 / runSeconds(AREAS.cite);
     const eq1 = count(h1.loot, true);
-    expect(eq1).toBeGreaterThan(runsPerHour * 0.2 * 0.6);
-    expect(eq1).toBeLessThan(runsPerHour * 0.2 * 2);
+    expect(eq1).toBeGreaterThan(runsPerHour * 0.1 * 0.5);
+    expect(eq1).toBeLessThan(runsPerHour * 0.1 * 2.5);
     expect(count(h8.loot, true)).toBeGreaterThan(eq1 * 5);
     expect(Math.abs(count(h20.loot, true) - count(h8.loot, true))).toBeLessThan(count(h8.loot, true) * 0.25); // plafonné
     expect(h1.save.expedition).toBeUndefined();

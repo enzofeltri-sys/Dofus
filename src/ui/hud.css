@@ -1034,3 +1034,11 @@ details.sh-test:not([open]) { padding-top: 6px; padding-bottom: 6px; }
 .farm-bar button { border: 2px solid var(--ink); border-radius: 8px; background: var(--parchment-2, #ecdcb8); font: 800 12px var(--f-body); padding: 3px 7px; }
 .farm-bar button.on { background: var(--turquoise, #2aa8a0); color: #fff; }
 .farm-bar .fb-stop { background: #d8503a; color: #fff; }
+
+/* Expédition au camp */
+.camp-exp { align-self: center; margin-top: 8px; }
+.camp-exp[hidden] { display: none; }
+.camp-exp.away { background: linear-gradient(#f0c43a, #d8a020); }
+.exp-maps { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.exp-map { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 10px; border-radius: 12px; border: 2px solid var(--ink); background: var(--parchment, #f4ead8); font: 800 14px var(--f-body); color: var(--ink); text-align: left; }
+.exp-map small { font-weight: 600; font-size: 11px; color: var(--ink-2, #6a4a2a); }

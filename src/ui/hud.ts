@@ -93,6 +93,7 @@ export class Hud {
           <div class="dj-txt"><span class="gr-label dj-kind">Carte · niveau 3</span><b class="dj-name">Champs d’Incarnam</b><span class="dj-sub" hidden></span><span class="dj-key" hidden></span></div>
           <button type="button" class="gr-btn sm turquoise enter">Rejouer</button>
         </div>
+        <button type="button" class="gr-btn sm gold camp-exp" hidden>Expédition</button>
       </div>
       <nav class="camp-nav" hidden>
         <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Personnage</span><b class="badge gr-num" hidden></b></button>
@@ -484,6 +485,13 @@ export class Hud {
       k.textContent = c.key?.text ?? '';
       k.classList.toggle('none', c.key?.ok === false);
       el.querySelector<HTMLButtonElement>('.enter')!.disabled = c.key?.ok === false;
+      // Expédition : bouton au camp (en cours : durée ; sinon : partir sur une carte terminée)
+      const ex = el.querySelector<HTMLButtonElement>('.camp-exp')!;
+      const maps = zones.farmMaps?.() ?? [];
+      const away = zones.farmInfo?.('')?.away;
+      ex.hidden = !zones.farmMaps || (!away && !maps.length);
+      ex.textContent = away ? `Expédition · ${away.area} · ${fmtDur(away.seconds)} — Récupérer` : 'Envoyer en expédition';
+      ex.classList.toggle('away', !!away);
     };
     const badge = (b: HTMLElement | null, n: number) => {
       if (!b) return;
@@ -547,6 +555,7 @@ export class Hud {
       ['Record', t === null ? '—' : `${Math.floor(t / 60)} min ${String(Math.round(t % 60)).padStart(2, '0')}`],
     ].map(([k, v]) => `<div><span class="gr-label">${k}</span><b class="gr-num">${v}</b></div>`).join('');
     el.querySelector<HTMLButtonElement>('.play')!.onclick = () => void show('atlas');
+    el.querySelector<HTMLButtonElement>('.camp-exp')!.onclick = () => { if (zones) this.expeditionMenu(el, zones, refresh); };
     el.hidden = false;
     nav.hidden = false;
     return new Promise((resolve) => {
@@ -1151,7 +1160,7 @@ export class Hud {
           <button type="button" class="gr-btn sm magic finst" ${f.instant > 0 ? '' : 'disabled'}>Farmer maintenant</button></section>` : ''}
         ${f.expedition || a ? `<section><b>Expédition</b><small>${a
           ? `Ton Sacrieur farme ${a.here ? 'ici' : `à ${a.area}`} depuis ${fmtDur(a.seconds)} (${a.cap} h comptées au plus). Sans XP.`
-          : `Il part farmer tout seul, même téléphone fermé ; au retour, le butin du temps passé (8 h au plus, 20 % de ce que rapporte une partie jouée). Sans XP.`}</small>
+          : `Il part farmer tout seul, même téléphone fermé ; au retour, le butin du temps passé (8 h au plus, 10 % de ce que rapporte une partie jouée). Sans XP.`}</small>
           ${a ? `<button type="button" class="gr-btn sm gold fcollect">Récupérer le butin</button>` : `<button type="button" class="gr-btn sm gold fsend">Envoyer en expédition</button>`}</section>` : ''}
       </div>`;
     };
@@ -1174,6 +1183,35 @@ export class Hud {
         const rows = h.expeditionCollect!();
         render(rows ? { title: 'Butin de l’expédition', rows } : undefined);
       }
+    };
+    render();
+  }
+
+  /** Expédition depuis le camp : en cours → durée et Récupérer ; sinon → choix d'une carte terminée. */
+  expeditionMenu(host: HTMLElement, h: ZoneHooks, refresh: () => void) {
+    host.querySelector('.farm-modal')?.remove();
+    const m = document.createElement('div');
+    m.className = 'farm-modal inv-modal';
+    host.appendChild(m);
+    const close = () => { m.remove(); refresh(); };
+    const render = (loot?: LootRow[]) => {
+      const a = h.farmInfo!('').away;
+      const maps = h.farmMaps!();
+      m.innerHTML = `<div class="det-card gr-panel gold farm-card">
+        <div class="sh-head"><h2 class="gr-h2">Expédition</h2><button type="button" class="gr-btn ghost sm fclose">Fermer</button></div>
+        ${loot ? `<p class="gr-label">Butin de l’expédition</p>${lootHtml(loot)}` : ''}
+        ${a ? `<section><b>${a.area}</b><small>Ton Sacrieur farme depuis ${fmtDur(a.seconds)} (${a.cap} h comptées au plus). Sans XP, 10 % de ce que rapporte une partie jouée.</small>
+          <button type="button" class="gr-btn sm gold fcollect">Récupérer le butin</button></section>`
+        : `<section><small>Ton Sacrieur part farmer une carte terminée, même téléphone fermé ; au retour, le butin du temps passé (8 h au plus, 10 % de ce que rapporte une partie jouée). Sans XP.</small></section>
+          <div class="exp-maps">${maps.map((x) => `<button type="button" class="exp-map" data-id="${x.id}"><b>${x.name}</b><small>${x.zone} · niveau ${x.level}</small></button>`).join('')}</div>`}
+      </div>`;
+    };
+    m.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t === m || t.closest('.fclose')) return close();
+      if (t.closest('.fcollect')) { render(h.expeditionCollect!() ?? []); refresh(); return; }
+      const mp = t.closest<HTMLElement>('.exp-map');
+      if (mp && h.expeditionStart!(mp.dataset.id!)) { render(); refresh(); }
     };
     render();
   }
@@ -1692,6 +1730,8 @@ export interface ZoneHooks {
   farmInstant?(id: string): LootRow[] | null;
   expeditionStart?(id: string): boolean;
   expeditionCollect?(): LootRow[] | null;
+  /** Cartes terminées où l'on peut partir en expédition. */
+  farmMaps?(): { id: string; name: string; level: number; zone: string }[];
 }
 
 export interface FarmInfo {
