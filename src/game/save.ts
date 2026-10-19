@@ -6,10 +6,10 @@ import type { SpellId } from './data/spells';
  * Règle de mort (document de design §7.3) : on garde l'XP et les ressources ramassées pendant la partie,
  * on perd le butin du boss.
  */
-import { addXp, defaultProfile, emptyCarac, type Profile } from './progression';
+import { addXp, defaultProfile, levelForXp, emptyCarac, type Profile } from './progression';
 import { isEquipment, ITEMS } from './data/items';
 import { addItem, averageRolls, emptyInventory, equip, starterInventory, type Inventory } from './inventory';
-import { addNew, rollRarity, type RaritySource } from './forge';
+import { addNew, autoBreakLimit, breakMany, purgeTargets, rollRarity, type BreakReport, type RaritySource } from './forge';
 import { AREAS } from './data/areas';
 import { SACRI_COLORS, type SacriColors } from '../art/sacrieur-chibi';
 import type { KeyState } from './keys';
@@ -54,11 +54,16 @@ export interface SaveData {
   instant?: { used: Record<string, number>; day: string };
   /** Expédition en cours : carte et départ (horodatage en ms). */
   expedition?: { area: string; start: number };
+  /** Brisage automatique : les équipements obtenus sous ce niveau sont brisés en runes (0 ou absent : désactivé). */
+  autoBreak?: number;
+  /** Kamas (servent à la forgemagie). */
+  kamas?: number;
 }
 
 /** Ce qu'une partie rapporte. */
 export interface Loot {
   xp: number;
+  kamas?: number;
   /** Objets ramassés (ressources et équipements) : identifiant DofusDB → quantité. */
   items: Record<string, number>;
 }
@@ -146,9 +151,10 @@ export function storeSave(d: SaveData) {
 }
 
 /** Ajoute le butin : XP au profil, ressources au stock, équipements à l'inventaire (jets tirés ici). Renvoie les nouveaux objets. */
-export const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySource): number[] => {
+export const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySource, report?: BreakReport): number[] => {
   d.xp += l.xp;
   d.profile = addXp(d.profile, l.xp);
+  if (l.kamas) d.kamas = (d.kamas ?? 0) + l.kamas;
   const fresh: number[] = [];
   for (const [k, n] of Object.entries(l.items)) {
     const id = Number(k);
@@ -162,15 +168,25 @@ export const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySour
       fresh.push(d.inventory.nextUid - 1);
     }
   }
-  return fresh;
+  // brisage automatique des équipements obtenus sous le seuil choisi (choix d'Enzo)
+  const limit = autoBreakLimit(d.autoBreak, levelForXp(d.profile.xp));
+  const doomed = purgeTargets(d.inventory, limit, fresh).map((o) => o.uid);
+  if (!doomed.length) return fresh;
+  const r = breakMany({ resources: d.resources, inventory: d.inventory, jobXp: d.jobXp, locked: d.resMarks?.lock }, doomed, rnd, report);
+  d.resources = r.workshop.resources;
+  d.inventory = r.workshop.inventory;
+  d.jobXp = r.workshop.jobXp;
+  const gone = new Set(doomed);
+  return fresh.filter((u) => !gone.has(u));
 };
 
 /** Applique le résultat d'une partie à la sauvegarde (sans l'écrire). `fresh` : uid des équipements obtenus. */
-export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.random): { save: SaveData; fresh: number[] } {
+export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.random): { save: SaveData; fresh: number[]; broken: BreakReport } {
+  const broken: BreakReport = { n: 0, runes: {} };
   const out: SaveData = { ...d, resources: { ...d.resources }, profile: { ...d.profile, carac: { ...d.profile.carac } } };
   out.runs++;
   out.bestRoom = Math.max(out.bestRoom, r.room);
-  const fresh = addLoot(out, r.loot, rnd, 'monster');
+  const fresh = addLoot(out, r.loot, rnd, 'monster', broken);
   if (r.seen || r.slain) out.bestiary = mergeBestiary(out.bestiary, r.seen ?? {}, r.slain ?? {});
   if (r.won) {
     out.wins++;
@@ -180,9 +196,9 @@ export function applyRun(d: SaveData, r: RunResult, rnd: () => number = Math.ran
       if (!out.done.includes(r.area) && wins >= (AREAS[r.area]?.winsNeeded ?? 1)) out.done = [...out.done, r.area];
     }
     out.bestWinTime = out.bestWinTime === null ? r.time : Math.min(out.bestWinTime, r.time);
-    fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss'));
+    fresh.push(...addLoot(out, r.bossLoot, rnd, 'boss', broken));
   }
-  return { save: out, fresh };
+  return { save: out, fresh, broken };
 }
 
 /** Récupère le prochain palier atteint d'un monstre du bestiaire (runes dans les ressources, parchemin dans les caractéristiques). Null s'il n'y en a pas. */

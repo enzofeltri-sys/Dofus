@@ -7,7 +7,8 @@ import { addItem, instance, isWorn, rollItem, type Inventory, type ItemInstance 
 /**
  * Étape 8 (document de design §8.4 et §9) : raretés, fusion, brisage.
  * - 5 rangs, chaque rang relève les fourchettes d'≈ 15 % ; Légendaire et Mythique ajoutent une ligne bonus ;
- * - fusion : 3 identiques (Commun → Rare, et objets hors panoplie), sinon 1 objet + 2 pièces de sa panoplie du même rang ;
+ * - fusion : jusqu'à Légendaire, 3 objets du même emplacement et du même rang ; vers Mythique, 3 identiques (hors panoplie)
+ *   ou 1 objet + 2 pièces de sa panoplie du même rang ;
  *   Légendaire et Mythique coûtent aussi la ressource du boss de la région ;
  * - brisage : l'objet donne des runes de ses stats (vraies runes de Dofus 3, trois tailles), selon le poids de chaque stat.
  */
@@ -104,20 +105,36 @@ export const FUSION_BOSS_COST = [0, 0, 0, 3, 10];
 
 const rarityOf = (it: ItemInstance) => it.rarity ?? 0;
 
-/** Règle de fusion de cet objet : « identiques » ou « panoplie ». */
-export function fusionRule(it: ItemInstance): 'same' | 'set' {
-  return rarityOf(it) === 0 || !item(it.id).set ? 'same' : 'set';
+/**
+ * Règle de fusion de cet objet (choix d'Enzo) : jusqu'à Légendaire, 3 objets du **même emplacement** et du même rang ;
+ * vers Mythique, l'ancienne règle : 3 identiques (hors panoplie) ou 1 objet + 2 pièces de sa panoplie.
+ */
+export function fusionRule(it: ItemInstance): 'slot' | 'same' | 'set' {
+  if (rarityOf(it) < 3) return 'slot';
+  return !item(it.id).set ? 'same' : 'set';
 }
 
-/** Objets qui peuvent accompagner celui-ci dans une fusion (même rang, ni portés ni verrouillés). */
+/** Qualité des jets d'un objet : position moyenne dans ses fourchettes (0 = jets min, 1 = jets max). */
+function rollQuality(it: ItemInstance): number {
+  const rg = rangesFor(it.id, rarityOf(it));
+  const ps = rg.map(([, lo, hi], i) => (hi > lo ? ((it.rolls[i] ?? lo) - lo) / (hi - lo) : 1));
+  return ps.length ? ps.reduce((a, b) => a + b, 0) / ps.length : 0;
+}
+
+/**
+ * Objets qui peuvent accompagner celui-ci dans une fusion (même rang, ni portés, ni verrouillés, ni favoris),
+ * du plus faible au plus fort : les 2 premiers sont choisis automatiquement.
+ */
 export function fusionPartners(inv: Inventory, mainUid: number): ItemInstance[] {
   const main = instance(inv, mainUid);
   if (!main || rarityOf(main) >= MAX_RARITY || isSpecial(main.id)) return [];
   const rule = fusionRule(main);
-  const set = item(main.id).set;
-  return inv.items.filter((o) =>
-    o.uid !== mainUid && !o.lock && !isWorn(inv, o.uid) && rarityOf(o) === rarityOf(main) &&
-    (rule === 'same' ? o.id === main.id : item(o.id).set === set));
+  const d = item(main.id);
+  return inv.items
+    .filter((o) =>
+      o.uid !== mainUid && !o.lock && !o.fav && !isWorn(inv, o.uid) && !isSpecial(o.id) && rarityOf(o) === rarityOf(main) &&
+      (rule === 'slot' ? item(o.id).slot === d.slot : rule === 'same' ? o.id === main.id : item(o.id).set === d.set))
+    .sort((a, b) => item(a.id).level - item(b.id).level || rollQuality(a) - rollQuality(b) || a.uid - b.uid);
 }
 
 export type FuseCheck = { ok: true } | { ok: false; reason: string };
@@ -276,4 +293,42 @@ export function breakItem(w: Workshop, uid: number, rnd: () => number): ForgeRes
   const xp = Math.max(1, Math.round(craftXp(lv, levelBefore) / 2));
   const jobXp = w.jobXp + xp;
   return { workshop: { ...w, inventory, resources, jobXp }, runes, xp, levelBefore, levelAfter: jobLevel(jobXp) };
+}
+
+/* ---------- Brisage automatique (choix d'Enzo) ---------- */
+
+/** Le seuil du brisage automatique reste toujours au moins 15 niveaux sous celui du personnage. */
+export const AUTO_BREAK_GAP = 15;
+/** Seuil le plus haut autorisé pour un personnage de ce niveau (0 : trop bas pour l'activer). */
+export const autoBreakMax = (heroLevel: number) => Math.max(0, heroLevel - AUTO_BREAK_GAP);
+/** Seuil effectif : les objets de niveau strictement inférieur sont brisés (0 = désactivé). */
+export const autoBreakLimit = (setting: number | undefined, heroLevel: number) => Math.min(setting ?? 0, autoBreakMax(heroLevel));
+
+/** Objets concernés par l'épuration : sous le seuil, ni portés, ni verrouillés, ni favoris, ni familiers / Dofus. */
+export function purgeTargets(inv: Inventory, limit: number, uids?: number[]): ItemInstance[] {
+  if (limit <= 1) return [];
+  const only = uids ? new Set(uids) : null;
+  return inv.items.filter((o) => (!only || only.has(o.uid)) && !o.fav && item(o.id).level < limit && canBreak(inv, o.uid).ok);
+}
+
+export interface BreakReport { n: number; runes: Record<number, number> }
+
+/** Brise plusieurs objets d'un coup ; ajoute le compte au rapport s'il est donné. */
+export function breakMany(w: Workshop, uids: number[], rnd: () => number, report?: BreakReport): ForgeResult & BreakReport {
+  const levelBefore = jobLevel(w.jobXp);
+  let cur = w, xp = 0, n = 0;
+  const runes: Record<number, number> = {};
+  for (const uid of uids) {
+    const r = breakItem(cur, uid, rnd);
+    if (r.workshop === cur) continue;
+    cur = r.workshop;
+    xp += r.xp;
+    n++;
+    for (const [id, k] of Object.entries(r.runes)) runes[Number(id)] = (runes[Number(id)] ?? 0) + k;
+  }
+  if (report) {
+    report.n += n;
+    for (const [id, k] of Object.entries(runes)) report.runes[Number(id)] = (report.runes[Number(id)] ?? 0) + k;
+  }
+  return { workshop: cur, xp, levelBefore, levelAfter: jobLevel(cur.jobXp), n, runes };
 }

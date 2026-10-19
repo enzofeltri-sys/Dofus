@@ -302,6 +302,9 @@ html, body {
 .camp-hero svg { width: 100%; height: 100%; display: block; }
 .camp-name { display: flex; align-items: center; gap: 8px; font-family: var(--f-display); font-size: var(--t-xl); }
 .camp-name .lvl { --c: #bfe3a0; }
+.camp-name .camp-kamas { --c: #f6dc8c; display: inline-flex; align-items: center; gap: 3px; font-family: var(--f-body, inherit); font-size: 13px; }
+.camp-name .camp-kamas[hidden] { display: none; }
+.camp-name .camp-kamas svg { width: 18px; height: 18px; }
 .camp-records { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: min(420px, 100%); }
 .camp-records > div { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; background: rgba(220,195,140,.35); }
 .camp-records b { font-size: var(--t-lg); }
@@ -684,6 +687,12 @@ html, body {
 /* Fusion et Brisage dans l'inventaire (choix d'Enzo) */
 .inv-acts { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin: 2px 0 6px; }
 .inv-acts[hidden] { display: none; }
+.pg-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0 4px; font-weight: 700; }
+.pg-step { display: flex; align-items: center; gap: 6px; }
+.pg-step b { min-width: 28px; text-align: center; font-size: 18px; }
+.pg-range { width: 100%; margin: 4px 0 8px; accent-color: #c0502a; }
+.pg-auto { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; margin: 6px 0; }
+.pg-auto input { margin-top: 2px; width: 18px; height: 18px; flex: none; }
 .inv-acts .ia-hint { flex: 1; font-size: 13px; color: var(--ink-soft); font-weight: 700; }
 .inv-cell.off { opacity: .35; filter: grayscale(.7); }
 .inv-cell.sel { box-shadow: inset 0 0 0 3px var(--coral), 0 2px 0 rgba(59,36,20,.3); transform: translateY(-1px); }
@@ -725,6 +734,9 @@ html, body {
 .fm-last.sc { background: #e2f6d2; color: #2f6a1a; }
 .fm-last.sn { background: #fff1c8; color: #7a5a10; }
 .fm-last.ec { background: #fbdcd6; color: #9a2a1e; }
+.fm-kamas { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 0; }
+.fm-kamas b { color: #a8761a; }
+.fm-rune small.fm-cost { color: #a8761a; font-weight: 700; }
 .fm-puits { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .fm-puits .track { flex: 1; height: 10px; border-radius: 6px; background: rgba(59,36,20,.15); overflow: hidden; }
 .fm-puits .fill { display: block; height: 100%; width: var(--v); background: linear-gradient(90deg, #6ac0e8, #3a8ac0); }

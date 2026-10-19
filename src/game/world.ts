@@ -1,3 +1,4 @@
+import { kamasFor } from './kamas';
 import { rng } from '../iso';
 import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
@@ -1150,6 +1151,9 @@ export class World {
       const items = rollDrops({ dofusId: m.def.dofusId, boss, elite: m === this.elite || !!m.def.archi, prospection: prospectionOf(this.heroStats()) * (1 + (this.beastBonus[m.def.id]?.drop ?? 0)), zonePool: zoneEquipPool(this.area.id),
         food: true, dofus: boss ? BOSS_DOFUS[m.def.id] : undefined, pets: boss || m === this.elite ? { ids: ZONE_PETS[zoneIdOf(this.area.id) ?? ''] ?? [], from: boss ? 'boss' : 'elite' } : undefined }, this.lootRnd);
       const bag = boss ? this.stats.bossLoot : this.stats.loot;
+      const k = kamasFor(m.level, boss ? 'boss' : m === this.elite || m.def.archi ? 'elite' : 'monster');
+      if (boss) this.stats.bossKamas += k;
+      else this.stats.kamas += k;
       for (const id of items) bag[id] = (bag[id] ?? 0) + 1;
       if (items.length) this.events.push({ type: 'drop', items, x: m.x, y: m.y, boss });
     }
@@ -1791,6 +1795,8 @@ function freshRun(level: number): RunState {
 function freshStats() {
   return {
     kills: 0, dealt: 0, taken: 0, healed: 0, time: 0, xp: 0, loot: {} as Record<number, number>, bossLoot: {} as Record<number, number>,
+    /** Kamas ramassés (ceux du boss seulement en cas de victoire). */
+    kamas: 0, bossKamas: 0,
     /** Bestiaire : monstres croisés et vaincus pendant la partie (par fiche). */
     seen: {} as Record<string, number>, slain: {} as Record<string, number>,
   };

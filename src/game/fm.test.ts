@@ -11,6 +11,7 @@ const seq = (...xs: number[]) => {
 };
 const shop = (rolls = [5, 5, 5, 5], puits?: number): Workshop => ({
   jobXp: 0,
+  kamas: 1e9,
   resources: { [FO1]: 50, [AGI3]: 5, [PA]: 5, [VI15]: 5, [VI50]: 5 },
   inventory: { items: [{ uid: 1, id: CAPE, rolls, puits }], equipped: {}, nextUid: 2 },
 });
@@ -69,5 +70,19 @@ describe('forgemagie', () => {
 
   it('plus l’objet est rare, plus son puits est grand', () => {
     expect(puitsMax(8, 4)).toBeGreaterThan(puitsMax(8, 0) * 2.5);
+  });
+
+  it('kamas : chaque rune se paie (rune PA bien plus chère que rune Fo), refusée sans assez de kamas', () => {
+    const w = shop();
+    const fo = fmCheck(w, 1, FO1), pa = fmCheck(w, 1, PA);
+    expect(fo.ok && pa.ok).toBe(true);
+    if (!fo.ok || !pa.ok) return;
+    expect(fo.cost).toBe(13); // poids 1 × (niveau 8 + 5)
+    expect(pa.cost).toBe(1300); // poids 100 × 13
+    const r = applyRune(w, 1, FO1, seq(0));
+    expect(r.workshop.kamas).toBe(1e9 - 13);
+    const poor = { ...w, kamas: 12 };
+    expect(fmCheck(poor, 1, FO1)).toMatchObject({ ok: false, reason: '13 K requis' });
+    expect(applyRune(poor, 1, FO1, seq(0)).outcome).toBeNull();
   });
 });

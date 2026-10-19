@@ -56,6 +56,8 @@ export interface Workshop {
   jobXp: number;
   /** Ressources verrouillées : l'atelier n'y touche pas. */
   locked?: number[];
+  /** Kamas (payent la forgemagie). */
+  kamas?: number;
 }
 
 /** Quantité d'une ressource utilisable par l'atelier (0 si verrouillée). */

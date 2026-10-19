@@ -1,18 +1,22 @@
 import { canCraft, jobLevel, jobProgress, sortedRecipes, usable, type Workshop } from '../game/craft';
 import type { Facets } from '../game/search';
 import { fmtLine, isSpecial, item, SETS, statLabel } from '../game/data/items';
+import type { ItemSlot } from '../game/data/items';
 import {
   BOSS_RESOURCE, breakPreview, canBreak, FUSION_BOSS_COST, fusionPartners, fusionRule, MAX_RARITY, RARITIES, rangesFor, upgradeRolls,
 } from '../game/forge';
 import { instance, isWorn, itemLines } from '../game/inventory';
 import { itemIconImg } from './item-icons';
 import { fmCheck, fmLines, ownedRunes, puitsMax } from '../game/fm';
+import { fmtKamas, runeCost } from '../game/kamas';
 
 /** Atelier de l'Artisan tel qu'affiché au camp. */
 export interface CraftView {
   level: number;
   into: number;
   need: number;
+  /** Kamas possédés (« 1 234 K »). */
+  kamas: string;
   rows: CraftRow[];
 }
 export interface CraftRow {
@@ -33,7 +37,7 @@ export interface CraftRow {
 export function craftView(w: Workshop): CraftView {
   const p = jobProgress(w.jobXp);
   return {
-    level: p.level, into: p.into, need: p.need,
+    level: p.level, into: p.into, need: p.need, kamas: fmtKamas(w.kamas ?? 0),
     rows: sortedRecipes(w).map((r) => {
       const d = item(r.id), c = canCraft(w, r);
       const flags = new Set<string>([`id:${r.id}`, ...r.ingredients.map(([id]) => `ing:${id}`)]);
@@ -80,6 +84,13 @@ export interface ForgeRow {
   facets: Facets;
 }
 
+/** Nom au pluriel d'un emplacement (« 2 autres anneaux Communs »). */
+const SLOT_PLURAL: Record<ItemSlot, string> = {
+  amulette: 'amulettes', arme: 'armes', anneau: 'anneaux', ceinture: 'ceintures', bottes: 'bottes', bouclier: 'boucliers',
+  chapeau: 'chapeaux', cape: 'capes', familier: 'familiers', dofus: 'Dofus',
+};
+const slotPlural = (s: ItemSlot | null) => (s ? SLOT_PLURAL[s] : 'objets');
+
 export function forgeRows(w: Workshop): ForgeRow[] {
   const inv = w.inventory;
   return inv.items.map((it) => {
@@ -89,6 +100,7 @@ export function forgeRows(w: Workshop): ForgeRow[] {
     const fuseWhy = isSpecial(it.id) ? (d.slot === 'familier' ? 'Un familier ne se fusionne pas' : 'Un Dofus ne se fusionne pas')
       : r >= MAX_RARITY ? 'Déjà Mythique'
       : partners >= 2 ? ''
+      : rule === 'slot' ? `Il faut 2 autres ${slotPlural(d.slot)} de rang ${RARITIES[r]} (ni portés, ni verrouillés, ni favoris)`
       : rule === 'same' ? `Il faut 2 autres ${d.name} ${RARITIES[r]}` : `Il faut 2 pièces ${RARITIES[r]} de la panoplie`;
     const br = canBreak(inv, it.uid);
     const flags = new Set<string>();
@@ -132,7 +144,7 @@ export function fusionView(w: Workshop, uid: number): FusionView | null {
   const need = FUSION_BOSS_COST[r + 1];
   return {
     uid, icon: itemIconImg(it.id), name: d.name, from: RARITIES[r], to: RARITIES[r + 1], toRank: r + 1,
-    rule: fusionRule(it) === 'same' ? `2 autres ${d.name} ${RARITIES[r]}` : `2 pièces ${RARITIES[r]} de la ${SETS[d.set!]?.name ?? 'panoplie'}`,
+    rule: fusionRule(it) === 'slot' ? `2 autres ${slotPlural(d.slot)} de rang ${RARITIES[r]}, les plus faibles choisis d’office` : fusionRule(it) === 'same' ? `2 autres ${d.name} ${RARITIES[r]}` : `2 pièces ${RARITIES[r]} de la ${SETS[d.set!]?.name ?? 'panoplie'}`,
     lines: now.map(([p], i) => `${fmtLine(p, it.rolls[i] ?? 0)} → ${fmtLine(p, up[i] ?? 0)}${nxt[i][1] === nxt[i][2] ? '' : ` (${nxt[i][1]} à ${nxt[i][2]})`}`),
     bonusNote: r + 1 === 3 ? 'Gagne une ligne bonus légendaire (tirée au hasard).'
       : r + 1 === 4 ? 'Ligne bonus : ×1,5, ou 10 % de chances de devenir +1 PA ou +1 PM.' : '',
@@ -178,6 +190,8 @@ export interface FmRuneBtn {
   ok: boolean;
   /** « 50 / 30 / 20 % » (critique / neutre / échec) ou la raison du refus. */
   odds: string;
+  /** Prix en kamas pour la poser sur cet objet (« 75 K »). */
+  cost: string;
 }
 export interface FmView {
   uid: number;
@@ -191,6 +205,8 @@ export interface FmView {
   /** Runes possédées pour une nouvelle ligne (exo). */
   exo: { label: string; runes: FmRuneBtn[] }[];
   exoWhy: string;
+  /** Kamas possédés (« 1 234 K »). */
+  kamas: string;
 }
 
 const pct = (x: number) => `${Math.round(x * 100)}`;
@@ -199,6 +215,7 @@ const runeBtn = (w: Workshop, uid: number, id: number, value: number, count: num
   return {
     id, icon: itemIconImg(id), name: item(id).name, value, count, ok: c.ok,
     odds: c.ok ? `${pct(c.odds[0])} / ${pct(c.odds[1])} / ${pct(1 - c.odds[0] - c.odds[1])} %` : c.reason,
+    cost: fmtKamas(runeCost(id, instance(w.inventory, uid)!.id)),
   };
 };
 
@@ -219,5 +236,6 @@ export function fmView(w: Workshop, uid: number): FmView | null {
     })),
     exo: [...owned].filter(([p]) => !onItem.has(p)).map(([p, rs]) => ({ label: statLabel(p), runes: rs.map(([id, v, n]) => runeBtn(w, uid, id, v, n)) })),
     exoWhy: it.exo ? 'Une seule ligne exo par objet.' : '',
+    kamas: fmtKamas(w.kamas ?? 0),
   };
 }

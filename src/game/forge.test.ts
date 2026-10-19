@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { rng } from '../iso';
-import { item } from './data/items';
+import { item, ITEMS } from './data/items';
 import {
-  addNew, BOSS_RESOURCE, breakItem, breakPreview, canFuse, critChance, fuse, fusionPartners, lineWeight, makeItem,
+  addNew, autoBreakLimit, autoBreakMax, BOSS_RESOURCE, breakItem, breakMany, breakPreview, canFuse, critChance, fuse, fusionPartners, fusionRule, lineWeight, makeItem, purgeTargets,
   rangesFor, RUNES_BY_STAT, rollRarity, scaleValue, upgradeRolls,
 } from './forge';
 import { emptyInventory, equip, gearStats, itemLines, type Inventory } from './inventory';
@@ -10,6 +10,8 @@ import type { Workshop } from './craft';
 
 const ws = (inventory: Inventory, resources: Record<string, number> = {}): Workshop => ({ resources, inventory, jobXp: 0 });
 const KARDO = [16500, 16501, 16502]; // Casque, Cape, Bracelet de Kardorim (panoplie)
+/** 4 anneaux différents de bas niveau. */
+const RINGS = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level <= 20 && d.effects.length).slice(0, 4).map((d) => d.id);
 
 describe('raretés', () => {
   it('≈ +15 % par rang, jamais en baisse, malus inchangés', () => {
@@ -56,20 +58,38 @@ describe('fusion', () => {
     expect(res.xp).toBeGreaterThan(0);
   });
 
-  it('Rare et plus : 1 objet + 2 pièces de sa panoplie du même rang ; portés et verrouillés exclus', () => {
+  it('jusqu’à Légendaire (choix d’Enzo) : même emplacement et même rang, les plus faibles d’abord ; portés, verrouillés et favoris exclus', () => {
     let inv = emptyInventory();
-    for (const id of KARDO) inv = addNew(inv, id, 1, rng(id));
-    inv = addNew(inv, 16501, 0, rng(1)); // Commun : pas le même rang
-    inv = addNew(inv, 16502, 1, rng(2));
-    inv = { ...inv, items: inv.items.map((o) => (o.uid === 5 ? { ...o, lock: true } : o)) };
-    expect(fusionPartners(inv, 1).map((o) => o.uid)).toEqual([2, 3]);
-    inv = equip(inv, 2, 200);
-    expect(fusionPartners(inv, 1).map((o) => o.uid)).toEqual([3]);
+    for (const id of RINGS) inv = addNew(inv, id, 1, rng(id)); // uid 1 à 4 : anneaux Rares
+    inv = addNew(inv, RINGS[0], 0, rng(1)); // 5 : Commun, pas le même rang
+    inv = addNew(inv, KARDO[0], 1, rng(2)); // 6 : Rare mais casque
+    expect(fusionRule(inv.items[0])).toBe('slot');
+    const ps = fusionPartners(inv, 1).map((o) => o.uid);
+    expect(ps.sort()).toEqual([2, 3, 4]);
+    // les plus bas niveaux d'abord
+    const lv = fusionPartners(inv, 1).map((o) => item(o.id).level);
+    expect(lv).toEqual([...lv].sort((a, b) => a - b));
+    inv = { ...inv, items: inv.items.map((o) => (o.uid === 2 ? { ...o, lock: true } : o.uid === 3 ? { ...o, fav: true } : o)) };
+    inv = equip(inv, 4, 200);
+    expect(fusionPartners(inv, 1)).toHaveLength(0);
+  });
+
+  it('vers Mythique : retour à l’ancienne règle (pièces de la panoplie)', () => {
+    let inv = emptyInventory();
+    for (const id of KARDO) inv = addNew(inv, id, 3, rng(id));
+    inv = addNew(inv, KARDO[0], 3, rng(9)); // 4 : même casque Légendaire
+    expect(fusionRule(inv.items[0])).toBe('set');
+    expect(fusionPartners(inv, 1).map((o) => o.uid).sort()).toEqual([2, 3, 4]);
+    let rings = emptyInventory();
+    for (const id of RINGS.slice(0, 3)) rings = addNew(rings, id, 3, rng(id));
+    // anneaux hors panoplie différents : plus de fusion vers Mythique
+    const solo = rings.items.filter((o) => !item(o.id).set);
+    if (solo.length >= 2) expect(fusionPartners(rings, solo[0].uid).filter((o) => o.id !== solo[0].id && !item(o.id).set)).toHaveLength(0);
   });
 
   it('Légendaire et Mythique coûtent des Crânes de Kardorim (verrouillés : non)', () => {
     let inv = emptyInventory();
-    for (const id of KARDO) inv = addNew(inv, id, 2, rng(id));
+    for (const id of RINGS.slice(0, 3)) inv = addNew(inv, id, 2, rng(id));
     expect(canFuse(ws(inv), 1, [2, 3])).toMatchObject({ ok: false });
     const w = ws(inv, { [BOSS_RESOURCE]: 4 });
     expect(canFuse({ ...w, locked: [BOSS_RESOURCE] }, 1, [2, 3])).toMatchObject({ ok: false });
@@ -108,5 +128,28 @@ describe('brisage', () => {
     let inv = addNew(emptyInventory(), 16500, 0, rng(4));
     inv = equip(inv, 1, 200);
     expect(breakItem(ws(inv), 1, rng(1)).workshop.inventory.items).toHaveLength(1);
+  });
+});
+
+describe('épurer et brisage automatique (choix d’Enzo)', () => {
+  it('seuil toujours au moins 15 niveaux sous le personnage', () => {
+    expect(autoBreakMax(10)).toBe(0);
+    expect(autoBreakMax(40)).toBe(25);
+    expect(autoBreakLimit(30, 40)).toBe(25);
+    expect(autoBreakLimit(10, 40)).toBe(10);
+    expect(autoBreakLimit(undefined, 40)).toBe(0);
+  });
+
+  it('brise tout sous le seuil sauf portés, verrouillés, favoris, familiers et Dofus', () => {
+    let inv = emptyInventory();
+    const low = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level < 10 && d.effects.length).slice(0, 4).map((d) => d.id);
+    for (const id of low) inv = addNew(inv, id, 0, rng(id));
+    inv = addNew(inv, 16500, 0, rng(1)); // Casque de Kardorim, niveau 12 : au-dessus du seuil 10
+    inv = { ...inv, items: inv.items.map((o) => (o.uid === 2 ? { ...o, lock: true } : o.uid === 3 ? { ...o, fav: true } : o)) };
+    inv = equip(inv, 4, 200);
+    expect(purgeTargets(inv, 10).map((o) => o.uid)).toEqual([1]);
+    const r = breakMany(ws(inv), [1], rng(1));
+    expect(r.n).toBe(1);
+    expect(r.workshop.inventory.items).toHaveLength(4);
   });
 });

@@ -436,11 +436,14 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 
 - **Fait (8a)** : hors panoplie, 3 identiques à chaque rang (validé). Légendaire : 3 Crânes de Kardorim, Mythique : 10 (ressource du boss de la région). Le jet garde sa qualité (même position dans la nouvelle fourchette, dépassement conservé) ; l'objet principal garde son uid et reste équipé. Objets portés ou verrouillés jamais sacrifiés. XP d'Artisan.
 
+- **Simplifiée (choix d'Enzo)** : jusqu'à **Légendaire**, 3 objets du **même emplacement** et du même rang (3 anneaux Communs → l'anneau choisi devient Rare) ; les 2 objets sacrifiés sont **choisis d'office** (les plus faibles : plus bas niveau, puis moins bons jets), jamais portés, verrouillés ou favoris. Vers **Mythique** seulement : l'ancienne règle (3 identiques hors panoplie, ou 1 objet + 2 pièces de sa panoplie). Raison : 130 à 290 objets différents par tranche de niveaux, il fallait ≈ 50 parties pour réunir 3 objets identiques.
 - **Où (choix d'Enzo)** : la Fusion et le Brisage ne sont plus des onglets de l'Artisanat (qui garde Fabrication et Forgemagie) : ils se font depuis **Équipement**, soit par les boutons « Fusionner » et « Briser » de la fiche d'un objet, soit par les petits boutons « Fusion » et « Briser » au-dessus de la grille, puis en touchant directement les objets (ceux qui ne peuvent pas l'être sont grisés ; on peut en briser plusieurs d'un coup).
 
 ### 9.3 Brisage
 Casser un objet → **runes** (Fo, Ine, Vi, PA…).
 - **Fait (8a)** : les 95 vraies runes de Dofus 3 (DofusDB, trois tailles : simple, Pa, Ra) avec leurs icônes. Poids par point de stat de Dofus (Fo 1, Vi 0,2, Sa 3, PA 100, PM 90, PO 51, Do 20, Cri 10…). Poids rendu par ligne = (3 × valeur × poids × niveau / 200 + 1) × (1 + 10 % par rang), converti en grosses runes d'abord, le reste en chance d'une petite rune. Aperçu exact avant de confirmer ; objets portés ou verrouillés protégés.
+
+- **Épurer et brisage automatique (choix d'Enzo)** : bouton « Épurer » dans Équipement : briser d'un coup tout l'équipement sous un niveau choisi ; case « Brisage auto » : chaque équipement obtenu (partie, farm, expédition) sous ce niveau est brisé en runes à l'arrivée. Le seuil reste toujours **au moins 15 niveaux sous le personnage** (donc à partir du niveau 17). Tous les emplacements ; jamais les objets portés, verrouillés, favoris, familiers et Dofus. Le bilan indique « Brisage auto : N objets → R runes ».
 
 ### 9.4 Forgemagie (personnalise **sous** le plafond)
 - Vraies règles Dofus : runes, **puits**, réussite / échec neutre / échec critique, **exos**.
@@ -450,6 +453,12 @@ Casser un objet → **runes** (Fo, Ine, Vi, PA…).
   - Chances (critique / neutre / échec) : sous le jet max 50 / 30 / 20 % ; overmax 15 / 25 / 60 % ; exo 10 / 15 / 75 % ; exo Portée 2 / 2 / 96 % ; exo PA ou PM 1 / 1 / 98 % (à tout niveau, +1 au plus).
   - Puits maximum (poids) : (20 + 2 × niveau) × (1 + 50 % par rang). Overmax d'une ligne (poids) : (5 + niveau / 5) × (1 + 25 % par rang), au moins 1 point. Une seule ligne exo par objet, plafonnée comme l'overmax.
   - Chaque rune rapporte un peu d'XP d'Artisan ; briser un objet forgemagé rend aussi les runes de son exo.
+
+### 9.4 bis Kamas (choix d'Enzo : pour l'instant seulement la forgemagie)
+- Gagnés sur chaque monstre vaincu : niveau + 3 kamas ; élite et archimonstre ×5 ; boss ×20 (seulement en cas de victoire). Farm instantané : comme une partie ; expédition : au même rendement que le butin (10 %).
+- **Chaque rune posée en forgemagie se paie** : poids de la rune × (niveau de l'objet + 5). Ex. objet niveau 8 : Rune Fo 13 K, Rune PA 1 300 K.
+- Réglage (simulation, 40 parties par carte) : une partie paie ≈ **8 à 11 runes Pa** (poids 3) sur un objet de son niveau, des Champs (≈ 180 K) à la Couronne (≈ 1 800 K).
+- DofusDB ne publie pas les kamas lâchés par les monstres : montants adaptés, pas officiels. Affichés au camp (à côté du niveau), dans la Forgemagie (solde et prix sous chaque rune) et dans le bilan.
 
 ### 9.5 Le dilemme
 Un objet en double : **le briser** (runes de forgemagie) **ou le garder pour une fusion**.

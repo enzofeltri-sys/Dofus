@@ -5,6 +5,8 @@ import { dayOf } from './keys';
 import { rollDrops, zoneEquipPool } from './loot';
 import { ZONE_PETS } from './pets';
 import { addLoot, type SaveData } from './save';
+import type { BreakReport } from './forge';
+import { kamasFor } from './kamas';
 
 /**
  * Farm (validé par Enzo) sur une carte déjà terminée :
@@ -61,6 +63,16 @@ export function runLoot(A: AreaDef, prospection: number, rnd: () => number, rate
   return loot;
 }
 
+/** Kamas d'une partie complète sur cette carte (niveau moyen des grades de chaque monstre), au rendement donné. */
+export function runKamas(A: AreaDef, rnd: () => number, rate = 1): number {
+  let k = 0;
+  for (const m of runKills(A, rnd)) {
+    const g = MONSTERS[m.id].grades;
+    k += kamasFor(g.reduce((a, x) => a + x.level, 0) / g.length, m.elite ? 'elite' : 'monster');
+  }
+  return Math.round(k * rate);
+}
+
 /** Durée moyenne d'une partie complète sur cette carte (s). */
 export const runSeconds = (A: AreaDef) => {
   let n = 0;
@@ -74,7 +86,7 @@ export const instantLeft = (s: Pick<SaveData, 'instant'>, id: string, now = new 
   return s.instant?.day === dayOf(now) ? Math.max(0, FARM.instantPerDay - (s.instant.used[z] ?? 0)) : FARM.instantPerDay;
 };
 
-export interface FarmResult { save: SaveData; loot: Record<string, number>; fresh: number[] }
+export interface FarmResult { save: SaveData; loot: Record<string, number>; fresh: number[]; broken: BreakReport; kamas: number }
 
 /** Farm instantané : le butin d'une partie complète, tout de suite (pas d'XP). Null si impossible. */
 export function instantFarm(s: SaveData, id: string, prospection: number, rnd: () => number, now = new Date()): FarmResult | null {
@@ -83,8 +95,10 @@ export function instantFarm(s: SaveData, id: string, prospection: number, rnd: (
   const z = zoneIdOf(id) ?? id, day = dayOf(now);
   const used = s.instant?.day === day ? s.instant.used : {};
   const out: SaveData = { ...s, resources: { ...s.resources }, instant: { day, used: { ...used, [z]: (used[z] ?? 0) + 1 } } };
-  const fresh = addLoot(out, { xp: 0, items: loot }, rnd, 'monster');
-  return { save: out, loot, fresh };
+  const broken: BreakReport = { n: 0, runes: {} };
+  const kamas = runKamas(AREAS[id], rnd);
+  const fresh = addLoot(out, { xp: 0, kamas, items: loot }, rnd, 'monster', broken);
+  return { save: out, loot, fresh, broken, kamas };
 }
 
 /** Départ en expédition (une seule à la fois). */
@@ -111,6 +125,8 @@ export function collectExpedition(s: SaveData, prospection: number, rnd: () => n
     for (const [k, n] of Object.entries(runLoot(A, prospection, rnd, rate))) loot[k] = (loot[k] ?? 0) + n;
   }
   const out: SaveData = { ...s, resources: { ...s.resources }, expedition: undefined };
-  const fresh = addLoot(out, { xp: 0, items: loot }, rnd, 'monster');
-  return { save: out, loot, fresh };
+  const broken: BreakReport = { n: 0, runes: {} };
+  const kamas = Math.round(runKamas(A, rnd) * FARM.expeditionRate * runs);
+  const fresh = addLoot(out, { xp: 0, kamas, items: loot }, rnd, 'monster', broken);
+  return { save: out, loot, fresh, broken, kamas };
 }

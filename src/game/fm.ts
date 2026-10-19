@@ -2,6 +2,7 @@ import { isSpecial, item, type StatPath } from './data/items';
 import { craftXp, jobLevel, type Workshop } from './craft';
 import { rangesFor, RUNE_STAT, RUNES_BY_STAT, statWeight, type ForgeResult } from './forge';
 import { instance, type ItemInstance } from './inventory';
+import { fmtKamas, runeCost } from './kamas';
 
 /**
  * Forgemagie (étape 8b, §9.4) : on pose une rune sur un objet, une rune à la fois, comme dans Dofus.
@@ -62,11 +63,11 @@ export function fmLines(it: ItemInstance): FmLine[] {
 }
 
 export type FmCheck =
-  | { ok: true; odds: readonly [number, number]; target: 'below' | 'over' | 'exo'; value: number }
+  | { ok: true; odds: readonly [number, number]; target: 'below' | 'over' | 'exo'; value: number; cost: number }
   | { ok: false; reason: string };
 
 /** Peut-on poser cette rune, et avec quelles chances ? */
-export function fmCheck(w: Workshop, uid: number, runeId: number): FmCheck {
+function ruleCheck(w: Workshop, uid: number, runeId: number): { ok: false; reason: string } | Omit<Extract<FmCheck, { ok: true }>, 'cost'> {
   const it = instance(w.inventory, uid);
   const rs = RUNE_STAT.get(runeId);
   if (!it || !rs) return { ok: false, reason: 'Introuvable' };
@@ -88,6 +89,15 @@ export function fmCheck(w: Workshop, uid: number, runeId: number): FmCheck {
   return line.value + v <= line.max ? { ok: true, odds: FM_ODDS.below, target: 'below', value: v } : { ok: true, odds: FM_ODDS.over, target: 'over', value: v };
 }
 
+/** Peut-on poser cette rune, avec quelles chances, et pour combien de kamas ? */
+export function fmCheck(w: Workshop, uid: number, runeId: number): FmCheck {
+  const c = ruleCheck(w, uid, runeId);
+  if (!c.ok) return c;
+  const cost = runeCost(runeId, instance(w.inventory, uid)!.id);
+  if ((w.kamas ?? 0) < cost) return { ok: false, reason: `${fmtKamas(cost)} requis` };
+  return { ...c, cost };
+}
+
 export interface FmResult extends ForgeResult {
   outcome: FmOutcome | null;
   /** Ligne visée, gain, pertes [stat, points], poids payé par le puits, poids ajouté au puits. */
@@ -96,6 +106,8 @@ export interface FmResult extends ForgeResult {
   lost: [StatPath, number][];
   fromPuits: number;
   toPuits: number;
+  /** Kamas payés. */
+  cost?: number;
 }
 
 /** Pose une rune. */
@@ -153,10 +165,11 @@ export function applyRune(w: Workshop, uid: number, runeId: number, rnd: () => n
   if (!it.exo) delete it.exo;
   const inventory = { ...w.inventory, items: w.inventory.items.map((o) => (o.uid === uid ? it : o)) };
   const resources = { ...w.resources, [runeId]: (w.resources[runeId] ?? 0) - 1 };
+  const kamas = (w.kamas ?? 0) - chk.cost;
   const xp = Math.max(1, Math.round(craftXp(d.level, levelBefore) / 10));
   const jobXp = w.jobXp + xp;
   return {
-    workshop: { ...w, inventory, resources, jobXp }, outcome, path: p, gain: outcome === 'ec' ? 0 : chk.value,
+    workshop: { ...w, inventory, resources, jobXp, kamas }, outcome, cost: chk.cost, path: p, gain: outcome === 'ec' ? 0 : chk.value,
     lost: [...lost], fromPuits: Math.round(fromPuits * 10) / 10, toPuits, xp, levelBefore, levelAfter: jobLevel(jobXp),
   };
 }

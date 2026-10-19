@@ -84,7 +84,7 @@ export class Hud {
       </div>
       <div class="camp gr-paper" hidden>
         <div class="camp-top gr-panel">
-          <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span><span class="camp-brand">Dofus · version Enzo</span></div>
+          <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span><span class="gr-chip camp-kamas" hidden></span><span class="camp-brand">Dofus · version Enzo</span></div>
           <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
         </div>
         <div class="camp-hero">${sacrieurSvg()}</div>
@@ -501,6 +501,9 @@ export class Hud {
     const refresh = () => {
       const v = sheet();
       el.querySelector('.lvl')!.textContent = `Niveau ${v.level}`;
+      const km = el.querySelector<HTMLElement>('.camp-kamas')!;
+      km.hidden = !work;
+      if (work) km.innerHTML = `${ICONS.kamas.svg}${work.get().kamas}`;
       setXpBar(el.querySelector('.camp-xp')!, v);
       this.setLevel(v.level);
       const fresh = inv ? inv.get().equipment.filter((e) => e.fresh).length : 0;
@@ -843,6 +846,66 @@ export class Hud {
     };
   }
 
+  /**
+   * Épurer (choix d'Enzo) : briser d'un coup tout l'équipement sous un niveau choisi (toujours au moins 15 niveaux sous
+   * celui du personnage), et brisage automatique du butin sous ce niveau.
+   */
+  private purgeModal(modal: HTMLElement, h: CraftHooks, done: () => void) {
+    const info = h.purgeInfo();
+    let lv = Math.max(2, Math.min(info.max, info.auto || info.max));
+    const close = () => {
+      modal.hidden = true;
+      modal.onclick = null;
+      modal.oninput = null;
+    };
+    const draw = () => {
+      const cur = h.purgeInfo();
+      const n = info.max >= 2 ? h.purgeList(lv).length : 0;
+      modal.querySelector('.det-card')!.innerHTML = info.max < 2
+        ? `<div class="det-head"><div><h3 class="gr-h3">Épurer</h3><span class="det-sub">Niveau ${info.heroLevel}</span></div></div>
+          <p class="det-note">Disponible à partir du niveau ${2 + 15} : le seuil reste toujours au moins 15 niveaux sous le tien.</p>
+          <div class="det-btns"><button type="button" class="gr-btn ghost sm md-close">Fermer</button></div>`
+        : `<div class="det-head"><div><h3 class="gr-h3">Épurer</h3><span class="det-sub">Tu es niveau ${info.heroLevel} · seuil ${info.max} au plus</span></div></div>
+          <div class="pg-row"><span>Briser l’équipement sous le niveau</span>
+            <span class="pg-step"><button type="button" class="gr-btn ghost sm pg-minus" ${lv <= 2 ? 'disabled' : ''}>−</button><b class="gr-num">${lv}</b><button type="button" class="gr-btn ghost sm pg-plus" ${lv >= info.max ? 'disabled' : ''}>+</button></span></div>
+          <input class="pg-range" type="range" min="2" max="${info.max}" value="${lv}" aria-label="Niveau">
+          <label class="pg-auto"><input type="checkbox" class="pg-check" ${cur.auto ? 'checked' : ''}> Brisage auto : chaque équipement obtenu sous le niveau ${lv} est brisé en runes${cur.auto && cur.auto !== lv ? ` (réglé à ${cur.auto})` : ''}</label>
+          <p class="det-note">Jamais touchés : objets portés, verrouillés, favoris, familiers et Dofus.</p>
+          <div class="det-btns">
+            <button type="button" class="gr-btn coral sm pg-go" ${n ? '' : 'disabled'}>${n ? `Briser ${n} objet${n > 1 ? 's' : ''}` : 'Rien à briser'}</button>
+            <button type="button" class="gr-btn ghost sm md-close">Fermer</button>
+          </div>`;
+    };
+    draw();
+    modal.hidden = false;
+    const setLv = (v: number) => {
+      lv = Math.max(2, Math.min(info.max, v));
+      if (h.purgeInfo().auto) h.setAutoBreak(lv);
+      draw();
+    };
+    modal.oninput = (e) => {
+      const t = e.target as HTMLInputElement;
+      if (t.classList.contains('pg-range')) setLv(Number(t.value));
+    };
+    modal.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t === modal || t.closest('.md-close')) return close();
+      if (t.closest('.pg-minus')) return setLv(lv - 1);
+      if (t.closest('.pg-plus')) return setLv(lv + 1);
+      if (t.closest('.pg-check')) {
+        h.setAutoBreak((t as HTMLInputElement).checked ? lv : 0);
+        this.toast((t as HTMLInputElement).checked ? `Brisage auto sous le niveau ${lv}` : 'Brisage auto désactivé', 1600);
+        draw();
+        done();
+        return;
+      }
+      if (t.closest('.pg-go')) {
+        modal.oninput = null;
+        this.breakModal(modal, h, h.purgeList(lv), done);
+      }
+    };
+  }
+
   /** Fenêtre de brisage d'un ou plusieurs équipements (runes obtenues, confirmation). */
   private breakModal(modal: HTMLElement, h: CraftHooks, uids: number[], done: () => void) {
     const views = uids.map((u) => h.breakInfo(u)).filter((v): v is BreakView => !!v);
@@ -878,7 +941,8 @@ export class Hud {
       if (t.closest('.br-ok')) {
         const msgs = views.map((v) => h.breakIt(v.uid));
         close();
-        this.toast(msgs.length === 1 ? msgs[0] : `${msgs.length} objets brisés · ${msgs.map((m) => m.split(' · ')[0]).join(' · ')}`, 2600);
+        const total = msgs.reduce((t, m) => t + (Number(m.match(/^(\d+) rune/)?.[1]) || 0), 0);
+        this.toast(msgs.length === 1 ? msgs[0] : `${msgs.length} objets brisés · ${total} rune${total > 1 ? 's' : ''}`, 2600);
         done();
       }
     };
@@ -976,7 +1040,7 @@ export class Hud {
     /* fenêtre de forgemagie : une rune à la fois, le résultat s'affiche en haut */
     const openFm = (uid: number) => {
       let last: { text: string; outcome: string | null } | null = null;
-      const btn = (b: FmRuneBtn) => `<button type="button" class="fm-rune ${b.ok ? '' : 'off'}" data-rune="${b.id}" ${b.ok ? '' : 'disabled'} title="${b.name}">${b.icon}<span><b>+${b.value}</b> <i class="gr-num">×${b.count}</i></span><small>${b.odds}</small></button>`;
+      const btn = (b: FmRuneBtn) => `<button type="button" class="fm-rune ${b.ok ? '' : 'off'}" data-rune="${b.id}" ${b.ok ? '' : 'disabled'} title="${b.name}">${b.icon}<span><b>+${b.value}</b> <i class="gr-num">×${b.count}</i></span><small>${b.odds}</small><small class="fm-cost">${b.cost}</small></button>`;
       const draw = () => {
         const v = h.fm(uid);
         if (!v) return closeModal();
@@ -986,6 +1050,7 @@ export class Hud {
         card.innerHTML = `
           <div class="det-head"><span class="det-ico r${v.rarity}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.rarity}">${v.name}</h3><span class="det-sub">${v.sub}</span></div></div>
           ${last ? `<div class="fm-last ${last.outcome ?? ''}">${last.text}</div>` : ''}
+          <div class="fm-kamas"><span class="gr-label">Kamas</span><b class="gr-num">${v.kamas}</b></div>
           <div class="fm-puits"><span class="gr-label">Puits</span><span class="track"><span class="fill" style="--v:${Math.min(100, (100 * v.puits) / v.puitsMax)}%"></span></span><b class="gr-num">${v.puits}/${v.puitsMax}</b></div>
           <div class="fm-lines">${v.lines.map((l) => `
             <div class="fm-line ${l.kind} ${l.over ? 'over' : ''}"><div><b>${l.text}</b><small>${l.range}</small></div>
@@ -1360,7 +1425,7 @@ export class Hud {
     const renderActs = (any: boolean) => {
       acts.hidden = tab() !== 0 || !this.work || !any;
       acts.innerHTML = !pick
-        ? '<button type="button" class="gr-btn magic sm ia-fuse">Fusion</button><button type="button" class="gr-btn coral sm ia-break">Briser</button>'
+        ? '<button type="button" class="gr-btn ghost sm ia-purge">Épurer</button><button type="button" class="gr-btn magic sm ia-fuse">Fusion</button><button type="button" class="gr-btn coral sm ia-break">Briser</button>'
         : `<span class="ia-hint">${pick === 'fuse' ? 'Touche l’objet à faire monter de rareté' : `Touche les objets à briser · ${chosen.length} choisi${chosen.length > 1 ? 's' : ''}`}</span>
           ${pick === 'break' ? `<button type="button" class="gr-btn coral sm ia-ok" ${chosen.length ? '' : 'disabled'}>Briser${chosen.length ? ` (${chosen.length})` : ''}</button>` : ''}
           <button type="button" class="gr-btn ghost sm ia-cancel">Annuler</button>`;
@@ -1555,6 +1620,10 @@ export class Hud {
         chosen = [];
         showDetail(null);
         renderList();
+        return;
+      }
+      if (w && t.closest('.ia-purge')) {
+        this.purgeModal(modal, w, () => renderList());
         return;
       }
       if (t.closest('.ia-cancel')) {
@@ -1811,4 +1880,9 @@ export interface CraftHooks {
   /** Forgemagie : vue d'un objet, et pose d'une rune (résultat à afficher). */
   fm(uid: number): FmView | null;
   fmApply(uid: number, runeId: number): { text: string; outcome: 'sc' | 'sn' | 'ec' | null };
+  /** Épuration : niveau du personnage, seuil le plus haut autorisé (niveau − 15), réglage du brisage auto (0 = désactivé). */
+  purgeInfo(): { heroLevel: number; max: number; auto: number };
+  /** Objets qui seraient brisés sous ce niveau. */
+  purgeList(limit: number): number[];
+  setAutoBreak(level: number): void;
 }

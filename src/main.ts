@@ -34,10 +34,11 @@ import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
 import { bestiaryView } from './ui/bestiary-view';
 import { beastBonuses, claimable } from './game/bestiary';
-import { applyRune, FM_NAMES } from './game/fm';
+import { applyRune, fmCheck, FM_NAMES } from './game/fm';
+import { fmtKamas } from './game/kamas';
 import { atlasView } from './ui/atlas-view';
 import { AREAS, CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
-import { breakItem, fuse, RARITIES } from './game/forge';
+import { autoBreakLimit, autoBreakMax, breakItem, fuse, purgeTargets, RARITIES } from './game/forge';
 import { feedPet, PET_FOOD } from './game/pets';
 import { Hud, type SlotView } from './ui/hud';
 import { ICONS } from './ui/grimoire-icons';
@@ -252,7 +253,7 @@ async function main() {
     farmAuto(id: string, speed: number) {
       save = { ...save, area: id };
       storeSave(save);
-      farm = { speed, runs: 0, xp: 0, loot: {}, stop: false };
+      farm = { speed, runs: 0, xp: 0, kamas: 0, broken: 0, loot: {}, stop: false };
     },
     farmInstant(id: string) {
       const r = instantFarm(save, id, prospectionOf(game.heroStats()), Math.random);
@@ -260,7 +261,7 @@ async function main() {
       save = r.save;
       for (const uid of r.fresh) freshItems.add(uid);
       storeSave(save);
-      return lootRows(r.loot);
+      return farmRows(r);
     },
     expeditionStart(id: string) {
       const s2 = startExpedition(save, id);
@@ -276,7 +277,7 @@ async function main() {
       save = r.save;
       for (const uid of r.fresh) freshItems.add(uid);
       storeSave(save);
-      return lootRows(r.loot);
+      return farmRows(r);
     },
     fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length - seenOpen),
     seen() {
@@ -287,6 +288,12 @@ async function main() {
   const lootRows = (loot: Record<string, number>) => Object.entries(loot).map(([k, n]) => ({ id: Number(k), count: n }))
     .sort((a, b) => Number(item(b.id).slot !== null) - Number(item(a.id).slot !== null) || item(b.id).level - item(a.id).level)
     .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, equip: item(l.id).slot !== null }));
+  /** Butin d'un farm avec les kamas et les objets brisés automatiquement. */
+  const farmRows = (r: { loot: Record<string, number>; kamas: number; broken: { n: number } }) => [
+    ...(r.kamas ? [{ icon: ICONS.kamas.svg, name: 'Kamas', count: r.kamas, equip: false }] : []),
+    ...(r.broken.n ? [{ icon: ICONS.kamas.svg.replace(/#f2c45c|#e3a838/g, '#b9a68a'), name: 'Brisés auto (en runes)', count: r.broken.n, equip: false }] : []),
+    ...lootRows(r.loot),
+  ];
   /** Clés d'une carte ou d'un donjon : texte affiché et possibilité d'entrer. */
   function keyInfo(a: AreaDef) {
     const c = entryCost(save, a);
@@ -712,7 +719,7 @@ async function main() {
   let paused = false;
   let busy = false; // transition ou écran en cours
   /** Farm auto (validé par Enzo) : le pilote joue tout seul, les parties s'enchaînent sur la même carte ; vitesse ×1, ×2 ou ×4. */
-  let farm: { speed: number; runs: number; xp: number; loot: Record<string, number>; stop: boolean } | null = null;
+  let farm: { speed: number; runs: number; xp: number; kamas: number; broken: number; loot: Record<string, number>; stop: boolean } | null = null;
   const farmBanner = () => (farm ? hud.setFarm({ speed: farm.speed, runs: farm.runs, items: Object.values(farm.loot).reduce((a, b) => a + b, 0) + Object.values(game.stats.loot).reduce((a, b) => a + b, 0), xp: farm.xp + game.stats.xp },
     (sp) => { if (farm) { farm.speed = sp; farmBanner(); } },
     () => { if (farm && !busy) { farm.stop = true; busy = true; void endRun(false, true); } }) : hud.setFarm(null));
@@ -1080,9 +1087,9 @@ async function main() {
     },
     seen: (uid: number) => void freshItems.delete(uid),
   };
-  const workshop = () => ({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock });
-  const setWorkshop = (w: { resources: Record<string, number>; inventory: SaveData['inventory']; jobXp: number }) => {
-    save = { ...save, resources: w.resources, inventory: w.inventory, jobXp: w.jobXp };
+  const workshop = () => ({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock, kamas: save.kamas ?? 0 });
+  const setWorkshop = (w: { resources: Record<string, number>; inventory: SaveData['inventory']; jobXp: number; kamas?: number }) => {
+    save = { ...save, resources: w.resources, inventory: w.inventory, jobXp: w.jobXp, kamas: w.kamas ?? save.kamas };
     storeSave(save);
   };
   /** Camp : records, niveau, fiche de caractéristiques (les points se répartissent ici). */
@@ -1107,7 +1114,7 @@ async function main() {
       storeSave(save);
     },
   }, {
-    get: () => craftView({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock }),
+    get: () => craftView(workshop()),
     craft(id, n) {
       const r = recipeFor(id);
       if (!r) return '';
@@ -1133,7 +1140,10 @@ async function main() {
     fm: (uid: number) => fmView(workshop(), uid),
     fmApply(uid: number, runeId: number) {
       const res = applyRune(workshop(), uid, runeId, Math.random);
-      if (!res.outcome || !res.path) return { text: 'Impossible', outcome: null };
+      if (!res.outcome || !res.path) {
+        const c = fmCheck(workshop(), uid, runeId);
+        return { text: c.ok ? 'Impossible' : c.reason, outcome: null };
+      }
       setWorkshop(res.workshop);
       const lost = res.lost.map(([p, n]) => fmtLine(p, -n)).join(', ');
       const parts = [
@@ -1143,7 +1153,16 @@ async function main() {
         res.toPuits ? `puits +${res.toPuits}` : '',
       ].filter(Boolean);
       const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
-      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')}${up}`, outcome: res.outcome };
+      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')} · −${fmtKamas(res.cost ?? 0)}${up}`, outcome: res.outcome };
+    },
+    purgeInfo: () => {
+      const heroLevel = levelForXp(save.profile.xp);
+      return { heroLevel, max: autoBreakMax(heroLevel), auto: autoBreakLimit(save.autoBreak, heroLevel) };
+    },
+    purgeList: (limit: number) => purgeTargets(save.inventory, Math.min(limit, autoBreakMax(levelForXp(save.profile.xp)))).map((o) => o.uid),
+    setAutoBreak(level: number) {
+      save = { ...save, autoBreak: level > 0 ? Math.min(level, autoBreakMax(levelForXp(save.profile.xp))) : undefined };
+      storeSave(save);
     },
     breakInfo: (uid: number) => breakView(workshop(), uid),
     breakIt(uid: number) {
@@ -1182,7 +1201,7 @@ async function main() {
     const st = game.stats;
     const result: RunResult = {
       won, room: game.roomIndex + 1, time: st.time, kills: st.kills, dealt: st.dealt, taken: st.taken, healed: st.healed,
-      cards: [...cardsTaken], loot: { xp: st.xp, items: { ...st.loot } }, bossLoot: { xp: 0, items: { ...st.bossLoot } }, area: game.area.id,
+      cards: [...cardsTaken], loot: { xp: st.xp, kamas: st.kamas, items: { ...st.loot } }, bossLoot: { xp: 0, kamas: st.bossKamas, items: { ...st.bossLoot } }, area: game.area.id,
       seen: { ...st.seen }, slain: { ...st.slain },
     };
     const levelBefore = levelForXp(save.profile.xp);
@@ -1208,6 +1227,8 @@ async function main() {
     if (farm) {
       farm.runs++;
       farm.xp += st.xp;
+      farm.kamas += st.kamas + (won ? st.bossKamas : 0);
+      farm.broken += applied.broken.n;
       for (const [k, n] of Object.entries(st.loot)) farm.loot[k] = (farm.loot[k] ?? 0) + n;
       if (won) for (const [k, n] of Object.entries(st.bossLoot)) farm.loot[k] = (farm.loot[k] ?? 0) + n;
       const paid = won && !farm.stop ? payEntry(save, areaOf()) : null;
@@ -1237,8 +1258,10 @@ async function main() {
       ['Dégâts infligés', String(st.dealt)],
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
-    ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won || farmed?.stop ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.',
-      farmed ? `Farm auto terminé${farmed.stop ? '' : won ? ' (plus de clé)' : ' (défaite)'} : ${farmed.runs} partie${farmed.runs > 1 ? 's' : ''}, ${Object.values(farmed.loot).reduce((a, b) => a + b, 0)} objets, ${farmed.xp.toLocaleString('fr-FR')} XP en tout.` : ''].filter(Boolean).join(' '),
+      ['Kamas', fmtKamas(st.kamas + (won ? st.bossKamas : 0))],
+    ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '',
+      applied.broken.n ? `Brisage auto : ${applied.broken.n} objet${applied.broken.n > 1 ? 's' : ''} → ${Object.values(applied.broken.runes).reduce((a, b) => a + b, 0)} runes.` : '', won || farmed?.stop ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.',
+      farmed ? `Farm auto terminé${farmed.stop ? '' : won ? ' (plus de clé)' : ' (défaite)'} : ${farmed.runs} partie${farmed.runs > 1 ? 's' : ''}, ${Object.values(farmed.loot).reduce((a, b) => a + b, 0)} objets, ${farmed.xp.toLocaleString('fr-FR')} XP, ${fmtKamas(farmed.kamas)}${farmed.broken ? `, ${farmed.broken} brisés auto` : ''} en tout.` : ''].filter(Boolean).join(' '),
     { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList, quit);
     if (SHOW_CAMP) await openCamp();
     farmBanner();
