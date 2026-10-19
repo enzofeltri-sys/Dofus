@@ -32,7 +32,7 @@ describe('Équipement de zone (validé par Enzo)', () => {
     }
   });
 
-  it('chances : 1 % par monstre, ×3 élite, 50 % boss (Prospection 100)', () => {
+  it('chances : 5 % par monstre, 20 % par élite, 50 % par boss (Prospection 100, choix d’Enzo)', () => {
     const pool = zoneEquipPool('cour');
     const set = new Set(pool);
     const rate = (ctx: { boss?: boolean; elite?: boolean }) => {
@@ -42,8 +42,9 @@ describe('Équipement de zone (validé par Enzo)', () => {
       for (let i = 0; i < N; i++) n += rollDrops({ dofusId: -1, prospection: 100, zonePool: pool, ...ctx }, rnd).filter((x) => set.has(x)).length;
       return n / N;
     };
-    expect(rate({})).toBeCloseTo(ZONE_EQUIP_CHANCE.monster, 2);
-    expect(rate({ elite: true })).toBeCloseTo(0.03, 2);
+    expect(rate({})).toBeCloseTo(0.05, 2);
+    expect(rate({ elite: true })).toBeCloseTo(0.2, 1);
+    expect(ZONE_EQUIP_CHANCE.monster * ZONE_EQUIP_CHANCE.elite).toBeCloseTo(0.2, 5);
     expect(rate({ boss: true })).toBeCloseTo(0.5, 1);
   });
 });

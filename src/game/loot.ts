@@ -24,9 +24,10 @@ export const REGION_EQUIP_WEIGHT = 0.1;
 
 /** Équipement de zone (validé par Enzo) : chance par monstre tué de lâcher un équipement de la tranche de la zone. */
 export const ZONE_EQUIP_CHANCE = {
-  monster: 0.01,
-  /** Élite, archimonstre (et coffre gardé) : ×3. */
-  elite: 3,
+  /** 5 % par monstre, 20 % par élite (×4), 50 % par boss (choix d'Enzo : avant 1 %, trop rare à Astrub). */
+  monster: 0.05,
+  /** Élite, archimonstre (et coffre gardé) : ×4. */
+  elite: 4,
   boss: 0.5,
 };
 

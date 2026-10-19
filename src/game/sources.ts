@@ -36,7 +36,7 @@ export function sourcesOf(id: number): Source[] {
   if (ZONE_EQUIP.includes(id)) {
     const lv = item(id).level;
     const zones = ZONES.filter((z) => ZONE_TIERS[z.id] && lv >= ZONE_TIERS[z.id][0] && lv <= ZONE_TIERS[z.id][1]).map((z) => z.name);
-    if (zones.length) out.push({ kind: 'zone', text: `Équipement de zone · ${zones.join(', ')} · ${pct(ZONE_EQUIP_CHANCE.monster * 100)} par monstre, ${pct(ZONE_EQUIP_CHANCE.boss * 100)} par boss (un objet au hasard de la zone)` });
+    if (zones.length) out.push({ kind: 'zone', text: `Équipement de zone · ${zones.join(', ')} · ${pct(ZONE_EQUIP_CHANCE.monster * 100)} par monstre, ${pct(ZONE_EQUIP_CHANCE.monster * ZONE_EQUIP_CHANCE.elite * 100)} par élite, ${pct(ZONE_EQUIP_CHANCE.boss * 100)} par boss (un objet au hasard de la zone)` });
   }
   const region = [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))];
   if (region.length) out.push({ kind: 'region', text: `Butin de région (Incarnam) · ${region.join(', ')}` });
