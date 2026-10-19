@@ -7,7 +7,7 @@ import { addItem, instance, isWorn, rollItem, type Inventory, type ItemInstance 
 /**
  * Étape 8 (document de design §8.4 et §9) : raretés, fusion, brisage.
  * - 5 rangs, chaque rang relève les fourchettes d'≈ 15 % ; Légendaire et Mythique ajoutent une ligne bonus ;
- * - fusion : jusqu'à Légendaire, 3 objets du même emplacement et du même rang ; vers Mythique, 3 identiques (hors panoplie)
+ * - fusion : jusqu'à Légendaire, 3 objets du même emplacement, du même niveau et du même rang ; vers Mythique, 3 identiques (hors panoplie)
  *   ou 1 objet + 2 pièces de sa panoplie du même rang ;
  *   Légendaire et Mythique coûtent aussi la ressource du boss de la région ;
  * - brisage : l'objet donne des runes de ses stats (vraies runes de Dofus 3, trois tailles), selon le poids de chaque stat.
@@ -106,7 +106,7 @@ export const FUSION_BOSS_COST = [0, 0, 0, 3, 10];
 const rarityOf = (it: ItemInstance) => it.rarity ?? 0;
 
 /**
- * Règle de fusion de cet objet (choix d'Enzo) : jusqu'à Légendaire, 3 objets du **même emplacement** et du même rang ;
+ * Règle de fusion de cet objet (choix d'Enzo) : jusqu'à Légendaire, 3 objets du **même emplacement**, du **même niveau** et du même rang ;
  * vers Mythique, l'ancienne règle : 3 identiques (hors panoplie) ou 1 objet + 2 pièces de sa panoplie.
  */
 export function fusionRule(it: ItemInstance): 'slot' | 'same' | 'set' {
@@ -123,7 +123,7 @@ function rollQuality(it: ItemInstance): number {
 
 /**
  * Objets qui peuvent accompagner celui-ci dans une fusion (même rang, ni portés, ni verrouillés, ni favoris),
- * du plus faible au plus fort : les 2 premiers sont choisis automatiquement.
+ * des moins bons jets aux meilleurs : les 2 premiers sont choisis automatiquement.
  */
 export function fusionPartners(inv: Inventory, mainUid: number): ItemInstance[] {
   const main = instance(inv, mainUid);
@@ -133,8 +133,8 @@ export function fusionPartners(inv: Inventory, mainUid: number): ItemInstance[] 
   return inv.items
     .filter((o) =>
       o.uid !== mainUid && !o.lock && !o.fav && !isWorn(inv, o.uid) && !isSpecial(o.id) && rarityOf(o) === rarityOf(main) &&
-      (rule === 'slot' ? item(o.id).slot === d.slot : rule === 'same' ? o.id === main.id : item(o.id).set === d.set))
-    .sort((a, b) => item(a.id).level - item(b.id).level || rollQuality(a) - rollQuality(b) || a.uid - b.uid);
+      (rule === 'slot' ? item(o.id).slot === d.slot && item(o.id).level === d.level : rule === 'same' ? o.id === main.id : item(o.id).set === d.set))
+    .sort((a, b) => rollQuality(a) - rollQuality(b) || a.uid - b.uid);
 }
 
 export type FuseCheck = { ok: true } | { ok: false; reason: string };

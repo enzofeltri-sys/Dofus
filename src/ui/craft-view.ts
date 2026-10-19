@@ -100,7 +100,7 @@ export function forgeRows(w: Workshop): ForgeRow[] {
     const fuseWhy = isSpecial(it.id) ? (d.slot === 'familier' ? 'Un familier ne se fusionne pas' : 'Un Dofus ne se fusionne pas')
       : r >= MAX_RARITY ? 'Déjà Mythique'
       : partners >= 2 ? ''
-      : rule === 'slot' ? `Il faut 2 autres ${slotPlural(d.slot)} de rang ${RARITIES[r]} (ni portés, ni verrouillés, ni favoris)`
+      : rule === 'slot' ? `Il faut 2 autres ${slotPlural(d.slot)} niveau ${d.level} de rang ${RARITIES[r]} (ni portés, ni verrouillés, ni favoris)`
       : rule === 'same' ? `Il faut 2 autres ${d.name} ${RARITIES[r]}` : `Il faut 2 pièces ${RARITIES[r]} de la panoplie`;
     const br = canBreak(inv, it.uid);
     const flags = new Set<string>();
@@ -144,7 +144,7 @@ export function fusionView(w: Workshop, uid: number): FusionView | null {
   const need = FUSION_BOSS_COST[r + 1];
   return {
     uid, icon: itemIconImg(it.id), name: d.name, from: RARITIES[r], to: RARITIES[r + 1], toRank: r + 1,
-    rule: fusionRule(it) === 'slot' ? `2 autres ${slotPlural(d.slot)} de rang ${RARITIES[r]}, les plus faibles choisis d’office` : fusionRule(it) === 'same' ? `2 autres ${d.name} ${RARITIES[r]}` : `2 pièces ${RARITIES[r]} de la ${SETS[d.set!]?.name ?? 'panoplie'}`,
+    rule: fusionRule(it) === 'slot' ? `2 autres ${slotPlural(d.slot)} niveau ${d.level} de rang ${RARITIES[r]}, les plus faibles choisis d’office` : fusionRule(it) === 'same' ? `2 autres ${d.name} ${RARITIES[r]}` : `2 pièces ${RARITIES[r]} de la ${SETS[d.set!]?.name ?? 'panoplie'}`,
     lines: now.map(([p], i) => `${fmtLine(p, it.rolls[i] ?? 0)} → ${fmtLine(p, up[i] ?? 0)}${nxt[i][1] === nxt[i][2] ? '' : ` (${nxt[i][1]} à ${nxt[i][2]})`}`),
     bonusNote: r + 1 === 3 ? 'Gagne une ligne bonus légendaire (tirée au hasard).'
       : r + 1 === 4 ? 'Ligne bonus : ×1,5, ou 10 % de chances de devenir +1 PA ou +1 PM.' : '',

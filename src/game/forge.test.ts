@@ -10,8 +10,11 @@ import type { Workshop } from './craft';
 
 const ws = (inventory: Inventory, resources: Record<string, number> = {}): Workshop => ({ resources, inventory, jobXp: 0 });
 const KARDO = [16500, 16501, 16502]; // Casque, Cape, Bracelet de Kardorim (panoplie)
-/** 4 anneaux différents de bas niveau. */
-const RINGS = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level <= 20 && d.effects.length).slice(0, 4).map((d) => d.id);
+const ringsAt = (lv: number) => Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level === lv && d.effects.length).map((d) => d.id);
+/** 4 anneaux différents du même niveau, et un anneau d'un autre niveau. */
+const RING_LV = Array.from({ length: 60 }, (_, i) => i + 1).find((lv) => ringsAt(lv).length >= 4)!;
+const RINGS = ringsAt(RING_LV).slice(0, 4);
+const OTHER_RING = Object.values(ITEMS).find((d) => d.slot === 'anneau' && d.level !== RING_LV && d.effects.length)!.id;
 
 describe('raretés', () => {
   it('≈ +15 % par rang, jamais en baisse, malus inchangés', () => {
@@ -58,17 +61,15 @@ describe('fusion', () => {
     expect(res.xp).toBeGreaterThan(0);
   });
 
-  it('jusqu’à Légendaire (choix d’Enzo) : même emplacement et même rang, les plus faibles d’abord ; portés, verrouillés et favoris exclus', () => {
+  it('jusqu’à Légendaire (choix d’Enzo) : même emplacement, même niveau et même rang ; portés, verrouillés et favoris exclus', () => {
     let inv = emptyInventory();
     for (const id of RINGS) inv = addNew(inv, id, 1, rng(id)); // uid 1 à 4 : anneaux Rares
     inv = addNew(inv, RINGS[0], 0, rng(1)); // 5 : Commun, pas le même rang
     inv = addNew(inv, KARDO[0], 1, rng(2)); // 6 : Rare mais casque
+    inv = addNew(inv, OTHER_RING, 1, rng(3)); // 7 : anneau Rare d'un autre niveau (ajouté par Enzo : même niveau)
     expect(fusionRule(inv.items[0])).toBe('slot');
     const ps = fusionPartners(inv, 1).map((o) => o.uid);
     expect(ps.sort()).toEqual([2, 3, 4]);
-    // les plus bas niveaux d'abord
-    const lv = fusionPartners(inv, 1).map((o) => item(o.id).level);
-    expect(lv).toEqual([...lv].sort((a, b) => a - b));
     inv = { ...inv, items: inv.items.map((o) => (o.uid === 2 ? { ...o, lock: true } : o.uid === 3 ? { ...o, fav: true } : o)) };
     inv = equip(inv, 4, 200);
     expect(fusionPartners(inv, 1)).toHaveLength(0);

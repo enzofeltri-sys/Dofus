@@ -22,7 +22,9 @@ await p.evaluate(async () => {
   const f = await import('/src/game/forge.ts');
   const { ITEMS } = await import('/src/game/data/items.ts');
   let i = inv.starterInventory();
-  const rings = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level >= 20 && d.level <= 30 && d.effects.length).slice(0, 3);
+  const all = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level >= 20 && d.level <= 30 && d.effects.length);
+  const lv = all.find((d) => all.filter((x) => x.level === d.level).length >= 3).level;
+  const rings = [...all.filter((d) => d.level === lv).slice(0, 3), all.find((d) => d.level !== lv)]; // 3 du même niveau + 1 d'un autre niveau
   for (const d of rings) i = f.addNew(i, d.id, 0, Math.random);
   const low = Object.values(ITEMS).filter((d) => d.slot && d.slot !== 'familier' && d.slot !== 'dofus' && d.level <= 12 && d.effects.length).slice(0, 14);
   for (const d of low) i = f.addNew(i, d.id, 0, Math.random);
@@ -43,14 +45,14 @@ await p.waitForTimeout(500);
 const ringUid = await p.evaluate(async () => {
   const { item } = await import('/src/game/data/items.ts');
   const s = JSON.parse(localStorage.getItem('dofus-enzo-save'));
-  return s.inventory.items.filter((x) => item(x.id).slot === 'anneau' && item(x.id).level >= 20).map((x) => x.uid).at(-1);
+  return s.inventory.items.filter((x) => item(x.id).slot === 'anneau' && item(x.id).level >= 20).map((x) => x.uid)[0];
 });
 await p.click(`.inv-grid [data-uid="${ringUid}"]`);
 await p.waitForTimeout(400);
 console.log('fiche :', await p.textContent('.inv-detail:not(.inv-modal) .det-forge'));
 await p.click('.d-fuse');
 await p.waitForTimeout(400);
-console.log('fenêtre fusion :', (await p.textContent('.inv-modal .det-src')).trim(), '| choisis :', await p.$$eval('.inv-modal .fz-partners .sel', (e) => e.length));
+console.log('fenêtre fusion :', (await p.textContent('.inv-modal .det-src')).trim(), '| proposés :', await p.$$eval('.inv-modal .fz-partners [data-p]', (e) => e.length), '| choisis :', await p.$$eval('.inv-modal .fz-partners .sel', (e) => e.length));
 await shot('eco_fusion');
 await p.click('.inv-modal .fz-ok');
 console.log('fusion :', await toast());
