@@ -10,5 +10,5 @@ export default defineConfig(({ mode }) => ({
   server: { port: 5173 },
   plugins: mode === 'single' ? [viteSingleFile()] : [],
   build: mode === 'single' ? { assetsInlineLimit: 100_000_000, outDir: 'dist-single' }
-    : mode === 'split' ? { assetsInlineLimit: 100_000_000, outDir: 'dist-split', cssCodeSplit: false, rollupOptions: { output: { entryFileNames: 'jeu.js', assetFileNames: '[name][extname]', inlineDynamicImports: true } } } : {},
+    : mode === 'split' ? { assetsInlineLimit: 100_000_000, outDir: 'dist-split', cssCodeSplit: false, rollupOptions: { output: { entryFileNames: 'jeu-[hash].js', assetFileNames: '[name]-[hash][extname]', inlineDynamicImports: true } } } : {},
 }));

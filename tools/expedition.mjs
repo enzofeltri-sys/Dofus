@@ -1,7 +1,7 @@
 // Expédition depuis le camp : envoyer sur une carte terminée, puis (départ reculé de 3 h) récupérer le butin.
 import { chromium } from 'playwright-core';
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const p = await b.newPage({ viewport: { width: +(process.env.W ?? 390), height: +(process.env.H ?? 844) }, deviceScaleFactor: 2 });
 const errors = [];
 p.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
 await p.goto('http://localhost:5173/');
