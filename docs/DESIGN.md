@@ -383,8 +383,10 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 
 ### 8.3 bis Idées validées en stock (plus tard)
 - **Boss Rush** : mini-jeu uniquement avec des boss de donjons ; 6 salles au plus, chacune avec 1 boss et ses sbires. **Décision d'Enzo : il commence avec les donjons de niveau 100** (pas de Boss Rush pour les tranches 1-40) ; à faire quand le jeu atteindra ce niveau.
-- **Expédition (farm hors ligne)** depuis le camp sur une carte terminée ; récompenses au retour, plafond 8 h, ≈ 25 % du rendement actif, ressources et XP seulement (pas d'équipement). Chiffres à confirmer.
-- **Auto-farm** en direct (sans toucher le téléphone) sur une carte terminée, récompenses réduites : après l'expédition, si Enzo le veut toujours.
+- **Farm (validé par Enzo : « les 2 », vitesse ×4, expédition sans XP un peu sous le drop normal, plus un farm instantané limité par jour)** — bouton **Farm** sur chaque carte terminée (et « Farm auto » sur les donjons vaincus) :
+  - **Farm auto** : le Sacrieur joue tout seul (le pilote des simulations), les parties s'enchaînent sur la même carte, cartes de bonus choisies automatiquement ; vitesse **×1, ×2, ×4** ; récompenses normales (XP, butin) ; s'arrête à la première défaite, faute de clé (donjon) ou avec **Stop** ; bandeau (parties, objets, XP) et bilan cumulé à la fin.
+  - **Farm instantané** : le butin d'une partie complète de la carte, tout de suite, **sans XP** ; **10 par jour** (valeur proposée, à ajuster).
+  - **Expédition** : le Sacrieur part farmer une carte, même téléphone fermé ; au retour, le butin des parties qu'il aurait faites (1 partie ≈ 4 s par monstre), **80 %** du butin d'une vraie partie, **8 h comptées au plus**, **sans XP**, une expédition à la fois. Mesuré à la Cité : 1 h ≈ 45 équipements et 200 ressources ; 8 h ≈ 350 équipements et 1 350 ressources (beaucoup : à surveiller).
 
 - **Bestiaire, « Tout récupérer » (demandé par Enzo)** : un bouton en haut du Bestiaire récupère d'un coup tous les paliers prêts, de tous les monstres.
 

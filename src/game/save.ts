@@ -50,6 +50,10 @@ export interface SaveData {
   keys?: KeyState;
   /** Bestiaire : monstres vus et vaincus. */
   bestiary?: Bestiary;
+  /** Farm instantané du jour (nombre utilisé, date locale AAAA-MM-JJ). */
+  instant?: { used: number; day: string };
+  /** Expédition en cours : carte et départ (horodatage en ms). */
+  expedition?: { area: string; start: number };
 }
 
 /** Ce qu'une partie rapporte. */
@@ -142,7 +146,7 @@ export function storeSave(d: SaveData) {
 }
 
 /** Ajoute le butin : XP au profil, ressources au stock, équipements à l'inventaire (jets tirés ici). Renvoie les nouveaux objets. */
-const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySource): number[] => {
+export const addLoot = (d: SaveData, l: Loot, rnd: () => number, src: RaritySource): number[] => {
   d.xp += l.xp;
   d.profile = addXp(d.profile, l.xp);
   const fresh: number[] = [];

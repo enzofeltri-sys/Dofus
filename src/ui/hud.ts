@@ -1088,14 +1088,14 @@ export class Hud {
         if (n.kind === 'map') return `<div class="map-row ${n.state}" data-id="${n.id}">
           <span class="an-dot">${n.state === 'done' ? '✓' : n.state === 'locked' ? LOCK_SVG : ''}</span>
           <span class="an-txt"><b>${n.name}</b><small>Carte · niveau ${n.level}</small>${wins}${n.state === 'locked' ? `<em>${n.need}</em>` : ''}</span>
-          ${playable ? `<button type="button" class="gr-btn sm turquoise go">Jouer</button>` : ''}</div>`;
+          ${n.state === 'done' && h.farmInfo ? `<button type="button" class="gr-btn sm gold farm">Farm</button>` : ''}${playable ? `<button type="button" class="gr-btn sm turquoise go">Jouer</button>` : ''}</div>`;
         const key = playable ? h.info(n.id).key : undefined;
         return `<div class="dj-card gr-panel gold ${n.state}" data-id="${n.id}">
           <span class="gr-label">Donjon · niveau ${n.level}${n.state === 'done' ? ' · vaincu ✓' : ''}</span>
           <b class="djc-name">${n.name}</b>
           <span class="djc-boss">Boss : ${bossOf(n.sub)}</span>
           ${n.state === 'locked' ? `<em>${LOCK_SVG} ${n.need}</em>` : `<span class="dj-key ${key?.ok === false ? 'none' : ''}">${key?.text ?? ''}</span>
-          <button type="button" class="gr-btn go" ${key?.ok === false ? 'disabled' : ''}>Entrer${key && /gratuite|clé|Clef/.test(key.text) && key.ok ? ' — 1 clé' : ''}</button>`}
+          <span class="djc-acts">${n.state === 'done' && h.farmInfo ? `<button type="button" class="gr-btn sm gold farm" ${key?.ok === false ? 'disabled' : ''}>Farm auto</button>` : ''}<button type="button" class="gr-btn go" ${key?.ok === false ? 'disabled' : ''}>Entrer${key && /gratuite|clé|Clef/.test(key.text) && key.ok ? ' — 1 clé' : ''}</button></span>`}
         </div>`;
       }).join('');
     };
@@ -1104,6 +1104,12 @@ export class Hud {
       const z = t.closest<HTMLElement>('.zone-card[data-zone]');
       if (z) { this.atlasZone = z.dataset.zone!; render(); el.scrollTop = 0; return; }
       if (t.closest('.sh-head .back')) { this.atlasZone = null; render(); return; }
+      const fb = t.closest<HTMLButtonElement>('.farm');
+      if (fb && !fb.disabled) {
+        const id = fb.closest<HTMLElement>('[data-id]')!.dataset.id!;
+        this.farmMenu(el, id, fb.closest<HTMLElement>('[data-id]')!.querySelector('b')!.textContent ?? '', h, () => { h.choose(id); el.hidden = true; start(); }, render);
+        return;
+      }
       const go = t.closest<HTMLElement>('.go');
       const row = go?.closest<HTMLElement>('[data-id]');
       if (!go || !row || (go as HTMLButtonElement).disabled) return;
@@ -1126,6 +1132,71 @@ export class Hud {
 
   private bsKind: BeastKind | 'all' = 'all';
   private bsOpen: string | null = null;
+  /** Fenêtre de farm d'une carte terminée : farm auto (×1/×2/×4), instantané (limité par jour), expédition. */
+  farmMenu(host: HTMLElement, id: string, name: string, h: ZoneHooks, start: () => void, refresh: () => void) {
+    host.querySelector('.farm-modal')?.remove();
+    const m = document.createElement('div');
+    m.className = 'farm-modal inv-modal';
+    host.appendChild(m);
+    const close = () => { m.remove(); refresh(); };
+    const render = (loot?: { title: string; rows: LootRow[] }) => {
+      const f = h.farmInfo!(id);
+      const a = f.away;
+      m.innerHTML = `<div class="det-card gr-panel gold farm-card">
+        <div class="sh-head"><h2 class="gr-h2">Farm · ${name}</h2><button type="button" class="gr-btn ghost sm fclose">Fermer</button></div>
+        ${loot ? `<p class="gr-label">${loot.title}</p>${lootHtml(loot.rows)}` : ''}
+        <section><b>Farm auto</b><small>Ton Sacrieur joue tout seul, les parties s'enchaînent. Récompenses normales ; s'arrête s'il perd.</small>
+          <div class="farm-speeds">${[1, 2, 4].map((sp) => `<button type="button" class="gr-btn sm turquoise fauto" data-sp="${sp}" ${f.auto ? '' : 'disabled'}>×${sp}</button>`).join('')}</div></section>
+        ${f.instant >= 0 ? `<section><b>Farm instantané</b><small>Le butin d'une partie complète, tout de suite (sans XP). ${f.instant}/${f.instantMax} aujourd'hui.</small>
+          <button type="button" class="gr-btn sm magic finst" ${f.instant > 0 ? '' : 'disabled'}>Farmer maintenant</button></section>` : ''}
+        ${f.expedition || a ? `<section><b>Expédition</b><small>${a
+          ? `Ton Sacrieur farme ${a.here ? 'ici' : `à ${a.area}`} depuis ${fmtDur(a.seconds)} (${a.cap} h comptées au plus). Sans XP.`
+          : `Il part farmer tout seul, même téléphone fermé ; au retour, le butin du temps passé (${'8'} h au plus, un peu moins qu'en jouant). Sans XP.`}</small>
+          ${a ? `<button type="button" class="gr-btn sm gold fcollect">Récupérer le butin</button>` : `<button type="button" class="gr-btn sm gold fsend">Envoyer en expédition</button>`}</section>` : ''}
+      </div>`;
+    };
+    m.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t === m || t.closest('.fclose')) return close();
+      const b = t.closest<HTMLButtonElement>('button');
+      if (!b || b.disabled) return;
+      if (b.classList.contains('fauto')) {
+        h.farmAuto!(id, Number(b.dataset.sp));
+        m.remove();
+        start();
+      } else if (b.classList.contains('finst')) {
+        const rows = h.farmInstant!(id);
+        render(rows ? { title: 'Butin du farm instantané', rows } : undefined);
+      } else if (b.classList.contains('fsend')) {
+        h.expeditionStart!(id);
+        render();
+      } else if (b.classList.contains('fcollect')) {
+        const rows = h.expeditionCollect!();
+        render(rows ? { title: 'Butin de l’expédition', rows } : undefined);
+      }
+    };
+    render();
+  }
+
+  /** Bandeau du farm auto (vitesse, parties, butin, Stop) ; null le retire. */
+  setFarm(info: { speed: number; runs: number; items: number; xp: number } | null, onSpeed?: (sp: number) => void, onStop?: () => void) {
+    let bar = this.root.querySelector<HTMLElement>('.farm-bar');
+    if (!info) { bar?.remove(); return; }
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.className = 'farm-bar gr-panel';
+      this.root.appendChild(bar);
+    }
+    bar.innerHTML = `<b>Farm auto</b><span class="gr-num">${info.runs} partie${info.runs > 1 ? 's' : ''} · ${info.items} objets · ${info.xp.toLocaleString('fr-FR')} XP</span>
+      <span class="fb-sp">${[1, 2, 4].map((sp) => `<button type="button" class="${sp === info.speed ? 'on' : ''}" data-sp="${sp}">×${sp}</button>`).join('')}</span><button type="button" class="fb-stop">Stop</button>`;
+    bar.onclick = (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (!t) return;
+      if (t.dataset.sp) onSpeed?.(Number(t.dataset.sp));
+      else if (t.classList.contains('fb-stop')) onStop?.();
+    };
+  }
+
   /** Bestiaire : tous les monstres (silhouette tant qu'on ne les a pas croisés), filtrés par catégorie ; fiche au toucher. */
   /** Grimoire : les 22 sorts du Sacrieur, débloqués selon le niveau ; favoris (plus souvent dans les cartes). */
   grimoire(h: { get(): GrimoireRow[]; fav(id: SpellId): void }): Promise<void> {
@@ -1615,7 +1686,28 @@ export interface ZoneHooks {
   /** Étapes nouvellement débloquées (pastille). */
   fresh(): number;
   seen(): void;
+  /** Farm (cartes et donjons terminés) : auto en direct, instantané (cartes, limité par jour), expédition hors ligne (cartes). */
+  farmInfo?(id: string): FarmInfo;
+  farmAuto?(id: string, speed: number): void;
+  farmInstant?(id: string): LootRow[] | null;
+  expeditionStart?(id: string): boolean;
+  expeditionCollect?(): LootRow[] | null;
 }
+
+export interface FarmInfo {
+  auto: boolean;
+  /** Farms instantanés restants aujourd'hui (-1 : pas possible ici). */
+  instant: number;
+  instantMax: number;
+  expedition: boolean;
+  away: { area: string; here: boolean; seconds: number; cap: number } | null;
+}
+export interface LootRow { icon: string; name: string; count: number; equip: boolean }
+
+const fmtDur = (sec: number) => { const m = Math.floor(sec / 60); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`; };
+const lootHtml = (rows: LootRow[]) => rows.length
+  ? `<div class="farm-loot">${rows.map((r) => `<div class="fl ${r.equip ? 'eq' : ''}">${r.icon}<b class="gr-num">${r.count}</b><small>${r.name}</small></div>`).join('')}</div>`
+  : '<p>Rien cette fois.</p>';
 
 /** Réglages d'une barre de filtres. */
 interface BarCfg {

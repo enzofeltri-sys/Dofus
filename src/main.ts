@@ -17,9 +17,11 @@ import { boneHands, chest, darkBlock, deadTree, fountain, ivoryHorns, lanternPil
 import { cryptRoomSvg, EXIT, FLOOR_TOP, gateBarsSvg, GATE_BARS_H, GATE_BARS_W, LIGHTS, ROOM_H, ROOM_W } from './scene/cryptRoom';
 import { svgTexture } from './svg';
 import { autopilotInput } from './game/autopilot';
+import { canFarm, collectExpedition, expeditionSeconds, FARM, instantFarm, instantLeft, startExpedition } from './game/farm';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
 import { applyRun, claimTier, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
 import { entryCost, FREE_KEYS_PER_DAY, payEntry } from './game/keys';
+import { prospectionOf } from './game/formulas';
 import { SPELLS } from './game/data/spells';
 import { startingHero } from './game/data/hero';
 import { invest, levelForXp, resetCarac, type CaracId } from './game/progression';
@@ -239,11 +241,51 @@ async function main() {
       storeSave(save);
       return true;
     },
+    /** Farm : état pour une carte terminée (instantané restant, expédition en cours). */
+    farmInfo(id: string) {
+      const e = save.expedition;
+      return {
+        auto: save.done.includes(id), instant: canFarm(save, id) ? instantLeft(save) : -1, instantMax: FARM.instantPerDay, expedition: canFarm(save, id),
+        away: e ? { area: AREAS[e.area]?.name ?? e.area, here: e.area === id, seconds: expeditionSeconds(e), cap: FARM.expeditionCapH } : null,
+      };
+    },
+    farmAuto(id: string, speed: number) {
+      save = { ...save, area: id };
+      storeSave(save);
+      farm = { speed, runs: 0, xp: 0, loot: {}, stop: false };
+    },
+    farmInstant(id: string) {
+      const r = instantFarm(save, id, prospectionOf(game.heroStats()), Math.random);
+      if (!r) return null;
+      save = r.save;
+      for (const uid of r.fresh) freshItems.add(uid);
+      storeSave(save);
+      return lootRows(r.loot);
+    },
+    expeditionStart(id: string) {
+      const s2 = startExpedition(save, id);
+      if (!s2) return false;
+      save = s2;
+      storeSave(save);
+      return true;
+    },
+    expeditionCollect() {
+      const r = collectExpedition(save, prospectionOf(game.heroStats()), Math.random);
+      if (!r) return null;
+      save = r.save;
+      for (const uid of r.fresh) freshItems.add(uid);
+      storeSave(save);
+      return lootRows(r.loot);
+    },
     fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length - seenOpen),
     seen() {
       seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
     },
   };
+  /** Butin d'un farm (instantané, expédition) pour l'affichage : équipements d'abord. */
+  const lootRows = (loot: Record<string, number>) => Object.entries(loot).map(([k, n]) => ({ id: Number(k), count: n }))
+    .sort((a, b) => Number(item(b.id).slot !== null) - Number(item(a.id).slot !== null) || item(b.id).level - item(a.id).level)
+    .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, equip: item(l.id).slot !== null }));
   /** Clés d'une carte ou d'un donjon : texte affiché et possibilité d'entrer. */
   function keyInfo(a: AreaDef) {
     const c = entryCost(save, a);
@@ -668,6 +710,11 @@ async function main() {
   // ---------- Événements du monde ----------
   let paused = false;
   let busy = false; // transition ou écran en cours
+  /** Farm auto (validé par Enzo) : le pilote joue tout seul, les parties s'enchaînent sur la même carte ; vitesse ×1, ×2 ou ×4. */
+  let farm: { speed: number; runs: number; xp: number; loot: Record<string, number>; stop: boolean } | null = null;
+  const farmBanner = () => (farm ? hud.setFarm({ speed: farm.speed, runs: farm.runs, items: Object.values(farm.loot).reduce((a, b) => a + b, 0) + Object.values(game.stats.loot).reduce((a, b) => a + b, 0), xp: farm.xp + game.stats.xp },
+    (sp) => { if (farm) { farm.speed = sp; farmBanner(); } },
+    () => { if (farm && !busy) { farm.stop = true; busy = true; void endRun(false, true); } }) : hud.setFarm(null));
 
   function handle(ev: WorldEvent) {
     switch (ev.type) {
@@ -725,6 +772,7 @@ async function main() {
         for (let i = 0; i < 18; i++) emit(ev.x, ev.y - 40, 0xe8dcc0, { vx: rand(-150, 150), vy: rand(-210, -40), life: 0.6, size: 0.1, add: false, grav: 320 });
         break;
       case 'drop':
+        if (farm) farmBanner();
         ev.items.forEach((id, i) => later(0.1 + i * 0.12, () => flyLoot(id, ev.x, ev.y, ev.boss)));
         break;
       case 'xp':
@@ -1155,6 +1203,31 @@ async function main() {
       .map((l) => ({ icon: itemIconImg(l.id), name: item(l.id).name, count: l.count, boss: l.boss, lost: l.boss && !won, rarity: l.boss && !won ? 0 : best.get(l.id) ?? 0 }));
     storeSave(save);
     hud.setBoss(null);
+    // farm auto : on cumule, puis la partie suivante démarre tout de suite (sans bilan) tant qu'on gagne
+    if (farm) {
+      farm.runs++;
+      farm.xp += st.xp;
+      for (const [k, n] of Object.entries(st.loot)) farm.loot[k] = (farm.loot[k] ?? 0) + n;
+      if (won) for (const [k, n] of Object.entries(st.bossLoot)) farm.loot[k] = (farm.loot[k] ?? 0) + n;
+      const paid = won && !farm.stop ? payEntry(save, areaOf()) : null;
+      if (paid) {
+        save = paid;
+        storeSave(save);
+        await transition(() => {
+          game.restart(heroFromSave(), areaOf());
+          game.beastBonus = beastBonuses(save.bestiary);
+          hud.setLevel(game.hero.def.level);
+          cardsTaken.length = 0;
+          return buildRoom(0);
+        });
+        farmBanner();
+        busy = false;
+        return;
+      }
+    }
+    const farmed = farm;
+    farm = null;
+    hud.setFarm(null);
     const t = Math.round(st.time);
     await hud.summary(won, [
       ['Salle atteinte', `${result.room} / ${game.area.rooms}`],
@@ -1163,9 +1236,11 @@ async function main() {
       ['Dégâts infligés', String(st.dealt)],
       ['Dégâts subis', String(st.taken)],
       ['PV récupérés', String(st.healed)],
-    ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.'].filter(Boolean).join(' '),
+    ], result.cards, [unlocked.length ? `Débloqué : ${unlocked.join(', ')} (onglet Donjons).` : '', rares.length ? `Objets rares : ${rares.map((it) => `${item(it.id).name} (${RARITIES[it.rarity ?? 0]})`).join(', ')}.` : '', won || farmed?.stop ? '' : 'L’XP et le butin des monstres sont gardés, même en cas de défaite.',
+      farmed ? `Farm auto terminé${farmed.stop ? '' : won ? ' (plus de clé)' : ' (défaite)'} : ${farmed.runs} partie${farmed.runs > 1 ? 's' : ''}, ${Object.values(farmed.loot).reduce((a, b) => a + b, 0)} objets, ${farmed.xp.toLocaleString('fr-FR')} XP en tout.` : ''].filter(Boolean).join(' '),
     { gained: st.xp, before: levelBefore, view: currentSheet() }, lootList, quit);
     if (SHOW_CAMP) await openCamp();
+    farmBanner();
     await transition(() => {
       game.restart(heroFromSave(), areaOf());
       game.beastBonus = beastBonuses(save.bestiary);
@@ -1180,8 +1255,12 @@ async function main() {
   async function offerCards() {
     const cards = drawCards(game, Math.random, save.favSpells ?? []);
     let i = 0;
-    if (DEMO) await new Promise((r) => setTimeout(r, 300));
-    else {
+    if (DEMO || farm) {
+      await new Promise((r) => setTimeout(r, farm ? 250 / farm.speed : 300));
+      // farm auto : la meilleure carte (sort > amélioration de dégâts > autre amélioration > Vitalité > reste)
+      const score = (c: (typeof cards)[number]) => (c.kind === 'spell' ? 3 : c.kind === 'upgrade' ? (c.up === 'dmg' ? 2 : 1.5) : c.kind === 'stat' && c.stat === 'vitalite' ? 1.8 : 1);
+      if (farm) i = cards.reduce((b, c, k) => (score(c) > score(cards[b]) ? k : b), 0);
+    } else {
       const views = cards.map((c) => {
         const info = cardInfo(game, c);
         return { ...info, kind: c.kind, icon: info.spell ? SPELL_ICONS[info.spell] : info.passive ? PASSIVE_ICONS[info.passive] : STAT_ICON[info.stat!] };
@@ -1195,7 +1274,7 @@ async function main() {
     cardsTaken.push(cardInfo(game, card).title);
     let replace: number | undefined;
     if (needsReplace(game, card) && card.kind === 'spell') {
-      replace = DEMO ? game.run.slots.length - 1 : await hud.chooseReplace(`Apprendre ${SPELLS[card.spell].name}`, slotViews());
+      replace = DEMO || farm ? game.run.slots.length - 1 : await hud.chooseReplace(`Apprendre ${SPELLS[card.spell].name}`, slotViews());
     }
     applyCard(game, card, replace);
     hud.setSlots(slotViews());
@@ -1259,6 +1338,7 @@ async function main() {
       hud.setSlots(slotViews());
       // autre carte choisie au camp : décor, titre et monstres de la nouvelle carte
       if (game.area !== before) await buildRoom(0);
+      farmBanner();
     });
   }
 
@@ -1275,15 +1355,16 @@ async function main() {
       if (keys.has('arrowright') || keys.has('d')) ix += 1;
       if (keys.has('arrowup') || keys.has('z') || keys.has('w')) iy -= 1;
       if (keys.has('arrowdown') || keys.has('s')) iy += 1;
-      if (DEMO && !input.active && keys.size === 0) ({ x: ix, y: iy } = autopilot());
-      acc += dt;
+      if ((DEMO || farm) && !input.active && keys.size === 0) ({ x: ix, y: iy } = autopilot());
+      const speed = farm?.speed ?? 1;
+      acc += dt * speed;
       while (acc >= STEP) {
         game.step({ x: ix, y: iy });
         acc -= STEP;
       }
       for (const ev of game.drain()) handle(ev);
       for (let i = timers.length - 1; i >= 0; i--) {
-        timers[i].t -= dt;
+        timers[i].t -= dt * speed;
         if (timers[i].t <= 0) {
           const t = timers.splice(i, 1)[0];
           t.fn();
