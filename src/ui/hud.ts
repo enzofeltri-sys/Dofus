@@ -96,6 +96,7 @@ export class Hud {
       <nav class="camp-nav" hidden>
         <button type="button" class="nav-tab" data-sec="perso">${ICONS.force.svg}<span>Personnage</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="equip">${ICONS.sac.svg}<span>Équipement</span><b class="badge gr-num" hidden></b></button>
+        <button type="button" class="nav-tab camp-tab" data-sec="camp">${ICONS.camp.svg}<span>Camp</span></button>
         <button type="button" class="nav-tab" data-sec="grimoire">${ICONS.pa.svg}<span>Grimoire</span><b class="badge gr-num" hidden></b></button>
         <button type="button" class="nav-tab" data-sec="bestiaire">${ICONS.os.svg}<span>Bestiaire</span><b class="badge gr-num" hidden></b></button>
       </nav>
@@ -499,7 +500,7 @@ export class Hud {
       play.dataset.n = zones && zones.fresh() > 0 ? String(zones.fresh()) : '';
       badge(nav.querySelector('[data-sec="bestiaire"] .badge'), beasts ? beasts.fresh() : 0);
       card();
-      nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', !!current && SECTION[current] === t.dataset.sec));
+      nav.querySelectorAll<HTMLElement>('.nav-tab[data-sec]').forEach((t) => t.classList.toggle('on', current ? SECTION[current] === t.dataset.sec : t.dataset.sec === 'camp'));
       this.root.querySelectorAll<HTMLElement>('.sec-tab').forEach((t) => t.classList.toggle('on', t.dataset.panel === current));
     };
     /** Ouvre un panneau (ferme proprement celui qui est ouvert). Un panneau se ferme avec « Fermer » ou en touchant son onglet. */
@@ -517,6 +518,11 @@ export class Hud {
       const t = (e.target as HTMLElement).closest<HTMLElement>('.nav-tab[data-sec]');
       if (!t) return;
       const sec = t.dataset.sec;
+      // Camp (au milieu) : ferme le panneau ouvert et revient au camp
+      if (sec === 'camp') {
+        if (current) this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
+        return;
+      }
       if (current && SECTION[current] === sec) {
         this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         return;

@@ -750,7 +750,7 @@ html, body {
 .camp { padding-bottom: calc(var(--safe-bottom) + 96px); }
 .camp-nav {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 48; pointer-events: auto;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px;
   padding: 6px 8px calc(var(--safe-bottom) + 6px);
   background: linear-gradient(#5a3a22, var(--night)); box-shadow: 0 -2px 0 var(--ink), 0 -6px 16px rgba(42,22,12,.35);
 }

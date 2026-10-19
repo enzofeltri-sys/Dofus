@@ -1,0 +1,21 @@
+// Barre du camp à 5 onglets : Camp au milieu (ferme le panneau ouvert et revient au camp).
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+const errors = [];
+p.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
+await p.goto('http://localhost:5173/');
+await p.waitForFunction(() => document.getElementById('loading')?.classList.contains('done'), null, { timeout: 60000 });
+await p.waitForSelector('.camp:not([hidden]) .play', { timeout: 20000 });
+const tabs = () => p.$$eval('.camp-nav .nav-tab:not([hidden])', (e) => e.map((x) => x.textContent.trim() + (x.classList.contains('on') ? '*' : '')).join(' | '));
+console.log('camp :', await tabs());
+await p.screenshot({ path: 'shots/campnav_camp.png' });
+await p.click('.nav-tab[data-sec="equip"]');
+await p.waitForTimeout(500);
+console.log('équipement :', await tabs(), '| inventaire ouvert :', await p.$eval('.inv', (e) => !e.hidden));
+await p.click('.nav-tab[data-sec="camp"]');
+await p.waitForTimeout(500);
+console.log('retour camp :', await tabs(), '| inventaire ouvert :', await p.$eval('.inv', (e) => !e.hidden));
+await p.screenshot({ path: 'shots/campnav_retour.png' });
+console.log(errors.join('\n') || 'aucune erreur');
+await b.close();
