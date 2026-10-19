@@ -1,3 +1,4 @@
+import { rawSave } from '../game/save';
 import type { SpellId } from '../game/data/spells';
 import type { GrimoireRow } from './grimoire-view';
 import type { TestPreset } from '../game/testmode';
@@ -127,6 +128,11 @@ export class Hud {
           <div class="row"><button type="button" class="gr-btn ghost sm t-zones">Débloquer toutes les zones</button><button type="button" class="gr-btn sm magic t-bouftous">Prêt pour le Donjon des Bouftous</button></div>
           <small>Modifie la vraie sauvegarde (niveau, zones, objets).</small>
         </details>
+        <div class="sh-save">
+          <button type="button" class="gr-btn ghost sm s-copy">Copier ma sauvegarde</button>
+          <small class="s-msg"></small>
+          <textarea class="s-text" readonly hidden></textarea>
+        </div>
       </div>
       <div class="inv gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
@@ -594,6 +600,27 @@ export class Hud {
         this.sheetTab = Number(tab.dataset.i);
         render();
       }
+    };
+    // Copier ma sauvegarde : le texte s'affiche (sélectionné) et part dans le presse-papiers si le navigateur le permet
+    el.querySelector<HTMLButtonElement>('.s-copy')!.onclick = async () => {
+      const txt = rawSave();
+      const area = el.querySelector<HTMLTextAreaElement>('.s-text')!, msg = el.querySelector<HTMLElement>('.s-msg')!;
+      area.hidden = false;
+      area.value = txt || '(aucune sauvegarde)';
+      area.focus();
+      area.select();
+      if (!txt) {
+        msg.textContent = 'Pas encore de sauvegarde : joue une partie d’abord.';
+        return;
+      }
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(txt);
+        ok = true;
+      } catch {
+        try { ok = document.execCommand('copy'); } catch { ok = false; }
+      }
+      msg.textContent = ok ? `Copiée (${Math.round(txt.length / 1024)} Ko) : colle-la dans la conversation.` : 'Le texte est sélectionné : copie-le (appui long → Copier) puis colle-le dans la conversation.';
     };
     el.querySelector<HTMLButtonElement>('.reset')!.onclick = () => {
       act.reset();

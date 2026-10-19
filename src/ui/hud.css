@@ -1007,3 +1007,9 @@ details.sh-test:not([open]) { padding-top: 6px; padding-bottom: 6px; }
 .bs-tier.claimed i { font-style: normal; color: var(--leaf-dark); font-weight: 800; }
 .bs-tier.locked { opacity: .6; }
 .bs-tier .claim { --c: var(--gold); padding: 4px 10px; }
+
+/* Copier ma sauvegarde (onglet Personnage) */
+.sh-save { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; }
+.sh-save .s-msg { color: var(--ink-2, #6a4a2a); text-align: center; }
+.sh-save .s-text { width: 100%; height: 120px; font: 11px/1.3 ui-monospace, monospace; border-radius: 10px; border: 2px solid var(--ink); background: #fffaf0; color: var(--ink); padding: 6px; }
+.sh-save .s-text[hidden] { display: none; }

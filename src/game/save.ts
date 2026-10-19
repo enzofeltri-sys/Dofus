@@ -124,6 +124,15 @@ export function loadSave(): SaveData {
   }
 }
 
+/** Sauvegarde telle qu'elle est stockée (texte JSON), pour la copier et l'envoyer (bouton « Copier ma sauvegarde »). */
+export function rawSave(): string {
+  try {
+    return localStorage.getItem(KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function storeSave(d: SaveData) {
   try {
     localStorage.setItem(KEY, JSON.stringify(d));
