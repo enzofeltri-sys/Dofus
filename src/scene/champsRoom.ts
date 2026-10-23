@@ -60,7 +60,7 @@ interface Land {
   frame?: boolean;
   water: [string, string, string];
   /** Sol : place pavée (Cité), arène de planches en damier (Grange), dalles moussues (Souterrains). */
-  floor?: 'plaza' | 'planks' | 'slabs';
+  floor?: 'plaza' | 'planks' | 'slabs' | 'checker';
   /** Carrés de blé et de tournesols, chemins de terre. */
   wheat: number;
   dirt: number;
@@ -77,7 +77,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome' | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks' | 'cawotte' | 'couronne' | 'chateauWabbit', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome' | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks' | 'cawotte' | 'couronne' | 'chateauWabbit' | 'lacCania' | 'closBlops', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -132,6 +132,10 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     // Château du Wa Wabbit : caverne sombre, dalles orange, arches rouges
     chateauWabbit: { ...base, grass: ['#c8782a', '#bc6e26', '#ae6422'], light: '#f0a050', dark: '#3a1a08', tuftTones: ['#6a8a2a', '#7a9a32', '#9ab840'], touch: ['#f8c070', '#5a2a0a'], stone: '#d8904a', cliff: ['#5a3018', '#3e2010', '#221008'], land: { sky: ['#0c0806', '#1a100a'], hills: ['#5a3018', '#3e2010'], far: 'wall', border: 'wall', wallCol: ['#b84a2a', '#e8762a', '#3a1a08'], water: ['#3a2010', '#2a160a', '#1a0e06'], floor: 'slabs', wheat: 0, dirt: 1, grassy: 0.2, arch: ['#e8762a', '#a8401a', '#3a1408'] } },
     squelettes: { ...base, grass: ['#5e5838', '#545032', '#4a462c'], light: '#9a8e52', dark: '#262210', tuftTones: ['#5a6a2a', '#6a7a32', '#8a9a40'], touch: ['#c8b870', '#4a4020'], stone: '#9a8e60', cliff: ['#5a5034', '#3e3824', '#221e12'], land: { sky: ['#100c08', '#1c180e'], hills: ['#5e5030', '#443a22'], far: 'wall', border: 'wall', water: ['#2a3420', '#1e2616', '#12180c'], floor: 'slabs', wheat: 0, dirt: 4, grassy: 0.25, arch: ['#c8b880', '#8a7a4a', '#3a3018'] } },
+    // Lac de Cania (d'après les vraies cartes) : herbe jaune-vert, lac turquoise (les trous), arbres d'automne, grands rochers beiges
+    lacCania: { ...base, ...green, grass: ['#b6c844', '#a8bc3c', '#98ae34'], light: '#d8e070', dark: '#6a7a22', flowers: 12, stone: '#e8d8a8', land: { sky, hills: ['#b0c050', '#8aa03a'], far: 'trees', border: 'shore', water: ['#5ad0c8', '#22a8b0', '#147a88'], bank: '#9a8448', wheat: 0, dirt: 4, grassy: 1, arch: ['#e8d8a8', '#a89060', '#4a3a1e'] } },
+    // Clos des Blops (d'après les vraies cartes) : jungle sombre, dallage en damier terre cuite et crème, plantes vertes lumineuses
+    closBlops: { ...base, grass: ['#4a6a24', '#42601f', '#3a561b'], light: '#7aa83a', dark: '#1a280c', tuftTones: ['#4a8a1e', '#6aaa2a', '#a8e050'], touch: ['#c8ff7a', '#2a4a14'], stone: '#e8d4ac', cliff: ['#3e4a26', '#2a3418', '#161c0c'], land: { sky: ['#0a1006', '#16200c'], hills: ['#2a4016', '#1a2a0e'], far: 'jungle', border: 'rock', rockCol: ['#5a5a3e', '#2a2a1a'], water: ['#9ad8a0', '#5aa86a', '#2a6a3a'], floor: 'checker', wheat: 0, dirt: 0, grassy: 0.5, arch: ['#c8a070', '#7a5a34', '#2a1e10'] } },
     // Plaine des Scarafeuilles : herbe vert vif, larges chemins de terre, arbres d'automne
     plaineScara: { ...base, ...green, grass: ['#b0d44a', '#a2c842', '#92ba38'], flowers: 25, land: { sky, hills: ['#a8d050', '#88b83e'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 9, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
     // Donjon des Scarafeuilles : grotte-jungle sombre, lianes, puits de lumière, mousse
@@ -537,6 +541,12 @@ function landFloor(D: Land, r: () => number): string {
     for (let y = y0 + 30, row = 0; y < y1 + 40; y += 80, row++) for (let x = x0 + (row % 2 ? -50 : 0); x < x1 + 60; x += 100) {
       o.push(`<rect x="${f1(x + 3)}" y="${f1(y + 3)}" width="94" height="74" rx="6" fill="${shade(L.stone, (r() - 0.5) * 0.22)}" stroke="#2a2c22" stroke-width="2.4"/>`);
       if (r() < 0.35) o.push(`<ellipse cx="${f1(x + 20 + r() * 60)}" cy="${f1(y + 70)}" rx="${f1(14 + r() * 16)}" ry="6" fill="#5a8a2e" opacity="0.7"/>`);
+    }
+  } else if (D.floor === 'checker') {
+    // Clos des Blops : grand dallage en damier terre cuite et crème, un peu de mousse dans les joints
+    for (let y = y0 + 24, row = 0; y < y1 + 40; y += 60, row++) for (let x = x0 - 10, col = 0; x < x1 + 60; x += 72, col++) {
+      o.push(`<rect x="${f1(x)}" y="${f1(y)}" width="72" height="60" fill="${(row + col) % 2 ? shade('#c8704a', (r() - 0.5) * 0.12) : shade('#f0dcb4', (r() - 0.5) * 0.08)}" stroke="#6a3e22" stroke-width="1.4" opacity="0.94"/>`);
+      if (r() < 0.12) o.push(`<ellipse cx="${f1(x + r() * 72)}" cy="${f1(y + 56)}" rx="${f1(12 + r() * 14)}" ry="5" fill="#5a8a2e" opacity="0.75"/>`);
     }
   } else if (D.floor === 'planks') {
     // arène de la Grange : grand damier de planches au centre

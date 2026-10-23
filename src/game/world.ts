@@ -26,6 +26,8 @@ export const FLOOR_TOP = 300;
 /** Salles de la Crypte de Kardorim (référence des tests et de l'équilibrage). */
 export const TOTAL_ROOMS = 9;
 export const GATE = { x: ROOM_W / 2, halfWidth: 70 };
+/** Demi-largeur d'une porte du Clos des Blops. */
+export const DOOR_HALF = 55;
 /** Durée de l'apparition d'un monstre (s). */
 export const SPAWN_TIME = 0.4;
 /** Initiative perdue : délai avant la première action (s). */
@@ -167,6 +169,11 @@ export interface Monster {
   armorT?: number;
   armorCdT?: number;
   armorShield?: number;
+  /** Blotection (Blops Royaux) : temps restant de la protection, délai avant la suivante. */
+  wardT?: number;
+  wardCdT?: number;
+  /** Gloutage (Gloutoblop) : délai avant le prochain repas. */
+  gluttonT?: number;
   novaT?: number;
   /** Bloqué contre un obstacle : temps passé sans avancer, puis contournement par un côté pendant `detourT`. */
   stuckT: number;
@@ -274,6 +281,7 @@ export type WorldEvent =
   | { type: 'rooted' }
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
+  | { type: 'ward'; uid: number; x: number; y: number; spell: string; element: Element }
   | { type: 'poisoned'; x: number; y: number }
   | { type: 'explode'; x: number; y: number; radius: number }
   | { type: 'bless'; uid: number; x: number; y: number; radius: number; spell: string }
@@ -336,6 +344,24 @@ export class World {
   hazards: Hazard[] = [];
   private hazardT = 0;
   private hazardUid = 1;
+  /** Boss choisi par une porte (Clos des Blops). */
+  bossPick: string | null = null;
+  /** Portes de la salle d'avant le boss quand le boss se choisit (Clos des Blops : une par Blop Royal, choix d'Enzo). */
+  get doors(): { x: number; id: string }[] {
+    const c = this.area.bossChoice;
+    if (!c?.length || this.roomIndex !== this.area.rooms - 2) return [];
+    const { x0, x1 } = this.bounds;
+    return c.map((id, i) => ({ id, x: x0 + ((x1 - x0) * (i + 0.5)) / c.length }));
+  }
+  /** Le héros est-il devant une sortie (la grille, ou une des portes) ? */
+  private exitAt(x: number): { id: string | null } | null {
+    const doors = this.doors;
+    if (doors.length) {
+      const d = doors.find((o) => Math.abs(x - o.x) < DOOR_HALF);
+      return d ? { id: d.id } : null;
+    }
+    return Math.abs(x - GATE.x) < GATE.halfWidth ? { id: null } : null;
+  }
   /** Dernière salle de la carte ou du donjon. */
   get lastRoom() {
     return this.roomIndex >= this.area.rooms - 1;
@@ -371,7 +397,8 @@ export class World {
       return b;
     };
     const pick = <T>(a: T[]) => a[Math.floor(r() * a.length)];
-    const fixed = (i: number) => (A.elite && i === A.elite.room) || (A.boss && i === A.rooms - 1);
+    const doorRoom = (i: number) => !!A.bossChoice?.length && i === A.rooms - 2;
+    const fixed = (i: number) => (A.elite && i === A.elite.room) || (A.boss && i === A.rooms - 1) || doorRoom(i);
     const mids = shuffle(MID_SHAPES);
     // chaque salle (hors première, élite et boss) est tirée au hasard : souvent normale, parfois spéciale, très rarement un coffre
     const special = (i: number): Special | null => {
@@ -385,7 +412,7 @@ export class World {
     };
     let k = 0;
     this.plan = [...Array(A.rooms)].map((_, i) => ({
-      shape: !island ? 'plaine' : i === 0 ? pick(FIRST_SHAPES) : fixed(i) ? pick(ELITE_SHAPES) : mids[k++ % mids.length],
+      shape: !island || doorRoom(i) ? 'plaine' : i === 0 ? pick(FIRST_SHAPES) : fixed(i) ? pick(ELITE_SHAPES) : mids[k++ % mids.length],
       mirror: r() < 0.5,
       special: special(i),
     }));
@@ -409,6 +436,7 @@ export class World {
     Object.assign(this.hero, { def, hp: def.hp, maxHp: def.hp, alive: true, swing: null, attackCd: 0, hurtT: 0, invulnT: 0, ...freshCombat() });
     this.run = freshRun(def.level);
     this.stats = freshStats();
+    this.bossPick = null;
     // nouvelle partie : autres monstres, autres salles
     this.seed = (this.seed * 48271 + 11) % 2147483647;
     this.planRun();
@@ -422,7 +450,7 @@ export class World {
     this.rnd = rng(this.seed * 977 + index * 131);
     const plan = this.plan[index] ?? { shape: 'plaine', mirror: false, special: null };
     // détour : 20 % des salles normales passent par une zone voisine (son décor et ses monstres)
-    const A0 = this.area, fixedRoom = (A0.elite && index === A0.elite.room) || (A0.boss && index === A0.rooms - 1);
+    const A0 = this.area, fixedRoom = (A0.elite && index === A0.elite.room) || (A0.boss && index === A0.rooms - 1) || (!!A0.bossChoice?.length && index === A0.rooms - 2);
     const detours = (A0.wanderers ?? []).filter((w) => w.theme);
     this.detour = detours.length && !plan.special && !fixedRoom && index > 0 && this.rnd() < WANDER_CHANCE ? detours[Math.floor(this.rnd() * detours.length)] : null;
     const theme = this.detour?.theme ?? this.area.theme;
@@ -492,7 +520,8 @@ export class World {
     if (A.boss && index === A.rooms - 1) {
       // salle du boss (grade 5) et ses monstres aguerris
       this.reserve = [];
-      this.boss = this.makeMonster(MONSTERS[A.boss.id], A.boss.grade, ROOM_W / 2, this.bounds.y0 + 170);
+      const bossId = this.bossPick && A.bossChoice?.includes(this.bossPick) ? this.bossPick : A.boss.id;
+      this.boss = this.makeMonster(MONSTERS[bossId], A.boss.grade, ROOM_W / 2, this.bounds.y0 + 170);
       this.monsters.push(this.boss);
       for (let i = 0; i < A.boss.adds; i++) {
         const p = this.findSpawn();
@@ -695,7 +724,9 @@ export class World {
     if (this.phase === 'cleared' && !this.lastRoom) {
       this.gate = Math.min(1, this.gate + STEP / 0.6);
       const h = this.hero;
-      if (this.gate >= 1 && h.alive && Math.abs(h.x - GATE.x) < GATE.halfWidth && h.y <= this.bounds.y0 + 6) {
+      const exit = this.gate >= 1 && h.alive && h.y <= this.bounds.y0 + 6 ? this.exitAt(h.x) : null;
+      if (exit) {
+        if (exit.id) this.bossPick = exit.id;
         this.phase = 'exiting';
         this.events.push({ type: 'exit' });
       }
@@ -722,7 +753,7 @@ export class World {
       const speed = h.def.speed * (1 + this.run.speed) * h.tackled;
       let [nx, ny] = this.slideMove(h.x, h.y, ix * speed * STEP, iy * speed * STEP * 0.85, h.def.radius);
       // la grille ouverte laisse passer le joueur au fond de la salle
-      const y0 = this.phase === 'cleared' && this.gate >= 1 && Math.abs(nx - GATE.x) < GATE.halfWidth ? this.bounds.y0 - 10 : this.bounds.y0;
+      const y0 = this.phase === 'cleared' && this.gate >= 1 && this.exitAt(nx) ? this.bounds.y0 - 10 : this.bounds.y0;
       nx = Math.max(this.bounds.x0, Math.min(this.bounds.x1, nx));
       ny = Math.max(y0, Math.min(this.bounds.y1, ny));
       [nx, ny] = this.pushOut(nx, ny, h.def.radius);
@@ -1071,8 +1102,18 @@ export class World {
     return d;
   }
 
+  /** Blotection : le boss et ses invocations résistent plus à un élément pendant la protection (100 % au plus). */
+  private wardCut(m: Monster, damage: number, element?: Element): number {
+    if (!element) return damage;
+    const boss = m.def.boss?.ward ? m : m.summoner !== null ? this.monsters.find((o) => o.uid === m.summoner && o.def.boss?.ward) : undefined;
+    const w = boss?.def.boss?.ward;
+    if (!boss || !w || w.element !== element || !boss.wardT || boss.wardT <= 0) return damage;
+    const r0 = Math.min(99, m.stats.resPct[element] ?? 0), r1 = Math.min(100, r0 + w.pct);
+    return Math.max(0, Math.round((damage * (100 - r1)) / (100 - r0)));
+  }
+
   private damageMonster(m: Monster, damage: number, crit: boolean, element?: Element, push = false) {
-    damage = this.armorCut(m, damage);
+    damage = this.wardCut(m, this.armorCut(m, damage), element);
     m.hp -= damage;
     this.stats.dealt += damage;
     m.hurtT = 0.18;
@@ -1208,6 +1249,15 @@ export class World {
         this.events.push({ type: 'bossCrack', uid: m.uid, x: m.x, y: m.y, radius: 60 });
       }
     }
+    if (b.ward) {
+      m.wardT = Math.max(0, (m.wardT ?? 0) - STEP);
+      m.wardCdT = (m.wardCdT ?? 2) - STEP;
+      if (m.wardCdT <= 0) {
+        m.wardCdT = b.ward.every;
+        m.wardT = b.ward.duration;
+        this.events.push({ type: 'ward', uid: m.uid, x: m.x, y: m.y, spell: b.ward.spell, element: b.ward.element });
+      }
+    }
     if (b.nova) m.novaT = (m.novaT ?? b.nova.every * 0.5) - STEP;
     if (b.crackEvery > 0) m.crackT -= STEP;
     if (b.crackEvery > 0 && m.crackT <= 0) {
@@ -1249,6 +1299,28 @@ export class World {
       }
     }
     this.stepSummon(m, { every: b.summonEvery, id: b.summon, max: b.maxSummons, count: b.summonCount });
+  }
+
+  /** Gloutage (Gloutoblop) : dévore l'allié le plus proche (jamais un boss), qui meurt sans rien rapporter, et lui vole des PV. */
+  private stepGlutton(m: Monster, k: NonNullable<MonsterDef['glutton']>) {
+    m.gluttonT = (m.gluttonT ?? k.every) - STEP;
+    if (m.gluttonT > 0) return;
+    const prey = this.monsters
+      .filter((o) => o !== m && o.state !== 'dead' && o.state !== 'spawn' && !o.def.boss && !o.def.glutton && flatDist(o.x, o.y, m.x, m.y) <= k.radius + o.def.radius)
+      .sort((a, b) => flatDist(a.x, a.y, m.x, m.y) - flatDist(b.x, b.y, m.x, m.y))[0];
+    if (!prey) {
+      m.gluttonT = 0.5;
+      return;
+    }
+    m.gluttonT = k.every;
+    prey.hp = 0;
+    prey.state = 'dead';
+    prey.t = 0;
+    this.events.push({ type: 'death', uid: prey.uid, x: prey.x, y: prey.y });
+    for (const s of this.monsters) if (s.summoner === prey.uid && s.state !== 'dead') this.kill(s);
+    m.maxHp += k.gain;
+    m.hp += k.gain;
+    this.events.push({ type: 'monsterHeal', uid: m.uid, x: m.x, y: m.y, amount: k.gain, spell: k.spell });
   }
 
   /** Soutien (Picota, Mutation Prolifique, Bénédiction du Tofulailler) : soin du plus blessé ou bénédiction des alliés proches. */
@@ -1325,6 +1397,7 @@ export class World {
     if (m.def.boss && h.alive) this.stepBoss(m);
     if (m.def.summons && h.alive) this.stepSummon(m, m.def.summons);
     if (m.def.support && h.alive) this.stepSupport(m, m.def.support);
+    if (m.def.glutton && h.alive) this.stepGlutton(m, m.def.glutton);
     m.blessT = Math.max(0, m.blessT - STEP);
     m.contactT = Math.max(0, m.contactT - STEP);
 

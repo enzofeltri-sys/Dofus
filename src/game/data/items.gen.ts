@@ -1450,6 +1450,10 @@ export const ITEM_DATA: Record<number, ItemData> = {
   885: { id: 885, name: "Laine de Boufton Noir", level: 26, type: "Laine", slot: null, icon: 57210, set: null, effects: [] },
   1672: { id: 1672, name: "Poils de Darit", level: 26, type: "Poil", slot: null, icon: 54555, set: null, effects: [] },
   1690: { id: 1690, name: "Poils du Milimulou", level: 26, type: "Poil", slot: null, icon: 54554, set: null, effects: [] },
+  1770: { id: 1770, name: "Bout de Blop Coco", level: 26, type: "Ressource diverse", slot: null, icon: 15281, set: null, effects: [] },
+  1773: { id: 1773, name: "Bout de Blop Reinette", level: 26, type: "Ressource diverse", slot: null, icon: 15284, set: null, effects: [] },
+  1775: { id: 1775, name: "Bout de Blop Griotte", level: 26, type: "Ressource diverse", slot: null, icon: 15286, set: null, effects: [] },
+  1777: { id: 1777, name: "Bout de Blop Indigo", level: 26, type: "Ressource diverse", slot: null, icon: 15288, set: null, effects: [] },
   2322: { id: 2322, name: "Crocs de Rats", level: 26, type: "Os", slot: null, icon: 47464, set: null, effects: [] },
   2451: { id: 2451, name: "Patte d'Arakne des Égouts", level: 26, type: "Patte", slot: null, icon: 25159, set: null, effects: [] },
   2453: { id: 2453, name: "Œil de Ramane Strubien", level: 26, type: "Œil", slot: null, icon: 25158, set: null, effects: [] },
@@ -1563,6 +1567,7 @@ export const ITEM_DATA: Record<number, ItemData> = {
   416: { id: 416, name: "Plume du Kwak de Vent", level: 44, type: "Plume", slot: null, icon: 53113, set: null, effects: [] },
   1141: { id: 1141, name: "Plume du Kwak de Terre", level: 44, type: "Plume", slot: null, icon: 53223, set: null, effects: [] },
   1142: { id: 1142, name: "Bec du Kwak de Terre", level: 44, type: "Os", slot: null, icon: 47222, set: null, effects: [] },
+  2558: { id: 2558, name: "Blop mort", level: 44, type: "Ressource diverse", slot: null, icon: 15568, set: null, effects: [] },
   2648: { id: 2648, name: "Griffes de Kwak", level: 44, type: "Ressource diverse", slot: null, icon: 15624, set: null, effects: [] },
   2649: { id: 2649, name: "Ver de Terre", level: 44, type: "Ressource diverse", slot: null, icon: 15625, set: null, effects: [] },
   2650: { id: 2650, name: "Ver d'Eau", level: 44, type: "Ressource diverse", slot: null, icon: 15626, set: null, effects: [] },
@@ -1609,7 +1614,9 @@ export const ITEM_DATA: Record<number, ItemData> = {
   18723: { id: 18723, name: "Rune Ré Per Mé", level: 50, type: "Rune de forgemagie", slot: null, icon: 78095, set: null, effects: [] },
   18724: { id: 18724, name: "Rune Ré Per Di", level: 50, type: "Rune de forgemagie", slot: null, icon: 78096, set: null, effects: [] },
   29684: { id: 29684, name: "Rune Ra Do Pou", level: 50, type: "Rune de forgemagie", slot: null, icon: 78273, set: null, effects: [] },
+  9383: { id: 9383, name: "Racine de Tronkoblop", level: 52, type: "Racine", slot: null, icon: 98001, set: null, effects: [] },
   14458: { id: 14458, name: "Queue de Black Wabbit", level: 52, type: "Queue", slot: null, icon: 65765, set: null, effects: [] },
+  9382: { id: 9382, name: "Fleur de Blopignon", level: 54, type: "Fleur", slot: null, icon: 35008, set: null, effects: [] },
   11637: { id: 11637, name: "Rune Fui", level: 55, type: "Rune de forgemagie", slot: null, icon: 78076, set: null, effects: [] },
   11639: { id: 11639, name: "Rune Tac", level: 55, type: "Rune de forgemagie", slot: null, icon: 78077, set: null, effects: [] },
   406: { id: 406, name: "Estomac de Wo Wabbit", level: 56, type: "Ressource diverse", slot: null, icon: 15146, set: null, effects: [] },
@@ -1620,6 +1627,13 @@ export const ITEM_DATA: Record<number, ItemData> = {
   962: { id: 962, name: "Morceau de clef du Midi Wayonnant", level: 60, type: "Clef", slot: null, icon: 24004, set: null, effects: [] },
   8397: { id: 8397, name: "Poil du Wa Wabbit", level: 60, type: "Poil", slot: null, icon: 54667, set: null, effects: [] },
   8398: { id: 8398, name: "Étoffe du Wa Wabbit", level: 60, type: "Étoffe", slot: null, icon: 55723, set: null, effects: [] },
+  9248: { id: 9248, name: "Clef du Clos des Blops", level: 60, type: "Clef", slot: null, icon: 84248, set: null, effects: [] },
+  9381: { id: 9381, name: "Fleur de Gloutoblop", level: 60, type: "Fleur", slot: null, icon: 35007, set: null, effects: [] },
+  9384: { id: 9384, name: "Fleur de Blop Griotte Royal", level: 60, type: "Fleur", slot: null, icon: 35012, set: null, effects: [] },
+  9385: { id: 9385, name: "Fleur de Blop Coco Royal", level: 60, type: "Fleur", slot: null, icon: 35009, set: null, effects: [] },
+  9386: { id: 9386, name: "Fleur de Blop Indigo Royal", level: 60, type: "Fleur", slot: null, icon: 35011, set: null, effects: [] },
+  9387: { id: 9387, name: "Fleur de Blop Reinette Royal", level: 60, type: "Fleur", slot: null, icon: 35010, set: null, effects: [] },
+  9388: { id: 9388, name: "Feuille de Blop Royal", level: 60, type: "Plante", slot: null, icon: 36013, set: null, effects: [] },
   11638: { id: 11638, name: "Rune Pa Fui", level: 60, type: "Rune de forgemagie", slot: null, icon: 78075, set: null, effects: [] },
   11640: { id: 11640, name: "Rune Pa Tac", level: 60, type: "Rune de forgemagie", slot: null, icon: 78078, set: null, effects: [] },
   14464: { id: 14464, name: "Clef du Château du Wa Wabbit", level: 60, type: "Clef", slot: null, icon: 84726, set: null, effects: [] },
@@ -1640,11 +1654,16 @@ export const ITEM_DATA: Record<number, ItemData> = {
   7560: { id: 7560, name: "Rune Ré Per Eau", level: 75, type: "Rune de forgemagie", slot: null, icon: 78031, set: null, effects: [] },
   7433: { id: 7433, name: "Rune Cri", level: 80, type: "Rune de forgemagie", slot: null, icon: 78014, set: null, effects: [] },
   7434: { id: 7434, name: "Rune So", level: 80, type: "Rune de forgemagie", slot: null, icon: 78013, set: null, effects: [] },
+  9249: { id: 9249, name: "Morceau de clef Griotte", level: 80, type: "Clef", slot: null, icon: 84250, set: null, effects: [] },
+  9250: { id: 9250, name: "Morceau de clef Reinette", level: 80, type: "Clef", slot: null, icon: 84251, set: null, effects: [] },
+  9251: { id: 9251, name: "Morceau de clef Coco", level: 80, type: "Clef", slot: null, icon: 84252, set: null, effects: [] },
+  9252: { id: 9252, name: "Morceau de clef Indigo", level: 80, type: "Clef", slot: null, icon: 84249, set: null, effects: [] },
   7442: { id: 7442, name: "Rune Invo", level: 85, type: "Rune de forgemagie", slot: null, icon: 78019, set: null, effects: [] },
   7438: { id: 7438, name: "Rune Po", level: 90, type: "Rune de forgemagie", slot: null, icon: 78018, set: null, effects: [] },
   19337: { id: 19337, name: "Rune Pa So", level: 90, type: "Rune de forgemagie", slot: null, icon: 78099, set: null, effects: [] },
   1558: { id: 1558, name: "Rune Ga Pme", level: 95, type: "Rune de forgemagie", slot: null, icon: 78056, set: null, effects: [] },
   1557: { id: 1557, name: "Rune Ga Pa", level: 100, type: "Rune de forgemagie", slot: null, icon: 78055, set: null, effects: [] },
+  9254: { id: 9254, name: "Clef de l'antre du Blop Multicolore", level: 120, type: "Clef", slot: null, icon: 84253, set: null, effects: [] },
 };
 
 export const SET_DATA: Record<number, ItemSetData> = {
@@ -2026,6 +2045,25 @@ export const DUNGEON_DROPS: Record<number, [number, number][]> = {
   2294: [[361, 8.12], [962, 10.0], [14460, 97.0], [14461, 8.12], [17130, 97.0]],
   2308: [[305, 92.0], [361, 7.64], [406, 7.64], [649, 46.0], [961, 10.0], [17132, 92.0]],
   2498: [[418, 92.0], [419, 92.0], [961, 10.0], [17132, 92.0]],
+  273: [[1770, 46.0], [2558, 7.6], [17132, 46.0]],
+  274: [[1777, 46.0], [2558, 7.6], [17132, 46.0]],
+  275: [[1775, 46.0], [2558, 7.6], [17132, 46.0]],
+  276: [[1773, 46.0], [2558, 7.6], [17132, 46.0]],
+  277: [[1777, 54.0], [2558, 8.9], [17126, 54.0]],
+  278: [[1770, 54.0], [2558, 8.9], [17126, 54.0]],
+  279: [[1775, 54.0], [2558, 8.9], [17126, 54.0]],
+  280: [[1773, 54.0], [2558, 8.9], [17126, 54.0]],
+  1181: [[2558, 7.6], [9381, 46.0], [17132, 46.0]],
+  1182: [[2558, 7.6], [9382, 46.0], [17132, 46.0]],
+  1183: [[2558, 7.64], [9383, 46.0], [17132, 46.0]],
+  2404: [[1770, 92.0], [2558, 7.6], [17132, 92.0]],
+  2405: [[1775, 92.0], [2558, 7.6], [17132, 92.0]],
+  2406: [[1777, 92.0], [2558, 7.6], [17132, 92.0]],
+  2407: [[1773, 92.0], [2558, 7.6], [17132, 92.0]],
+  1184: [[2558, 7.6], [9251, 100.0], [9385, 7.6], [9388, 45.0], [17133, 2.29]],
+  1185: [[2558, 7.6], [9249, 100.0], [9384, 7.6], [9388, 45.0], [17133, 2.29]],
+  1186: [[2558, 7.6], [9252, 100.0], [9386, 7.6], [9388, 45.0], [17133, 2.29]],
+  1187: [[2558, 7.6], [9250, 100.0], [9387, 7.6], [9388, 45.0], [17133, 2.29]],
 };
 
 /** Butin de la région Incarnam : drops des monstres du monde ouvert de niveau ±10 (objet, %, monstre). */
@@ -2421,6 +2459,7 @@ export const RECIPE_DATA: { id: number; level: number; ingredients: [number, num
   { id: 12017, level: 50, ingredients: [[414, 2], [415, 2], [416, 2], [1141, 2], [17130, 2]] },
   { id: 6492, level: 60, ingredients: [[14459, 7], [14460, 8], [14458, 1], [8398, 1]] },
   { id: 6501, level: 60, ingredients: [[14460, 6], [418, 6], [361, 4], [8398, 1]] },
+  { id: 9248, level: 60, ingredients: [[1770, 2], [1775, 2], [1777, 2], [1773, 2], [17132, 2]] },
   { id: 14464, level: 60, ingredients: [[961, 1], [962, 1], [17132, 2]] },
 ];
 
@@ -2428,7 +2467,7 @@ export const RECIPE_DATA: { id: number; level: number; ingredients: [number, num
 /** Équipement de zone : tous les vrais équipements (niveau ≤ 60) qui peuvent tomber dans la tranche de leur zone. */
 export const ZONE_EQUIP: number[] = [44, 49, 55, 58, 62, 65, 66, 67, 70, 77, 84, 91, 97, 103, 112, 121, 127, 130, 134, 140, 147, 153, 156, 157, 158, 159, 161, 165, 181, 183, 188, 194, 201, 202, 203, 208, 214, 218, 224, 230, 235, 236, 237, 241, 247, 251, 255, 259, 263, 267, 270, 271, 272, 273, 278, 279, 280, 296, 298, 299, 320, 323, 324, 325, 326, 327, 328, 329, 331, 332, 333, 334, 335, 336, 337, 339, 340, 341, 342, 346, 347, 348, 354, 355, 356, 357, 358, 359, 436, 455, 456, 458, 462, 469, 478, 484, 502, 592, 610, 616, 617, 629, 638, 639, 640, 657, 658, 673, 674, 675, 676, 677, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 708, 709, 710, 711, 712, 732, 733, 734, 742, 744, 754, 758, 759, 765, 766, 767, 768, 769, 771, 772, 773, 774, 775, 776, 777, 778, 779, 781, 782, 783, 784, 785, 786, 787, 789, 790, 791, 821, 824, 827, 828, 829, 832, 835, 836, 837, 841, 849, 850, 851, 852, 853, 856, 860, 861, 862, 863, 864, 867, 889, 892, 896, 900, 905, 909, 911, 916, 919, 924, 928, 934, 937, 940, 941, 942, 947, 948, 949, 952, 953, 954, 955, 956, 957, 967, 968, 969, 970, 971, 976, 1019, 1021, 1029, 1030, 1031, 1035, 1041, 1045, 1049, 1054, 1058, 1059, 1063, 1067, 1071, 1075, 1079, 1087, 1088, 1095, 1104, 1112, 1116, 1120, 1124, 1131, 1132, 1136, 1140, 1147, 1151, 1157, 1162, 1331, 1350, 1351, 1352, 1353, 1354, 1355, 1356, 1357, 1359, 1360, 1361, 1363, 1364, 1365, 1366, 1367, 1368, 1369, 1370, 1371, 1372, 1373, 1374, 1375, 1376, 1377, 1378, 1379, 1383, 1393, 1399, 1403, 1404, 1426, 1427, 1431, 1432, 1433, 1436, 1474, 1475, 1476, 1477, 1478, 1479, 1480, 1481, 1482, 1483, 1484, 1485, 1486, 1487, 1489, 1490, 1491, 1493, 1494, 1495, 1496, 1497, 1498, 1499, 1500, 1503, 1504, 1559, 1574, 1602, 1619, 1620, 1621, 1622, 1623, 1624, 1628, 1629, 1630, 1631, 1632, 1633, 1639, 1656, 1657, 1661, 1662, 1665, 1666, 1667, 1668, 1693, 1700, 1701, 1718, 1719, 1720, 1729, 1908, 1910, 1934, 1942, 2061, 2063, 2066, 2070, 2094, 2095, 2096, 2097, 2104, 2154, 2155, 2156, 2233, 2367, 2368, 2370, 2371, 2372, 2374, 2376, 2380, 2382, 2383, 2386, 2388, 2389, 2390, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2403, 2404, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2419, 2420, 2421, 2422, 2423, 2424, 2425, 2426, 2427, 2428, 2429, 2435, 2438, 2440, 2441, 2442, 2443, 2444, 2445, 2446, 2447, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478, 2485, 2489, 2498, 2521, 2522, 2523, 2524, 2530, 2531, 2532, 2534, 2535, 2537, 2587, 2589, 2590, 2592, 2593, 2595, 2597, 2601, 2637, 2640, 2641, 2678, 2681, 2683, 2685, 2687, 2688, 2689, 2710, 2803, 2809, 2810, 3203, 3204, 3205, 3207, 3356, 3357, 4684, 6459, 6462, 6463, 6464, 6466, 6468, 6471, 6491, 6492, 6493, 6498, 6499, 6500, 6501, 6503, 6508, 6513, 6524, 6527, 6719, 6720, 6721, 6722, 6723, 6724, 6725, 6731, 6732, 6746, 6747, 6748, 6749, 6750, 6751, 6752, 6753, 6754, 6755, 6756, 6757, 6758, 6759, 6760, 6761, 6773, 6780, 6781, 6782, 6783, 6784, 6785, 6786, 6789, 6791, 6792, 6793, 6794, 6795, 6796, 6797, 6839, 6840, 6908, 6909, 6910, 6911, 6912, 6913, 6914, 6915, 6916, 6917, 6918, 6919, 6920, 6921, 6922, 6923, 6924, 6925, 6926, 6927, 6928, 6929, 6933, 6934, 6935, 6936, 6937, 6938, 6939, 6940, 6941, 6942, 6943, 6944, 6945, 6946, 6947, 6948, 6949, 6950, 6951, 6955, 6956, 6961, 6982, 6991, 6992, 6993, 6994, 6996, 6999, 7000, 7001, 7031, 7039, 7040, 7102, 7106, 7107, 7108, 7109, 7110, 7116, 7117, 7119, 7120, 7121, 7122, 7128, 7131, 7132, 7137, 7167, 7173, 7174, 7177, 7200, 7204, 7208, 7209, 7212, 7214, 7216, 7219, 7226, 7230, 7238, 7242, 7245, 7246, 7249, 7250, 7254, 7341, 7342, 7552, 7553, 7554, 7555, 8003, 8004, 8006, 8008, 8009, 8108, 8109, 8110, 8111, 8112, 8113, 8114, 8116, 8117, 8118, 8119, 8120, 8121, 8122, 8123, 8124, 8125, 8126, 8127, 8128, 8129, 8130, 8131, 8132, 8133, 8134, 8136, 8162, 8213, 8214, 8215, 8216, 8217, 8218, 8219, 8220, 8221, 8222, 8223, 8224, 8225, 8226, 8227, 8228, 8229, 8230, 8231, 8232, 8233, 8234, 8235, 8236, 8237, 8238, 8239, 8240, 8241, 8242, 8243, 8244, 8245, 8246, 8247, 8248, 8253, 8254, 8255, 8256, 8257, 8258, 8259, 8333, 8334, 8338, 8341, 8513, 8527, 8533, 8534, 8535, 8536, 8537, 8538, 8627, 8854, 8860, 8872, 8873, 8881, 8918, 8919, 9031, 9122, 9123, 9124, 9125, 9149, 9150, 9151, 9152, 9158, 9159, 9160, 9161, 9167, 9168, 9169, 9170, 9186, 9192, 9193, 9198, 9199, 9366, 9402, 9408, 9409, 9412, 9413, 9416, 9452, 9453, 9454, 9455, 9542, 9543, 9549, 9575, 9576, 9627, 9655, 9656, 9658, 9659, 9662, 9667, 9921, 9922, 9923, 9925, 9927, 9928, 9929, 9942, 9943, 9944, 9961, 9972, 9974, 10054, 10055, 10056, 10058, 10061, 10102, 10155, 10156, 10157, 10168, 10171, 10172, 10173, 10180, 10181, 10186, 10189, 10190, 10191, 10557, 10558, 10559, 10560, 10561, 10562, 10623, 10624, 10625, 10627, 10628, 10629, 10631, 10632, 10633, 10635, 10636, 10637, 10639, 10640, 10641, 10643, 10644, 10645, 10685, 10686, 10687, 10688, 10818, 10828, 10830, 10834, 10847, 10848, 10849, 10850, 10851, 10852, 10853, 10854, 10855, 10955, 10956, 10963, 10964, 10965, 10976, 10977, 10978, 10980, 10981, 10982, 10987, 10990, 11042, 11051, 11052, 11057, 11058, 11080, 11082, 11083, 11085, 11087, 11091, 11092, 11306, 11343, 11344, 11345, 11346, 11347, 11348, 11350, 11351, 11352, 11354, 11355, 11356, 11358, 11359, 11360, 11362, 11363, 11364, 11378, 11379, 11384, 11386, 11395, 11396, 11399, 11400, 11416, 11419, 11811, 11816, 11855, 11856, 11857, 11976, 11977, 11978, 11979, 11980, 11981, 11982, 11983, 12018, 12019, 12020, 12021, 12023, 12024, 12025, 12027, 12028, 12029, 12031, 12032, 12033, 12035, 12036, 12037, 12039, 12040, 12041, 12043, 12044, 12045, 12379, 12380, 12409, 12410, 12411, 12414, 12417, 12421, 12423, 12463, 12465, 12466, 12502, 12598, 12599, 12657, 12658, 12671, 12672, 12753, 12754, 12756, 12757, 12848, 12849, 12850, 12851, 12882, 12883, 12887, 12888, 13017, 13018, 13020, 13022, 13091, 13092, 13093, 13094, 13136, 13137, 13138, 13139, 13170, 13297, 13298, 13301, 13302, 13303, 13304, 13320, 13321, 13423, 13459, 13460, 13582, 13891, 13893, 14271, 14302, 14304, 14310, 14311, 14589, 14593, 14597, 14601, 14605, 14609, 14613, 14617, 14621, 14625, 14629, 14633, 14644, 14798, 14803, 14806, 15015, 15016, 15017, 15099, 15100, 15240, 15241, 15524, 15525, 15526, 15548, 15549, 15794, 15795, 15796, 15990, 15992, 15993, 15994, 15995, 15996, 15998, 16171, 16172, 16239, 16240, 16500, 16501, 16502, 16503, 16504, 16505, 16527, 17012, 17013, 17213, 17214, 17292, 17293, 17294, 17295, 17300, 17301, 17302, 17303, 17456, 17457, 17487, 17488, 17495, 17496, 17502, 17503, 17504, 17506, 17507, 17508, 17524, 17525, 17733, 17734, 17849, 18229, 18230, 18529, 18530, 18639, 18640, 18659, 18665, 18666, 18668, 18669, 18672, 18676, 18682, 18687, 18691, 18710, 18714, 18808, 19116, 19622, 19637, 20850, 20851, 20852, 26336, 26337, 26343, 26344, 27268, 27522, 27523, 27524, 27527, 27529, 27530, 27531, 27532, 27533, 27534, 27535, 27536, 29463, 30681, 30687, 30691, 30701, 30828, 33559, 33560, 33561, 34252, 34253, 34254, 34255, 34256, 34257];
 
-export const DUNGEON_KEYS: Record<string, number> = {"crypte": 8545, "grange": 8143, "chateau": 8437, "cour": 1568, "tofus": 7918, "scaraDonjon": 8139, "squelettes": 1570, "maisonFantome": 11799, "nidKwakwa": 12017, "donjonBworks": 8135, "chateauWabbit": 14464};
+export const DUNGEON_KEYS: Record<string, number> = {"crypte": 8545, "grange": 8143, "chateau": 8437, "cour": 1568, "tofus": 7918, "scaraDonjon": 8139, "squelettes": 1570, "maisonFantome": 11799, "nidKwakwa": 12017, "donjonBworks": 8135, "chateauWabbit": 14464, "closBlops": 9248};
 
 /** Runes de forgemagie réelles : rune, stat, valeur apportée. */
 export const RUNE_DATA: [number, string, number][] = [

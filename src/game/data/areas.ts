@@ -10,7 +10,8 @@ export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | '
   | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords'
   | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome'
   | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks'
-  | 'cawotte' | 'couronne' | 'chateauWabbit';
+  | 'cawotte' | 'couronne' | 'chateauWabbit'
+  | 'lacCania' | 'closBlops';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -40,6 +41,8 @@ export interface AreaDef {
   /** Élite (mini-boss) : salle, monstre, grade, accompagnants. */
   elite?: { room: number; id: string; grade: number; adds: number; addGrade: number };
   boss?: { id: string; grade: number; adds: number };
+  /** Boss au choix (Clos des Blops, choix d'Enzo) : la salle d'avant a une porte par boss ; la porte prise décide du boss. */
+  bossChoice?: string[];
   /** Archimonstres de la zone (1 % des monstres, plus forts, meilleur butin). */
   archis?: string[];
   /** Monstres errants possibles (rencontres) : nom affiché et monstres du groupe. */
@@ -414,6 +417,27 @@ export const CHATEAU_WABBIT: AreaDef = {
   theme: 'chateauWabbit',
 };
 
+/** Niveaux 51-60, deuxième donjon (validé par Enzo) : Lac de Cania, Clos des Blops (un Blop Royal par partie, choisi par une porte). */
+export const LAC_CANIA: AreaDef = {
+  id: 'lacCania', name: 'Lac de Cania', kind: 'map', zone: 'amakna', level: 55, winsNeeded: 3,
+  sub: '5 salles · élite : Blop Coco d’élite · 3 victoires',
+  rooms: 5, pool: ['blopCoco', 'blopGriotte', 'blopIndigo', 'blopReinette'], count: { base: 4, perRoom: 0.7, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'blopCocoElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2404', 'archi2405', 'archi2406', 'archi2407'],
+  theme: 'lacCania',
+};
+
+export const CLOS_BLOPS: AreaDef = {
+  id: 'closBlops', name: 'Clos des Blops', kind: 'dungeon', zone: 'amakna', level: 60,
+  sub: '7 salles · mini-boss · 4 portes : un Blop Royal au choix',
+  rooms: 7, pool: ['blopCoco', 'blopGriotte', 'blopIndigo', 'blopReinette', 'gloutoblop', 'blopignon', 'tronkoblop'], count: { base: 4, perRoom: 0.7, max: 9 }, waveFrom: 2,
+  elite: { room: 3, id: 'blopignonElite', grade: 5, adds: 3, addGrade: 3 },
+  boss: { id: 'blopCocoRoyal', grade: 5, adds: 2 },
+  bossChoice: ['blopCocoRoyal', 'blopGriotteRoyal', 'blopIndigoRoyal', 'blopReinetteRoyal'],
+  archis: ['archi2404', 'archi2405', 'archi2406', 'archi2407'],
+  theme: 'closBlops',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -523,6 +547,13 @@ export const ZONES: Zone[] = [
       { id: 'chateauWabbit', name: 'Château du Wa Wabbit', level: 60, kind: 'dungeon', area: CHATEAU_WABBIT, needs: ['cawotte', 'couronne'] },
     ],
   },
+  {
+    id: 'blops', name: 'Les Blops',
+    nodes: [
+      { id: 'lacCania', name: 'Lac de Cania', level: 55, kind: 'map', area: LAC_CANIA, needs: [], needsAny: ['nidKwakwa', 'donjonBworks'] },
+      { id: 'closBlops', name: 'Clos des Blops', level: 60, kind: 'dungeon', area: CLOS_BLOPS, needs: ['lacCania'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -534,6 +565,7 @@ export const AREAS: Record<string, AreaDef> = {
   cimetiereAmakna: CIMETIERE_AMAKNA, cryptes: CRYPTES, squelettes: SQUELETTES, maisonFantome: MAISON_FANTOME,
   craqueleurs: CRAQUELEURS, nidKwakwa: NID_KWAKWA, campementBworks: CAMPEMENT_BWORKS, villageBworks: VILLAGE_BWORKS, donjonBworks: DONJON_BWORKS,
   cawotte: CAWOTTE, couronne: COURONNE, chateauWabbit: CHATEAU_WABBIT,
+  lacCania: LAC_CANIA, closBlops: CLOS_BLOPS,
 };
 
 /** Étapes jouables et débloquées. */
@@ -542,7 +574,7 @@ export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.incl
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
-  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60],
+  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60], blops: [51, 60],
 };
 
 /** Zone de l'arbre qui contient cette carte ou ce donjon. */

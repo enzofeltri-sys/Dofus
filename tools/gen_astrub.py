@@ -168,6 +168,23 @@ d('grandPaWabbit', 99, 'grandPaWabbit', 'caster', 110, 26, 1.15, "{ shape: 'circ
   'Cawotte Explosive : Feu 36-45 à 0-7 cases, 1 fois par tour ; Cawotte Vitaminée : soigne un allié de 21-30 PV, 1 fois par tour ; 3 PM. Cawotte Pawalysante (-2 PA, -2 PM) non reprise',
   ", support: { name: 'Cawotte Vitaminée', every: 4, radius: 160, heal: [21, 30] }")
 
+# Niveaux 51-60, deuxième donjon (validé par Enzo) : Lac de Cania, Clos des Blops
+BLOP_ATK = MEL('air', 4, 6)
+for bid, did, col in [('blopCoco', 273, 'Coco'), ('blopIndigo', 274, 'Indigo'), ('blopGriotte', 275, 'Griotte'), ('blopReinette', 276, 'Reinette')]:
+    d(bid, did, bid, 'melee', 140, 30, 1.1, BLOP_ATK,
+      'Bibloperie : Air 17-24 à 1-2 cases ; Biblopition : invoque un Biblop tous les 5 tours (ici un Biblop de sa couleur ; dans Dofus la couleur dépend du grade) ; 4 PM. Blopition (un Blop tous les 10 tours), Blyphe (glyphe -PM) et Cache Biblop (invisibilité) ne sont pas repris',
+      f", summons: {{ first: 6, every: 20, id: 'biblop{col}', max: 2 }}")
+    d('biblop' + col, {'Coco': 278, 'Indigo': 277, 'Griotte': 279, 'Reinette': 280}[col], bid, 'melee', 150, 20, 0.6, MEL('air', 4, 6),
+      'Bibloperie : Air 17-24 au contact ; 4 PM (invoqué par les Blops et les Blops Royaux)')
+d('gloutoblop', 1181, 'gloutoblop', 'melee', 130, 34, 1.2, "{ shape: 'circle', trigger: 0, size: 0, spread: 0, offset: 0, windup: 0.5, recover: 0.3, cooldown: [9, 9], roll: neutre(0, 0) }",
+  'Gloutage : dévore un Blop allié au contact (il le tue) et lui vole 200 PV ; il n\'attaque pas le héros (son seul sort, comme dans Dofus) ; 4 PM',
+  ", glutton: { every: 8, radius: 150, gain: 200, spell: 'Gloutage' }")
+d('blopignon', 1182, 'blopignon', 'melee', 155, 28, 1.1, MEL('air', 5, 8),
+  'Bloblo : Air 21-30 au contact (le vol d\'1 PM n\'est pas repris) ; Blopiction (Eau 31-40 à distance, -4 PO) et Bloprojection non reprises ; 5 PM')
+d('tronkoblop', 1183, 'tronkoblop', 'brute', 55, 30, 1.15, "{ shape: 'circle', trigger: 115, size: 95, spread: 0, offset: 0, windup: 0.6, recover: 0.35, cooldown: [1.6, 2.2], roll: roll('feu', 5, 8), steal: true }",
+  'Blopzone : vol de vie Feu 21-30 autour de lui ; Blopsoin : soigne ses alliés de 21-30 PV tous les 2 tours ; 2 PM (presque immobile). Le +1 PM des alliés et Blopium ne sont pas repris',
+  ", support: { name: 'Blopsoin', every: 8, radius: 200, heal: [21, 30] }")
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -178,7 +195,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2319, 'chafer'), (2276, 'rib'), (2321, 'chaferInvisible'), (2357, 'tofuMalefique'), (2522, 'kwoan'), (2421, 'chaferFantassin'), (2302, 'vampire'), (2532, 'maitreVampire'),
          (2549, 'boostachePrepubere'),
          (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage'),
-         (2304, 'wabbit'), (2403, 'blackWabbit'), (2293, 'tiwabbit'), (2402, 'blackTiwabbit'), (2294, 'tiwabbitKiafin'), (2308, 'woWabbit'), (2498, 'grandPaWabbit')]
+         (2304, 'wabbit'), (2403, 'blackWabbit'), (2293, 'tiwabbit'), (2402, 'blackTiwabbit'), (2294, 'tiwabbitKiafin'), (2308, 'woWabbit'), (2498, 'grandPaWabbit'),
+         (2404, 'blopCoco'), (2405, 'blopGriotte'), (2406, 'blopIndigo'), (2407, 'blopReinette')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -186,7 +204,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits ; Blops) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

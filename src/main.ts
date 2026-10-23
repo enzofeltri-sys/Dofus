@@ -150,7 +150,7 @@ async function main() {
   } as Record<MonsterArt, Texture[]>;
   /** Dessins des monstres d'une carte, préparés à l'entrée (pas tous au démarrage : il y en a beaucoup). */
   const loadArea = async (A: AreaDef) => {
-    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);
+    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.bossChoice ?? []), ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);
     for (const id of [...ids]) {
       const d = MONSTERS[id], sm = d.boss?.summon;
       for (const x of [...[d.summons?.id ?? []].flat(), ...(Array.isArray(sm) ? sm : [sm])]) if (x) ids.add(x);
@@ -406,6 +406,10 @@ async function main() {
     <path d="M15,22 L15,64" stroke="#fff" stroke-width="2" opacity="0.6" stroke-linecap="round"/></svg>`, CR);
   const swordViews = new Map<number, Container>();
   let gateBars: Sprite;
+  /** Portes du Clos des Blops (salle d'avant le boss). */
+  let doorViews: { c: Container; glow: Sprite; x: number }[] = [];
+  const DOOR_COLORS: Record<string, number> = { blopCocoRoyal: 0xf2c84a, blopGriotteRoyal: 0xe0484a, blopIndigoRoyal: 0x3ac8d0, blopReinetteRoyal: 0x8ad04a };
+  const DOOR_NAMES: Record<string, string> = { blopCocoRoyal: 'Coco · Air', blopGriotteRoyal: 'Griotte · Feu', blopIndigoRoyal: 'Indigo · Eau', blopReinetteRoyal: 'Reinette · Terre' };
   let gateGlow: Sprite;
   let dust: { s: Sprite; x: number; y: number; vx: number; vy: number; ph: number }[] = [];
 
@@ -476,6 +480,25 @@ async function main() {
     const gateMask = new Graphics().rect(GATE.x - 80, FLOOR_TOP - 200, 160, 202).fill(0xffffff);
     wallFx.addChild(gateMask, gateBars);
     gateBars.mask = gateMask;
+    // Clos des Blops (choix d'Enzo) : 4 portes aux couleurs des Blops Royaux à la place de la grille ; chacune mène à un boss
+    doorViews = game.doors.map((d) => {
+      const col = DOOR_COLORS[d.id] ?? 0xffffff;
+      const c = new Container();
+      c.position.set(d.x, FLOOR_TOP + 2);
+      const glowS = addGlow(d.x, FLOOR_TOP - 60, col, 2.0, 0.0).s;
+      const arch = new Graphics()
+        .roundRect(-46, -128, 92, 128, 46).fill({ color: 0x1a120a, alpha: 0.85 })
+        .roundRect(-46, -128, 92, 128, 46).stroke({ width: 7, color: col })
+        .roundRect(-34, -112, 68, 112, 34).fill({ color: col, alpha: 0.35 });
+      const label = new Text({ text: DOOR_NAMES[d.id] ?? '', style: { fontFamily: 'Lilita One', fontSize: 22, fill: '#fffaf0', stroke: { color: '#3b2414', width: 5, join: 'round' } } });
+      label.anchor.set(0.5);
+      label.position.set(0, -150);
+      label.resolution = RES * 1.2;
+      c.addChild(arch, label);
+      wallFx.addChild(c);
+      return { c, glow: glowS, x: d.x };
+    });
+    gateBars.visible = gateGlow.visible = doorViews.length === 0;
 
     for (const p of game.layout) {
       const { tex, art } = propTex.get(p.kind)!;
@@ -795,7 +818,14 @@ async function main() {
         numberAt(ev.x + 22, ev.y - 150 * CHAR_SCALE, `+${ev.amount}`, '#8bc25a');
         break;
       case 'roomCleared':
-        hud.toast('Salle terminée !');
+        hud.toast(game.doors.length ? 'Choisis une porte : chacune mène à un Blop Royal différent' : 'Salle terminée !', game.doors.length ? 2600 : undefined);
+        break;
+      case 'ward':
+        // Blotection : bouclier de l'élément sur le boss et ses invocations
+        hud.toast(`${ev.spell} : résistance ${ev.element === 'air' ? 'Air' : ev.element} +100 %`, 1400);
+        addFx(0.8, (g, k) => {
+          g.clear().ellipse(0, 0, 120 * (1.2 - k * 0.5), 120 * PERSP * (1.2 - k * 0.5)).stroke({ width: 8 * k, color: 0x9ff0d0, alpha: k });
+        }, ev.x, ev.y);
         break;
       case 'special':
         if (ev.special === 'coffre') later(1.0, () => hud.toast('Coffre gardé : bats son gardien !', 1800));
@@ -1483,9 +1513,10 @@ async function main() {
     const gate = game.gate;
     gateBars.y = FLOOR_TOP + 2 - gate * (GATE_BARS_H - 8);
     gateGlow.scale.set(3 + gate * 1.6);
+    for (const d of doorViews) d.glow.alpha = 0.25 * gate;
     if (game.phase === 'cleared' && gate >= 1) {
       const pulse = 0.5 + 0.5 * Math.sin(time * 4);
-      ground.ellipse(GATE.x, game.bounds.y0 + 14, 64 + pulse * 6, 22 + pulse * 2).fill({ color: 0xffd27a, alpha: 0.18 + pulse * 0.12 });
+      for (const x of doorViews.length ? doorViews.map((d) => d.x) : [GATE.x]) ground.ellipse(x, game.bounds.y0 + 14, (doorViews.length ? 46 : 64) + pulse * 6, 22 + pulse * 2).fill({ color: 0xffd27a, alpha: 0.18 + pulse * 0.12 });
     }
     void GATE_BARS_W;
 

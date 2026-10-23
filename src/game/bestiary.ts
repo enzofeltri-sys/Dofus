@@ -24,7 +24,7 @@ export function placesOf(id: string): string[] {
   for (const a of Object.values(AREAS)) {
     if (a.pool.includes(id)) out.push(a.name);
     else if (a.elite?.id === id) out.push(`${a.name} (élite)`);
-    else if (a.boss?.id === id) out.push(`${a.name} (boss)`);
+    else if (a.boss?.id === id || a.bossChoice?.includes(id)) out.push(`${a.name} (boss)`);
     else if (a.wanderers?.some((w) => w.pool.includes(id))) out.push(`${a.name} (errant)`);
     else if (a.archis?.some((x) => x === id)) out.push(`${a.name} (rare)`);
   }

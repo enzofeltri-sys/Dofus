@@ -17,7 +17,7 @@ const BOSS_IDS = new Set([4051]);
 const monsterName = (dofusId: number) => Object.values(MONSTERS).find((m) => m.dofusId === dofusId)?.name ?? `Monstre ${dofusId}`;
 /** Carte ou donjon où l'on croise ce monstre. */
 const placeOf = (dofusId: number) => Object.values(AREAS).find((a) =>
-  [...a.pool, a.elite?.id, a.boss?.id].some((id) => id && MONSTERS[id]?.dofusId === dofusId))?.name ?? 'Incarnam';
+  [...a.pool, a.elite?.id, a.boss?.id, ...(a.bossChoice ?? [])].some((id) => id && MONSTERS[id]?.dofusId === dofusId))?.name ?? 'Incarnam';
 const pct = (v: number) => `${v >= 1 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100} %`.replace('.', ',');
 
 export function sourcesOf(id: number): Source[] {

@@ -109,6 +109,8 @@ export interface MonsterDef {
   xpMult?: number;
   /** Invocation (hors boss) : premier appel et intervalle (s), monstre invoqué, nombre maximum en même temps. */
   summons?: { first: number; every: number; id: string | string[]; max: number };
+  /** Gloutage (Gloutoblop) : toutes les `every` s, dévore un allié proche (il meurt sans rien rapporter) et gagne `gain` PV. */
+  glutton?: { every: number; radius: number; gain: number; spell: string };
   /** Archimonstre (version rare et nommée d'un monstre de la zone). */
   archi?: { of: string };
   /** Soin unique : toute sa vie revient la première fois qu'il passe sous `below` de ses PV. */
@@ -149,6 +151,9 @@ export interface BossKit {
   regen?: { every: number; pct: number; spell: string; once?: boolean };
   /** Armure (Awmuwe Woyale du Wa Wabbit) : toutes les `every` s, pendant `duration` s, dommages subis × `taken` et bouclier de `shield` PV. */
   armor?: { every: number; duration: number; taken: number; shield: number; spell: string };
+  /** Protection d'élément (Blotection des Blops Royaux) : toutes les `every` s, pendant `duration` s, le boss et ses invocations
+   *  ont `pct` % de résistance en plus dans `element` (100 % au plus). */
+  ward?: { every: number; duration: number; element: DamageRoll['element']; pct: number; spell: string };
   /** Sort de zone autour du boss (Abwutissement du Wa Wabbit) : toutes les `every` s, sa prochaine attaque devient celle-ci, annoncée au sol. */
   nova?: { every: number; attack: MonsterAttack; spell: string };
 }
@@ -169,6 +174,38 @@ const rows = (r: Row[]) => r.map(([lv, hp, [fo, int, cha, agi, sa], res, xp, tac
 
 const SERGENT = [[7, 36, 60, 160, 20, 7], [8, 40, 70, 190, 25, 7], [9, 44, 80, 230, 30, 7], [10, 49, 90, 280, 35, 7], [11, 54, 100, 340, 40, 6]]
   .map(([lv, hp, f, xp, sa, epa], i) => g(lv, hp, f, feu(10 + i), xp, sa, 10, epa, 5, { intelligence: f }));
+
+/**
+ * Les 4 Blops Royaux (1184-1187) : boss du Clos des Blops (un seul par partie, choisi par l'une des 4 portes ; choix d'Enzo),
+ * niveau 60, 2 400 à 3 500 PV, toutes caractéristiques 280, Sagesse 280 ; 94 % de résistance dans leur élément, -12 % ailleurs ;
+ * 10 PA, 5 PM. Mêmes sorts pour les 4, valeurs réelles (comme les autres boss) :
+ * Blopunition Royale : vol de vie Air 21-30 à 1-4 cases (le vol d'1 PM n'est pas repris) → un coup toutes les 4 s environ ;
+ * Blovocation : invoque les 4 Biblops (un de chaque couleur), tous les 3 tours → toutes les 12 s ;
+ * Blotection (grade 5) : +100 % de résistance Air au boss et à ses invocations pendant 3 tours, tous les 3 tours → presque en continu.
+ */
+function blopRoyals(): Record<string, MonsterDef> {
+  const out: Record<string, MonsterDef> = {};
+  const list: [string, string, number, Res5][] = [
+    ['blopCocoRoyal', 'Blop Coco Royal', 1184, [-12, -12, -12, -12, 94]],
+    ['blopGriotteRoyal', 'Blop Griotte Royal', 1185, [-12, -12, 94, -12, -12]],
+    ['blopIndigoRoyal', 'Blop Indigo Royal', 1186, [-12, -12, -12, 94, -12]],
+    ['blopReinetteRoyal', 'Blop Reinette Royal', 1187, [-12, 94, -12, -12, -12]],
+  ];
+  for (const [id, name, dofusId, res] of list) {
+    out[id] = {
+      id, name, dofusId,
+      grades: ([[2400, 47000], [2700, 59000], [3000, 71000], [3200, 83000], [3500, 95040]] as const).map(([hp, xp]) => g(60, hp, 280, res, xp, 280, 0, -8, 0, { intelligence: 280, chance: 280, agilite: 280 })),
+      behavior: 'boss', speed: 150, radius: 46, art: id as MonsterArt, scale: 1.7,
+      attack: { shape: 'circle', trigger: 170, size: 64, spread: 0, offset: 0, windup: 0.7, recover: 0.35, cooldown: [3.6, 4.4], roll: { min: 21, max: 30, critBonus: 3, critBase: 3, element: 'air' }, atTarget: true, steal: true },
+      boss: {
+        crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 4, summonEvery: 12,
+        summon: ['biblopCoco', 'biblopGriotte', 'biblopIndigo', 'biblopReinette'], maxSummons: 8, summonCount: 4,
+        ward: { every: 12, duration: 12, element: 'air', pct: 100, spell: 'Blotection' },
+      },
+    };
+  }
+  return out;
+}
 
 /** Les 4 Feux de la Route des âmes (3270-3273) : niveaux 1-5, Brûlure légère : Air 6-10 au contact. */
 function feux(): Record<string, MonsterDef> {
@@ -356,6 +393,10 @@ export const MONSTERS: Record<string, MonsterDef> = {
       armor: { every: 20, duration: 8, taken: 0.7, shield: 120, spell: 'Awmuwe Woyale' },
       nova: { every: 12, spell: 'Abwutissement', attack: { shape: 'circle', trigger: 160, size: 150, spread: 0, offset: 0, windup: 1.0, recover: 0.45, cooldown: [1.0, 1.4], roll: { min: 31, max: 35, critBonus: 3, critBase: 3, element: 'eau' } } } },
   },
+  ...blopRoyals(),
+  blopCocoElite: eliteOf(ASTRUB.blopCoco, 'blopCocoElite', 'Blop Coco d’élite'),
+  blopGriotteElite: eliteOf(ASTRUB.blopGriotte, 'blopGriotteElite', 'Blop Griotte d’élite'),
+  blopignonElite: eliteOf(ASTRUB.blopignon, 'blopignonElite', 'Blopignon d’élite'),
   wabbitElite: eliteOf(ASTRUB.wabbit, 'wabbitElite', 'Wabbit d’élite'),
   woWabbitElite: eliteOf(ASTRUB.woWabbit, 'woWabbitElite', 'Wo Wabbit d’élite'),
   grandPaElite: eliteOf(ASTRUB.grandPaWabbit, 'grandPaElite', 'Grand Pa Wabbit d’élite'),

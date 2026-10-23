@@ -11,7 +11,7 @@ export function autopilotInput(game: World): Vec {
     const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy) || 1;
     return { x: dx / d, y: dy / d };
   };
-  if (game.phase === 'cleared') return toward(GATE.x, game.bounds.y0 - 20);
+  if (game.phase === 'cleared') return toward(game.doors[0]?.x ?? GATE.x, game.bounds.y0 - 20);
   // pièges annoncés : on sort de la zone
   for (const z of game.hazards) {
     if (z.state !== 'windup' && !(z.kind === 'herd' && z.state === 'active')) continue;

@@ -233,6 +233,10 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   cawotte: { block: [['carrot', 0.95, 1.15], ['autumnTree', 1.05, 1.2], ['carrot', 0.95, 1.15], ['sandrock', 0.8, 0.95], ['mossrock', 0.85, 1]], decor: ['flowers'] },
   couronne: { block: [['carrot', 0.95, 1.15], ['banner', 1, 1.1], ['autumnTree', 1.05, 1.2], ['sandrock', 0.85, 1], ['horns', 0.9, 1.05]], decor: ['flowers'] },
   chateauWabbit: { block: [['crates', 0.9, 1.05], ['barrels', 0.9, 1.05], ['carrot', 0.9, 1.05], ['lantern', 1, 1], ['banner', 1, 1.1]], decor: ['pebbles'] },
+  // Blops, d'après les vraies cartes : Lac de Cania (herbe jaune-vert, lac turquoise, arbres d'automne, grands rochers beiges) ;
+  // Clos des Blops (jungle sombre, dallage en damier terre cuite et crème, plantes lumineuses)
+  lacCania: { block: [['sandrock', 0.95, 1.15], ['autumnTree', 1.05, 1.25], ['sandrock', 0.9, 1.1], ['autumnTree', 1.05, 1.25], ['mossrock', 0.85, 1]], decor: ['flowers'] },
+  closBlops: { block: [['mossrock', 0.9, 1.1], ['autumnTree', 1.0, 1.15], ['lantern', 1, 1], ['stone', 0.9, 1.05]], decor: ['flowers'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 
