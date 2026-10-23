@@ -5,7 +5,9 @@ import type { World } from './world';
  * Cartes proposées entre deux salles (1 au choix parmi 3) : nouveau sort, amélioration d'un sort,
  * ou bonus de caractéristique. Tout est valable pour le donjon en cours seulement.
  */
-export type StatBonus = 'force' | 'vitalite' | 'critique' | 'speed';
+export type StatBonus = 'force' | 'intelligence' | 'chance' | 'agilite' | 'vitalite' | 'sagesse' | 'critique' | 'speed';
+/** Cartes d'élément : leur part du tirage est répartie selon les points du Sacrieur dans chaque élément. */
+export const ELEMENT_STATS = ['force', 'intelligence', 'chance', 'agilite'] as const;
 export type Card =
   | { kind: 'spell'; spell: SpellId }
   | { kind: 'upgrade'; spell: SpellId; up: 'dmg' | 'cd' }
@@ -13,8 +15,12 @@ export type Card =
   | { kind: 'passive'; passive: PassiveId };
 
 export const STAT_BONUS: Record<StatBonus, { value: number; title: string; text: string }> = {
-  force: { value: 15, title: 'Force +15', text: 'Plus de dégâts Terre et Neutre : épée, Supplice.' },
+  force: { value: 15, title: 'Force +15', text: 'Plus de dégâts Terre et Neutre : épée, sorts Terre.' },
+  intelligence: { value: 15, title: 'Intelligence +15', text: 'Plus de dégâts Feu, et des soins un peu plus forts.' },
+  chance: { value: 15, title: 'Chance +15', text: 'Plus de dégâts Eau.' },
+  agilite: { value: 15, title: 'Agilité +15', text: 'Plus de dégâts Air.' },
   vitalite: { value: 20, title: 'Vitalité +20', text: '+20 PV max, et tu récupères 20 PV tout de suite.' },
+  sagesse: { value: 15, title: 'Sagesse +15', text: '+15 % d’XP pour ce donjon, et un peu plus d’esquive PA / PM.' },
   critique: { value: 5, title: 'Critique +5 %', text: 'Plus de coups critiques, pour l’épée comme pour les sorts.' },
   speed: { value: 0.08, title: 'Vitesse +8 %', text: 'Tu te déplaces plus vite, pour mieux esquiver.' },
 };
@@ -39,10 +45,16 @@ export function drawCards(w: World, rnd: () => number, favorites: SpellId[] = []
     .filter((p) => (w.run.passives[p] ?? 0) < PASSIVES[p].max)
     .map((passive) => ({ kind: 'passive', passive }));
 
+  const st = w.hero.def.stats as unknown as Record<string, number>;
+  const pts = (e: string) => Math.max(0, st[e] ?? 0) + 10;
+  const elemTotal = ELEMENT_STATS.reduce((a, e) => a + pts(e), 0);
+  const elemShare = (e: string) => pts(e) / elemTotal;
   const weight = (c: Card) => {
     if (c.kind === 'spell') return (free ? 3 : 0.8) * (favorites.includes(c.spell) ? 2.5 : 1);
     if (c.kind === 'upgrade') return 1.4 * (favorites.includes(c.spell) ? 1.6 : 1);
     if (c.kind === 'passive') return 0.9;
+    // cartes d'élément : à elles quatre, la part qu'avait la seule carte Force, répartie selon les points de l'élément
+    if ((ELEMENT_STATS as readonly string[]).includes(c.stat)) return (0.8 * elemShare(c.stat)) || 0.05;
     return 0.8;
   };
   const pick = (pool: Card[], taken: Card[]): Card | null => {

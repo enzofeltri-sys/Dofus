@@ -194,7 +194,11 @@ export interface SpellSlot {
 export interface RunState {
   slots: (SpellSlot | null)[];
   force: number;
+  intelligence: number;
+  chance: number;
+  agilite: number;
   vitalite: number;
+  sagesse: number;
   critique: number;
   speed: number;
   /** Passifs : nombre de cartes prises pour chacun. */
@@ -776,6 +780,10 @@ export class World {
     return {
       ...s,
       force: s.force + this.run.force,
+      intelligence: s.intelligence + this.run.intelligence,
+      chance: s.chance + this.run.chance,
+      agilite: s.agilite + this.run.agilite,
+      sagesse: s.sagesse + this.run.sagesse,
       critique: s.critique + this.run.critique,
       puissance: s.puissance + h.mutStage * MUTILATION.power,
       // Souffrance : dégâts finaux des armes et des sorts
@@ -1789,7 +1797,7 @@ export function resEffect(s: Stats, el: Element): 'weak' | 'resist' | undefined 
 }
 
 function freshRun(level: number): RunState {
-  return { slots: Array(slotsForLevel(level)).fill(null), force: 0, vitalite: 0, critique: 0, speed: 0, passives: {} };
+  return { slots: Array(slotsForLevel(level)).fill(null), force: 0, intelligence: 0, chance: 0, agilite: 0, vitalite: 0, sagesse: 0, critique: 0, speed: 0, passives: {} };
 }
 
 function freshStats() {

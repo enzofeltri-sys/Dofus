@@ -1046,7 +1046,10 @@ async function main() {
     busy = false;
   }
 
-  const STAT_ICON: Record<StatBonus, string> = { force: ICONS.force.svg, vitalite: ICONS.vie.svg, critique: ICONS.xp.svg, speed: ICONS.pm.svg };
+  const STAT_ICON: Record<StatBonus, string> = {
+    force: ICONS.force.svg, intelligence: ICONS.intelligence.svg, chance: ICONS.chance.svg, agilite: ICONS.agilite.svg,
+    vitalite: ICONS.vie.svg, sagesse: ICONS.sagesse.svg, critique: ICONS.xp.svg, speed: ICONS.pm.svg,
+  };
   const slotViews = (): SlotView[] => game.run.slots.map((sl) => (sl ? { icon: SPELL_ICONS[sl.id], name: SPELLS[sl.id].name, pa: SPELLS[sl.id].pa } : null));
 
   const cardsTaken: string[] = [];

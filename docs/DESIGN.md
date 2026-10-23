@@ -202,6 +202,7 @@ Toutes les caractéristiques de la fiche Dofus existent ; celles qu'aucun sort, 
 ### 7.1 Structure
 - **Un run = un donjon** : **8 à 10 salles** selon le donjon (dernière salle = boss), un **mini-boss** au milieu.
 - Entre deux salles : **choix d'1 carte parmi 3** (sort, amélioration de sort ou bonus de stats ; valable pour le run, voir §4.4).
+  - Cartes de bonus (choix d'Enzo) : **Force, Intelligence, Chance, Agilité +15**, **Vitalité +20**, **Sagesse +15**, Critique +5 %, Vitesse +8 %. À elles quatre, les cartes d'élément gardent la part du tirage qu'avait la seule carte Force, répartie selon les points du Sacrieur dans chaque élément (+10 chacun, pour qu'aucun ne disparaisse).
 - **Finir un donjon débloque le suivant.**
 
 ### 7.2 Persistance
