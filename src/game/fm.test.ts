@@ -85,4 +85,31 @@ describe('forgemagie', () => {
     expect(fmCheck(poor, 1, FO1)).toMatchObject({ ok: false, reason: '13 K requis' });
     expect(applyRune(poor, 1, FO1, seq(0)).outcome).toBeNull();
   });
+
+  it('version simple (choix d’Enzo) : succès critique rend la rune, échec ne change rien, échec critique ne baisse que cette ligne', () => {
+    const w = shop([3, 5, 5, 5]); // Force sous son jet max (5)
+    const sc = applyRune(w, 1, FO1, seq(0), 'simple');
+    expect(sc.outcome).toBe('sc');
+    expect(cape(sc.workshop).rolls).toEqual([4, 5, 5, 5]);
+    expect(sc.workshop.resources[FO1]).toBe(50);
+    const sn = applyRune(w, 1, FO1, seq(0.5), 'simple');
+    expect(sn.outcome).toBe('sn');
+    expect(cape(sn.workshop).rolls).toEqual([4, 5, 5, 5]);
+    expect(sn.workshop.resources[FO1]).toBe(49);
+    const ef = applyRune(w, 1, FO1, seq(0.85), 'simple');
+    expect(ef.outcome).toBe('ef');
+    expect(cape(ef.workshop).rolls).toEqual([3, 5, 5, 5]);
+    expect(ef.workshop.resources[FO1]).toBe(49);
+    const ec = applyRune(w, 1, FO1, seq(0.99), 'simple');
+    expect(ec.outcome).toBe('ec');
+    expect(cape(ec.workshop).rolls).toEqual([2, 5, 5, 5]);
+    expect(cape(ec.workshop).puits).toBeUndefined();
+    // chaque résultat se paie en kamas
+    for (const r of [sc, sn, ef, ec]) expect(r.workshop.kamas).toBe(1e9 - 13);
+  });
+
+  it('version simple : chances 25 / 50 / 20 / 5 % sous le jet max', () => {
+    const c = fmCheck(shop([3, 5, 5, 5]), 1, FO1, 'simple');
+    expect(c.ok && c.odds).toEqual([0.25, 0.5, 0.2]);
+  });
 });

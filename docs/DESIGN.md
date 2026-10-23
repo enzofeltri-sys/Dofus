@@ -438,6 +438,7 @@ L'XP nécessaire par niveau suit une **courbe exponentielle** (+3 % de temps de 
 - L'objet fabriqué est **Commun**, avec des jets aléatoires dans ses vraies fourchettes. Le craft critique arrive à l'étape 8.
 
 ### 9.2 Fusion (fait monter le **plafond** : la rareté)
+- **Règle actuelle (choix d'Enzo, refonte « une zone = ses panoplies »)** : **3 objets identiques** du même rang, à tous les rangs (Mythique compris) ; les 2 sacrifiés sont choisis d'office (moins bons jets), jamais portés, verrouillés ou favoris ; Crânes de Kardorim pour Légendaire (3) et Mythique (10). Les règles ci-dessous (même emplacement, panoplie) sont remplacées. Pour 3 pièces identiques : ≈ 9 pièces obtenues aux Bouftous (8 pièces possibles), ≈ 20 à la Cité (36).
 - Commun → Rare : **3 objets identiques**.
 - Au-delà : **1 objet + 2 objets de la même panoplie et du même rang**.
 - Légendaire et Mythique : + **une ressource du boss**.
@@ -454,6 +455,10 @@ Casser un objet → **runes** (Fo, Ine, Vi, PA…).
 - **Épurer et brisage automatique (choix d'Enzo)** : bouton « Épurer » dans Équipement : briser d'un coup tout l'équipement sous un niveau choisi ; case « Brisage auto » : chaque équipement obtenu (partie, farm, expédition) sous ce niveau est brisé en runes à l'arrivée. Le seuil reste toujours **au moins 15 niveaux sous le personnage** (donc à partir du niveau 17). Tous les emplacements ; jamais les objets portés, verrouillés, favoris, familiers et Dofus. Le bilan indique « Brisage auto : N objets → R runes ».
 
 ### 9.4 Forgemagie (personnalise **sous** le plafond)
+- **Deux versions (choix d'Enzo)**, interrupteur Simple / Avancée dans la fenêtre de forgemagie (simple par défaut, gardé dans la sauvegarde) :
+  - **Simple** : succès critique (la stat monte, la rune est rendue), succès (la stat monte), échec (rien), échec critique (seule cette ligne baisse de la valeur de la rune). Pas de puits, pas de pertes sur les autres lignes. Chances de départ : sous le jet max 25 / 50 / 20 / 5 % ; overmax 10 / 30 / 45 / 15 % ; exo 5 / 15 / 60 / 20 % ; exo Portée 1 / 2 / 77 / 20 % ; exo PA ou PM 0,5 / 1 / 78,5 / 20 %.
+  - **Avancée** : les règles ci-dessous (puits, succès neutre avec pertes, exo).
+  - Les deux se paient en kamas (§9.4 bis).
 - Vraies règles Dofus : runes, **puits**, réussite / échec neutre / échec critique, **exos**.
 - **Plus l'objet est rare, plus son puits est grand.**
 - **Fait (8b, chiffres à valider par Enzo — Ankama ne publie pas ses formules)** : onglet Forgemagie de l'Atelier, une rune à la fois.

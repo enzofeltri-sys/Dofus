@@ -1002,7 +1002,7 @@ export class Hud {
       const all = h.forge();
       const rows = applyFilters(all, f);
       const focus = focusStat(f);
-      const intro = '<p class="at-intro">Pose des runes sur un objet. Succès critique : la stat monte. Succès neutre : elle monte, mais d’autres lignes perdent du poids. Échec critique : rien ne monte, des lignes perdent du poids qui va dans le <b>puits</b> (il protège des pertes suivantes ; plus l’objet est rare, plus il est grand). Overmax possible un peu au-delà du jet max ; une seule ligne exo (PA, PM, Portée : très rare).</p>';
+      const intro = '<p class="at-intro">Pose des runes sur un objet, payées en kamas. Deux versions dans la fenêtre : <b>Simple</b> (succès critique, succès, échec, échec critique ; seule la ligne visée bouge) ou <b>Avancée</b> (puits, pertes sur les autres lignes, comme dans Dofus). Overmax possible un peu au-delà du jet max ; une seule ligne exo (PA, PM, Portée : très rare).</p>';
       list.innerHTML = intro + (rows.length ? rows.map((r) => {
         const fv = focusValue(r.facets, focus);
         return `
@@ -1048,16 +1048,19 @@ export class Hud {
         const top = card.scrollTop, exoOpen = !!card.querySelector('details.fm-exo[open]');
         card.innerHTML = `
           <div class="det-head"><span class="det-ico r${v.rarity}">${v.icon}</span><div><h3 class="gr-h3 rar-${v.rarity}">${v.name}</h3><span class="det-sub">${v.sub}</span></div></div>
+          <div class="fm-mode"><button type="button" class="flt-chip ${v.mode === 'simple' ? 'on' : ''}" data-fmmode="simple">Simple</button><button type="button" class="flt-chip ${v.mode === 'avancee' ? 'on' : ''}" data-fmmode="avancee">Avancée</button></div>
           ${last ? `<div class="fm-last ${last.outcome ?? ''}">${last.text}</div>` : ''}
           <div class="fm-kamas"><span class="gr-label">Kamas</span><b class="gr-num">${v.kamas}</b></div>
-          <div class="fm-puits"><span class="gr-label">Puits</span><span class="track"><span class="fill" style="--v:${Math.min(100, (100 * v.puits) / v.puitsMax)}%"></span></span><b class="gr-num">${v.puits}/${v.puitsMax}</b></div>
+          <div class="fm-puits" ${v.mode === 'simple' ? 'hidden' : ''}><span class="gr-label">Puits</span><span class="track"><span class="fill" style="--v:${Math.min(100, (100 * v.puits) / v.puitsMax)}%"></span></span><b class="gr-num">${v.puits}/${v.puitsMax}</b></div>
           <div class="fm-lines">${v.lines.map((l) => `
             <div class="fm-line ${l.kind} ${l.over ? 'over' : ''}"><div><b>${l.text}</b><small>${l.range}</small></div>
               <div class="fm-runes">${l.runes.length ? l.runes.map(btn).join('') : l.kind === 'bonus' ? '' : '<em>Pas de rune</em>'}</div></div>`).join('')}</div>
           <details class="fm-exo" ${exoOpen ? 'open' : ''}><summary class="gr-label">Nouvelle ligne (exo) · ${v.exo.length} rune${v.exo.length > 1 ? 's' : ''} possible${v.exo.length > 1 ? 's' : ''}</summary>
           ${v.exoWhy ? `<p class="det-note">${v.exoWhy}</p>` : ''}
           <div class="fm-lines">${v.exo.length ? v.exo.map((x) => `<div class="fm-line exo"><div><b>${x.label}</b></div><div class="fm-runes">${x.runes.map(btn).join('')}</div></div>`).join('') : '<p class="det-note">Aucune autre rune en stock (le Brisage en donne).</p>'}</div></details>
-          <p class="det-note">Chances : succès critique / succès neutre / échec critique.</p>
+          <p class="det-note">${v.mode === 'simple'
+            ? 'Chances : succès critique (la stat monte, rune rendue) / succès / échec (rien) / échec critique (cette ligne baisse). Rien d’autre ne bouge.'
+            : 'Chances : succès critique / succès neutre (d’autres lignes perdent du poids, le puits paie d’abord) / échec critique (le poids perdu va dans le puits).'}</p>
           <div class="det-btns"><button type="button" class="gr-btn ghost sm md-close">Fermer</button></div>`;
         card.scrollTop = top;
       };
@@ -1068,6 +1071,13 @@ export class Hud {
         if (t === modal || t.closest('.md-close')) {
           closeModal();
           bar();
+          return;
+        }
+        const fmm = t.closest<HTMLElement>('[data-fmmode]');
+        if (fmm) {
+          h.setFmMode(fmm.dataset.fmmode as 'simple' | 'avancee');
+          last = null;
+          draw();
           return;
         }
         const r = t.closest<HTMLElement>('[data-rune]');
@@ -1878,7 +1888,9 @@ export interface CraftHooks {
   breakIt(uid: number): string;
   /** Forgemagie : vue d'un objet, et pose d'une rune (résultat à afficher). */
   fm(uid: number): FmView | null;
-  fmApply(uid: number, runeId: number): { text: string; outcome: 'sc' | 'sn' | 'ec' | null };
+  fmApply(uid: number, runeId: number): { text: string; outcome: 'sc' | 'sn' | 'ef' | 'ec' | null };
+  /** Version de la forgemagie (simple / avancée). */
+  setFmMode(m: 'simple' | 'avancee'): void;
   /** Épuration : niveau du personnage, seuil le plus haut autorisé (niveau − 15), réglage du brisage auto (0 = désactivé). */
   purgeInfo(): { heroLevel: number; max: number; auto: number };
   /** Objets qui seraient brisés sous ce niveau. */

@@ -34,7 +34,7 @@ import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
 import { bestiaryView } from './ui/bestiary-view';
 import { beastBonuses, claimable } from './game/bestiary';
-import { applyRune, fmCheck, FM_NAMES } from './game/fm';
+import { applyRune, fmCheck, FM_NAMES, FM_NAMES_SIMPLE, type FmMode } from './game/fm';
 import { fmtKamas } from './game/kamas';
 import { atlasView } from './ui/atlas-view';
 import { AREAS, CHAMPS, isUnlocked, ZONES, type AreaDef } from './game/data/areas';
@@ -1138,22 +1138,28 @@ async function main() {
       const bonus = res.item.bonus ? ` · ${fmtLine(...res.item.bonus)}` : '';
       return `${item(res.item.id).name} devient ${RARITIES[res.item.rarity ?? 0]} !${bonus}`;
     },
-    fm: (uid: number) => fmView(workshop(), uid),
+    fm: (uid: number) => fmView(workshop(), uid, save.fmMode ?? 'simple'),
+    setFmMode(m: FmMode) {
+      save = { ...save, fmMode: m };
+      storeSave(save);
+    },
     fmApply(uid: number, runeId: number) {
-      const res = applyRune(workshop(), uid, runeId, Math.random);
+      const mode = save.fmMode ?? 'simple';
+      const res = applyRune(workshop(), uid, runeId, Math.random, mode);
       if (!res.outcome || !res.path) {
-        const c = fmCheck(workshop(), uid, runeId);
+        const c = fmCheck(workshop(), uid, runeId, mode);
         return { text: c.ok ? 'Impossible' : c.reason, outcome: null };
       }
       setWorkshop(res.workshop);
       const lost = res.lost.map(([p, n]) => fmtLine(p, -n)).join(', ');
       const parts = [
-        res.outcome === 'ec' ? `${statLabel(res.path)} ne monte pas` : fmtLine(res.path, res.gain),
+        res.outcome === 'ec' || res.outcome === 'ef' ? `${statLabel(res.path)} ne monte pas` : fmtLine(res.path, res.gain),
+        res.runeKept ? 'rune rendue' : '',
         lost ? `perdu : ${lost}` : '',
         res.fromPuits ? `puits −${res.fromPuits}` : '',
         res.toPuits ? `puits +${res.toPuits}` : '',
       ].filter(Boolean);
-      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')} · −${fmtKamas(res.cost ?? 0)}`, outcome: res.outcome };
+      return { text: `${(mode === 'simple' ? FM_NAMES_SIMPLE : FM_NAMES)[res.outcome]} : ${parts.join(' · ')} · −${fmtKamas(res.cost ?? 0)}`, outcome: res.outcome };
     },
     purgeInfo: () => {
       const heroLevel = levelForXp(save.profile.xp);

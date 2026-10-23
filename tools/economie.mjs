@@ -24,7 +24,8 @@ await p.evaluate(async () => {
   let i = inv.starterInventory();
   const all = Object.values(ITEMS).filter((d) => d.slot === 'anneau' && d.level >= 20 && d.level <= 30 && d.effects.length);
   const lv = all.find((d) => all.filter((x) => x.level === d.level).length >= 3).level;
-  const rings = [...all.filter((d) => d.level === lv).slice(0, 3), all.find((d) => d.level !== lv)]; // 3 du même niveau + 1 d'un autre niveau
+  const one = all.find((d) => d.level === lv);
+  const rings = [one, one, one, all.find((d) => d.id !== one.id)]; // 3 anneaux identiques + 1 autre (fusion : identiques seulement)
   for (const d of rings) i = f.addNew(i, d.id, 0, Math.random);
   const low = Object.values(ITEMS).filter((d) => d.slot && d.slot !== 'familier' && d.slot !== 'dofus' && d.level <= 12 && d.effects.length).slice(0, 14);
   for (const d of low) i = f.addNew(i, d.id, 0, Math.random);
@@ -86,7 +87,12 @@ console.log('kamas FM :', await p.textContent('.fm-kamas'), '| prix :', await p.
 const k0 = (await save()).kamas;
 await p.click('.fm-rune:not([disabled])').catch(() => {});
 await p.waitForTimeout(200);
-console.log('après une rune :', await p.textContent('.fm-last'), '| kamas', k0, '→', (await save()).kamas);
+console.log('après une rune (simple) :', await p.textContent('.fm-last'), '| kamas', k0, '→', (await save()).kamas);
 await shot('eco_fm_after');
+console.log('version simple, puits caché :', await p.$eval('.fm-puits', (e) => e.hidden), '| chances :', await p.$eval('.fm-rune small', (e) => e.textContent));
+await p.click('[data-fmmode="avancee"]');
+await p.waitForTimeout(200);
+console.log('version avancée, puits visible :', await p.$eval('.fm-puits', (e) => !e.hidden), '| chances :', await p.$eval('.fm-rune small', (e) => e.textContent), '| sauvegardé :', (await save()).fmMode);
+await shot('eco_fm_avancee');
 console.log(errors.join('\n') || 'aucune erreur');
 await b.close();

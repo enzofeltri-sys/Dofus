@@ -734,6 +734,9 @@ html, body {
 .fm-last.sc { background: #e2f6d2; color: #2f6a1a; }
 .fm-last.sn { background: #fff1c8; color: #7a5a10; }
 .fm-last.ec { background: #fbdcd6; color: #9a2a1e; }
+.fm-last.ef { background: #efe7d6; color: #6b5236; }
+.fm-mode { display: flex; gap: 6px; margin: 6px 0 2px; }
+.fm-puits[hidden] { display: none; }
 .fm-kamas { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 0; }
 .fm-kamas b { color: #a8761a; }
 .fm-rune small.fm-cost { color: #a8761a; font-weight: 700; }

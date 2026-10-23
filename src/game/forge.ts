@@ -7,8 +7,7 @@ import { addItem, instance, isWorn, rollItem, type Inventory, type ItemInstance 
 /**
  * Étape 8 (document de design §8.4 et §9) : raretés, fusion, brisage.
  * - 5 rangs, chaque rang relève les fourchettes d'≈ 15 % ; Légendaire et Mythique ajoutent une ligne bonus ;
- * - fusion : jusqu'à Légendaire, 3 objets du même emplacement, du même niveau et du même rang ; vers Mythique, 3 identiques (hors panoplie)
- *   ou 1 objet + 2 pièces de sa panoplie du même rang ;
+ * - fusion : 3 objets identiques du même rang (choix d'Enzo) ;
  *   Légendaire et Mythique coûtent aussi la ressource du boss de la région ;
  * - brisage : l'objet donne des runes de ses stats (vraies runes de Dofus 3, trois tailles), selon le poids de chaque stat.
  */
@@ -106,12 +105,11 @@ export const FUSION_BOSS_COST = [0, 0, 0, 3, 10];
 const rarityOf = (it: ItemInstance) => it.rarity ?? 0;
 
 /**
- * Règle de fusion de cet objet (choix d'Enzo) : jusqu'à Légendaire, 3 objets du **même emplacement**, du **même niveau** et du même rang ;
- * vers Mythique, l'ancienne règle : 3 identiques (hors panoplie) ou 1 objet + 2 pièces de sa panoplie.
+ * Règle de fusion (choix d'Enzo, refonte « une zone = ses panoplies ») : 3 objets **identiques** du même rang, à tous les rangs.
+ * Les cartes ne donnent plus que quelques pièces possibles : les doublons arrivent tout seuls ; un objet fabriqué se fabrique 3 fois.
  */
-export function fusionRule(it: ItemInstance): 'slot' | 'same' | 'set' {
-  if (rarityOf(it) < 3) return 'slot';
-  return !item(it.id).set ? 'same' : 'set';
+export function fusionRule(_it: ItemInstance): 'same' {
+  return 'same';
 }
 
 /** Qualité des jets d'un objet : position moyenne dans ses fourchettes (0 = jets min, 1 = jets max). */
@@ -128,12 +126,8 @@ function rollQuality(it: ItemInstance): number {
 export function fusionPartners(inv: Inventory, mainUid: number): ItemInstance[] {
   const main = instance(inv, mainUid);
   if (!main || rarityOf(main) >= MAX_RARITY || isSpecial(main.id)) return [];
-  const rule = fusionRule(main);
-  const d = item(main.id);
   return inv.items
-    .filter((o) =>
-      o.uid !== mainUid && !o.lock && !o.fav && !isWorn(inv, o.uid) && !isSpecial(o.id) && rarityOf(o) === rarityOf(main) &&
-      (rule === 'slot' ? item(o.id).slot === d.slot && item(o.id).level === d.level : rule === 'same' ? o.id === main.id : item(o.id).set === d.set))
+    .filter((o) => o.uid !== mainUid && o.id === main.id && !o.lock && !o.fav && !isWorn(inv, o.uid) && rarityOf(o) === rarityOf(main))
     .sort((a, b) => rollQuality(a) - rollQuality(b) || a.uid - b.uid);
 }
 

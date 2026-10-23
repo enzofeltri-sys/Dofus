@@ -15,8 +15,12 @@ import { fmtKamas, runeCost } from './kamas';
  * Ankama ne publie pas ses formules : ces chances sont une adaptation (à valider par Enzo).
  */
 
-export type FmOutcome = 'sc' | 'sn' | 'ec';
-export const FM_NAMES: Record<FmOutcome, string> = { sc: 'Succès critique', sn: 'Succès neutre', ec: 'Échec critique' };
+/** Deux versions (choix d'Enzo) : simple (4 résultats, rien d'autre ne bouge) ou avancée (puits, pertes sur les autres lignes). */
+export type FmMode = 'simple' | 'avancee';
+/** Succès critique, succès (neutre en avancée), échec (version simple seulement), échec critique. */
+export type FmOutcome = 'sc' | 'sn' | 'ef' | 'ec';
+export const FM_NAMES: Record<FmOutcome, string> = { sc: 'Succès critique', sn: 'Succès neutre', ef: 'Échec', ec: 'Échec critique' };
+export const FM_NAMES_SIMPLE: Record<FmOutcome, string> = { sc: 'Succès critique', sn: 'Succès', ef: 'Échec', ec: 'Échec critique' };
 
 /** Chances [succès critique, succès neutre] (le reste : échec critique). */
 export const FM_ODDS = {
@@ -30,6 +34,19 @@ export const FM_ODDS = {
   exoPo: [0.02, 0.02],
   /** Exo PA ou PM : très rare, à tout niveau. */
   exoApm: [0.01, 0.01],
+} as const;
+
+/**
+ * Version simple (choix d'Enzo) : chances [succès critique, succès, échec] (le reste : échec critique).
+ * Succès critique : la stat monte et la rune est rendue. Succès : la stat monte. Échec : rien. Échec critique : seule cette
+ * ligne baisse de la valeur de la rune. Pas de puits, pas de pertes sur les autres lignes. Chances de départ, à régler en jeu.
+ */
+export const FM_ODDS_SIMPLE = {
+  below: [0.25, 0.5, 0.2],
+  over: [0.1, 0.3, 0.45],
+  exo: [0.05, 0.15, 0.6],
+  exoPo: [0.01, 0.02, 0.77],
+  exoApm: [0.005, 0.01, 0.785],
 } as const;
 
 /** Taille du puits (en poids) : (20 + 2 × niveau) × (1 + 50 % par rang de rareté). */
@@ -63,7 +80,7 @@ export function fmLines(it: ItemInstance): FmLine[] {
 }
 
 export type FmCheck =
-  | { ok: true; odds: readonly [number, number]; target: 'below' | 'over' | 'exo'; value: number; cost: number }
+  | { ok: true; odds: readonly number[]; target: 'below' | 'over' | 'exo'; value: number; cost: number }
   | { ok: false; reason: string };
 
 /** Peut-on poser cette rune, et avec quelles chances ? */
@@ -89,13 +106,20 @@ function ruleCheck(w: Workshop, uid: number, runeId: number): { ok: false; reaso
   return line.value + v <= line.max ? { ok: true, odds: FM_ODDS.below, target: 'below', value: v } : { ok: true, odds: FM_ODDS.over, target: 'over', value: v };
 }
 
-/** Peut-on poser cette rune, avec quelles chances, et pour combien de kamas ? */
-export function fmCheck(w: Workshop, uid: number, runeId: number): FmCheck {
-  const c = ruleCheck(w, uid, runeId);
-  if (!c.ok) return c;
+/** Peut-on poser cette rune, avec quelles chances (selon la version), et pour combien de kamas ? */
+export function fmCheck(w: Workshop, uid: number, runeId: number, mode: FmMode = 'avancee'): FmCheck {
+  const c0 = ruleCheck(w, uid, runeId);
+  if (!c0.ok) return c0;
+  const c = mode === 'simple' ? { ...c0, odds: simpleOdds(c0.odds, c0.target) } : c0;
   const cost = runeCost(runeId, instance(w.inventory, uid)!.id);
   if ((w.kamas ?? 0) < cost) return { ok: false, reason: `${fmtKamas(cost)} requis` };
   return { ...c, cost };
+}
+
+/** Chances de la version simple pour la même cible (les tables avancée et simple ont les mêmes cas). */
+function simpleOdds(adv: readonly number[], target: 'below' | 'over' | 'exo'): readonly number[] {
+  if (target !== 'exo') return FM_ODDS_SIMPLE[target];
+  return adv === FM_ODDS.exoApm ? FM_ODDS_SIMPLE.exoApm : adv === FM_ODDS.exoPo ? FM_ODDS_SIMPLE.exoPo : FM_ODDS_SIMPLE.exo;
 }
 
 export interface FmResult extends ForgeResult {
@@ -108,14 +132,17 @@ export interface FmResult extends ForgeResult {
   toPuits: number;
   /** Kamas payés. */
   cost?: number;
+  /** Version simple : rune rendue (succès critique). */
+  runeKept?: boolean;
 }
 
-/** Pose une rune. */
-export function applyRune(w: Workshop, uid: number, runeId: number, rnd: () => number): FmResult {
+/** Pose une rune (version simple ou avancée). */
+export function applyRune(w: Workshop, uid: number, runeId: number, rnd: () => number, mode: FmMode = 'avancee'): FmResult {
   const levelBefore = jobLevel(w.jobXp);
   const none: FmResult = { workshop: w, outcome: null, path: null, gain: 0, lost: [], fromPuits: 0, toPuits: 0, xp: 0, levelBefore, levelAfter: levelBefore };
-  const chk = fmCheck(w, uid, runeId);
+  const chk = fmCheck(w, uid, runeId, mode);
   if (!chk.ok) return none;
+  if (mode === 'simple') return applySimple(w, uid, runeId, chk, rnd, levelBefore);
   const it0 = instance(w.inventory, uid)!;
   const it: ItemInstance = { ...it0, rolls: [...it0.rolls], exo: it0.exo ? [...it0.exo] as [StatPath, number] : undefined };
   const d = item(it.id), r = it.rarity ?? 0;
@@ -171,6 +198,43 @@ export function applyRune(w: Workshop, uid: number, runeId: number, rnd: () => n
   return {
     workshop: { ...w, inventory, resources, jobXp, kamas }, outcome, cost: chk.cost, path: p, gain: outcome === 'ec' ? 0 : chk.value,
     lost: [...lost], fromPuits: Math.round(fromPuits * 10) / 10, toPuits, xp, levelBefore, levelAfter: jobLevel(jobXp),
+  };
+}
+
+/** Version simple : 4 résultats, seule la ligne visée bouge ; la rune est rendue sur un succès critique. */
+function applySimple(w: Workshop, uid: number, runeId: number, chk: Extract<FmCheck, { ok: true }>, rnd: () => number, levelBefore: number): FmResult {
+  const it0 = instance(w.inventory, uid)!;
+  const it: ItemInstance = { ...it0, rolls: [...it0.rolls], exo: it0.exo ? [...it0.exo] as [StatPath, number] : undefined };
+  const d = item(it.id);
+  const [p] = RUNE_STAT.get(runeId)!;
+  const [a, b, c] = chk.odds;
+  const x = rnd();
+  const outcome: FmOutcome = x < a ? 'sc' : x < a + b ? 'sn' : x < a + b + c ? 'ef' : 'ec';
+  const baseIdx = d.effects.findIndex(([q]) => q === p);
+  const lost: [StatPath, number][] = [];
+  if (outcome === 'sc' || outcome === 'sn') {
+    if (chk.target === 'exo') it.exo = [p, (it.exo?.[1] ?? 0) + chk.value];
+    else it.rolls[baseIdx] = (it.rolls[baseIdx] ?? 0) + chk.value;
+  } else if (outcome === 'ec') {
+    // échec critique : seule cette ligne baisse (jamais sous 0) ; une nouvelle ligne exo ratée ne coûte que la rune
+    if (chk.target !== 'exo' && baseIdx >= 0) {
+      const down = Math.min(chk.value, Math.max(0, it.rolls[baseIdx] ?? 0));
+      it.rolls[baseIdx] -= down;
+      if (down) lost.push([p, down]);
+    } else if (it.exo && it.exo[0] === p) {
+      const down = Math.min(chk.value, it.exo[1]);
+      it.exo = [p, it.exo[1] - down];
+      if (down) lost.push([p, down]);
+      if (it.exo[1] <= 0) it.exo = undefined;
+    }
+  }
+  if (!it.exo) delete it.exo;
+  const inventory = { ...w.inventory, items: w.inventory.items.map((o) => (o.uid === uid ? it : o)) };
+  const resources = outcome === 'sc' ? w.resources : { ...w.resources, [runeId]: (w.resources[runeId] ?? 0) - 1 };
+  const kamas = (w.kamas ?? 0) - chk.cost;
+  return {
+    workshop: { ...w, inventory, resources, kamas }, outcome, path: p, gain: outcome === 'sc' || outcome === 'sn' ? chk.value : 0, cost: chk.cost,
+    lost, fromPuits: 0, toPuits: 0, xp: 0, levelBefore, levelAfter: levelBefore, runeKept: outcome === 'sc',
   };
 }
 

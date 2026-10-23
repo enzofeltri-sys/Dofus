@@ -58,6 +58,8 @@ export interface SaveData {
   autoBreak?: number;
   /** Kamas (servent à la forgemagie). */
   kamas?: number;
+  /** Version de la forgemagie choisie (simple par défaut, choix d'Enzo). */
+  fmMode?: 'simple' | 'avancee';
 }
 
 /** Ce qu'une partie rapporte. */
