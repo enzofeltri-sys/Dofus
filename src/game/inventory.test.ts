@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addStats, baseStats } from './formulas';
 import { ITEMS, SETS } from './data/items';
 import { addItem, canEquip, compare, emptyInventory, equip, gearStats, rollItem, setCounts, starterInventory, STARTER_ITEMS, unequip } from './inventory';
-import { DROP_MULT, REGION_CHANCE, rollDrops } from './loot';
+import { DROP_MULT, REGION_CHANCE, rollDrops, zoneEquipPool } from './loot';
 import { applyRun, emptySave, loadSave, type RunResult } from './save';
 import { rng } from '../iso';
 
@@ -84,13 +84,18 @@ describe('butin', () => {
     const n = 20000;
     const count = (pp: number) => {
       const c: Record<number, number> = {};
-      for (let i = 0; i < n; i++) for (const id of rollDrops({ dofusId: 4046, prospection: pp }, r)) c[id] = (c[id] ?? 0) + 1;
+      for (let i = 0; i < n; i++) for (const id of rollDrops({ dofusId: 4046, prospection: pp, zonePool: [CHAPEAU_AV] }, r)) c[id] = (c[id] ?? 0) + 1;
       return c;
     };
     const c = count(100);
     expect(c[310] / n).toBeCloseTo(0.58 * DROP_MULT.resource, 2);
     expect(c[CHAPEAU_AV] / n).toBeGreaterThan(0.2 * DROP_MULT.equipment * 0.8);
-    expect(c[CHAPEAU_AV] / n).toBeLessThan(0.2 * DROP_MULT.equipment * 1.25 + REGION_CHANCE * 0.05);
+    // + l'équipement de zone (5 % par monstre, une pièce au hasard du pool, ici une seule pièce)
+    expect(c[CHAPEAU_AV] / n).toBeLessThan(0.2 * DROP_MULT.equipment * 1.25 + REGION_CHANCE * 0.05 + 0.05 * 1.1);
+    // hors panoplie de la carte : l'équipement ne tombe plus, il se fabrique (refonte validée par Enzo)
+    let hors = 0;
+    for (let i = 0; i < 5000; i++) hors += rollDrops({ dofusId: 4046, prospection: 100, zonePool: [] }, r).filter((id) => id === CHAPEAU_AV).length;
+    expect(hors).toBe(0);
     const c2 = count(200);
     expect(c2[310] / n).toBeCloseTo(0.58 * DROP_MULT.resource * 2, 2);
   });
@@ -98,8 +103,9 @@ describe('butin', () => {
   it('boss : moitié du taux réel pour l’équipement (20 % → 10 % par pièce de sa panoplie)', () => {
     const r = rng(5);
     let casques = 0;
-    for (let i = 0; i < 10000; i++) if (rollDrops({ dofusId: 4051, boss: true, prospection: 100 }, r).includes(CASQUE)) casques++;
-    expect(casques / 10000).toBeCloseTo(0.1, 1);
+    for (let i = 0; i < 10000; i++) if (rollDrops({ dofusId: 4051, boss: true, prospection: 100, zonePool: zoneEquipPool('crypte') }, r).includes(CASQUE)) casques++;
+    // 10 % (table réelle, moitié) + 50 % × une pièce sur les 4 du pool de la Crypte
+    expect(casques / 10000).toBeCloseTo(0.1 + 0.5 / zoneEquipPool('crypte').length, 1);
   });
 
   it('monstres errants : leurs vrais butins (Peau de Gloot sur le Petit Gloot)', () => {

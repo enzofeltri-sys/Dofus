@@ -17,9 +17,16 @@ describe('Artisan', () => {
   it('niveau d’Artisan requis et ingrédients comptés', () => {
     const casque = recipeFor(16500)!;
     const full = Object.fromEntries(casque.ingredients.map(([id, q]) => [id, q * 2]));
-    expect(canCraft(ws(full), casque)).toEqual({ ok: false, reason: 'Artisan niveau 12 requis', max: 0 });
+    expect(canCraft(ws(full), casque)).toEqual({ ok: false, reason: 'Niveau 12 requis', max: 0 });
     expect(canCraft(ws(full, JOB_XP_TABLE[12]), casque)).toEqual({ ok: true, max: 2 });
     expect(canCraft(ws({}, JOB_XP_TABLE[12]), casque).ok).toBe(false);
+  });
+
+  it('plus de niveau d’Artisan (choix d’Enzo) : c’est le niveau du personnage qui ouvre les recettes', () => {
+    const casque = recipeFor(16500)!;
+    const full = Object.fromEntries(casque.ingredients.map(([id, q]) => [id, q]));
+    expect(canCraft({ ...ws(full), heroLevel: 11 }, casque)).toEqual({ ok: false, reason: 'Niveau 12 requis', max: 0 });
+    expect(canCraft({ ...ws(full), heroLevel: 12 }, casque)).toEqual({ ok: true, max: 1 });
   });
 
   it('fabriquer consomme les ingrédients, crée l’objet avec des jets dans les fourchettes et rapporte de l’XP', () => {

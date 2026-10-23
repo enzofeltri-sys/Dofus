@@ -14,7 +14,7 @@ Jeu privé (jamais publié publiquement) : roguelite d'action en temps réel, po
 
 ## Où trouver quoi
 - `docs/DESIGN.md` : toutes les règles validées et la feuille de route (§10). `docs/DEBRIEF.md` : bilan du projet.
-- Données : `python3 tools/fetch_items.py` → `src/game/data/items.gen.ts` (objets, panoplies, drops, recettes, runes, armes) + icônes.
+- Données : `python3 tools/fetch_items.py` → `src/game/data/items.gen.ts` (objets, panoplies, drops, recettes, runes, armes) + icônes. Panoplies de zone : `npx vite-node tools/zone_monsters.ts > <dossier>/zone_monsters.json` puis `python3 -I tools/gen_zone_sets.py <dossier>` → `src/game/data/zonesets.gen.ts`.
 - Logique : `src/game/` (world, formulas, loot, inventory, craft, forge, search, save…), tests Vitest à côté (`npx vitest run`).
 - Interface : `src/ui/hud.ts` (+ vues `*-view.ts`), rendu PixiJS dans `src/main.ts`, dessins SVG dans `src/art/`.
 - Navigateur : serveur `npx vite --port 5173`, parcours `node tools/{flow,inventory,progress,artisan,search,forge,weapon,champs}.mjs` (captures dans `shots/`).

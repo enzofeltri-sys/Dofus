@@ -1090,7 +1090,7 @@ async function main() {
     },
     seen: (uid: number) => void freshItems.delete(uid),
   };
-  const workshop = () => ({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock, kamas: save.kamas ?? 0 });
+  const workshop = () => ({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock, kamas: save.kamas ?? 0, heroLevel: levelForXp(save.profile.xp) });
   const setWorkshop = (w: { resources: Record<string, number>; inventory: SaveData['inventory']; jobXp: number; kamas?: number }) => {
     save = { ...save, resources: w.resources, inventory: w.inventory, jobXp: w.jobXp, kamas: w.kamas ?? save.kamas };
     storeSave(save);
@@ -1126,9 +1126,8 @@ async function main() {
       for (const uid of res.made) freshItems.add(uid);
       storeSave(save);
       const name = item(id).name;
-      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
       const crit = res.crits ? ` · craft critique ! ${res.crits > 1 ? `${res.crits} Rares` : 'Rare'}` : '';
-      return `${res.count > 1 ? `${res.count} × ` : ''}${name}${crit} · +${res.xp} XP${up}`;
+      return `${res.count > 1 ? `${res.count} × ` : ''}${name}${crit}`;
     },
     forge: () => forgeRows(workshop()),
     fusion: (uid: number) => fusionView(workshop(), uid),
@@ -1136,9 +1135,8 @@ async function main() {
       const res = fuse(workshop(), uid, partners, Math.random);
       if (!res.item) return 'Fusion impossible';
       setWorkshop(res.workshop);
-      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
       const bonus = res.item.bonus ? ` · ${fmtLine(...res.item.bonus)}` : '';
-      return `${item(res.item.id).name} devient ${RARITIES[res.item.rarity ?? 0]} !${bonus} · +${res.xp} XP${up}`;
+      return `${item(res.item.id).name} devient ${RARITIES[res.item.rarity ?? 0]} !${bonus}`;
     },
     fm: (uid: number) => fmView(workshop(), uid),
     fmApply(uid: number, runeId: number) {
@@ -1155,8 +1153,7 @@ async function main() {
         res.fromPuits ? `puits −${res.fromPuits}` : '',
         res.toPuits ? `puits +${res.toPuits}` : '',
       ].filter(Boolean);
-      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
-      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')} · −${fmtKamas(res.cost ?? 0)}${up}`, outcome: res.outcome };
+      return { text: `${FM_NAMES[res.outcome]} : ${parts.join(' · ')} · −${fmtKamas(res.cost ?? 0)}`, outcome: res.outcome };
     },
     purgeInfo: () => {
       const heroLevel = levelForXp(save.profile.xp);
@@ -1172,8 +1169,7 @@ async function main() {
       const res = breakItem(workshop(), uid, Math.random);
       const n = Object.values(res.runes).reduce((a, b) => a + b, 0);
       setWorkshop(res.workshop);
-      const up = res.levelAfter > res.levelBefore ? ` · Artisan niveau ${res.levelAfter} !` : '';
-      return `${n} rune${n > 1 ? 's' : ''} : ${Object.entries(res.runes).map(([id, k]) => `${k} ${item(Number(id)).name}`).join(', ') || 'aucune'} · +${res.xp} XP${up}`;
+      return `${n} rune${n > 1 ? 's' : ''} : ${Object.entries(res.runes).map(([id, k]) => `${k} ${item(Number(id)).name}`).join(', ') || 'aucune'}`;
     },
   }, zoneHooks, {
     get: () => bestiaryView(save.bestiary),

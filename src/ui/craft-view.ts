@@ -1,4 +1,4 @@
-import { canCraft, jobLevel, jobProgress, sortedRecipes, usable, type Workshop } from '../game/craft';
+import { canCraft, crafterLevel, sortedRecipes, usable, type Workshop } from '../game/craft';
 import type { Facets } from '../game/search';
 import { fmtLine, isSpecial, item, SETS, statLabel } from '../game/data/items';
 import type { ItemSlot } from '../game/data/items';
@@ -35,15 +35,14 @@ export interface CraftRow {
 }
 
 export function craftView(w: Workshop): CraftView {
-  const p = jobProgress(w.jobXp);
   return {
-    level: p.level, into: p.into, need: p.need, kamas: fmtKamas(w.kamas ?? 0),
+    level: crafterLevel(w), into: 0, need: 0, kamas: fmtKamas(w.kamas ?? 0),
     rows: sortedRecipes(w).map((r) => {
       const d = item(r.id), c = canCraft(w, r);
       const flags = new Set<string>([`id:${r.id}`, ...r.ingredients.map(([id]) => `ing:${id}`)]);
       if (c.ok) flags.add('craftable');
       const short = r.ingredients.filter(([id, q]) => usable(w, id) < q).length;
-      if (!c.ok && short === 1 && jobLevel(w.jobXp) >= r.level) flags.add('missing1');
+      if (!c.ok && short === 1 && crafterLevel(w) >= r.level) flags.add('missing1');
       return {
         id: r.id, icon: itemIconImg(r.id), name: d.name,
         sub: `${d.slot ? d.type : 'Ressource'} · niveau ${r.level}`,

@@ -222,7 +222,7 @@ export function resourceDetail(id: number, count: number, marks: { fav: boolean;
     lines: [], set: null, diff: [], diffTitle: '', action: null,
     note: marks.lock
       ? 'Verrouillée : l’Atelier ne l’utilisera pas.'
-      : uses.length ? `Sert à ${uses.length} recette${uses.length > 1 ? 's' : ''} de l’Artisan.` : 'Ne sert à aucune recette pour l’instant.',
+      : uses.length ? `Sert à ${uses.length} recette${uses.length > 1 ? 's' : ''} de l’Atelier.` : 'Ne sert à aucune recette pour l’instant.',
     sources: sourcesOf(id).map((s) => s.text),
     marks,
     links: uses.length ? [{ label: 'Recettes qui l’utilisent', go: `uses:${id}` }] : [],

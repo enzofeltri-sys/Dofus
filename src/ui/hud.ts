@@ -155,8 +155,7 @@ export class Hud {
       </div>
       <div class="atelier gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
-        <div class="sh-head"><div><h2 class="gr-h2">Artisan</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
-        <div class="at-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
+        <div class="sh-head"><div><h2 class="gr-h2">Atelier</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="gr-tabs at-tabs at-modes"><button type="button" class="gr-tab on" data-t="0">Fabrication</button><button type="button" class="gr-tab" data-t="3">Forge&shy;magie</button></div>
         <div class="flt at-flt"></div>
         <div class="at-list"></div>
@@ -968,8 +967,8 @@ export class Hud {
     const list = el.querySelector<HTMLElement>('.at-list')!;
     const head = () => {
       const v = h.get();
-      el.querySelector('.sh-head .lvl')!.textContent = `Niveau ${v.level}`;
-      setXpBar(el.querySelector('.at-xp')!, { level: v.level, xpInto: v.into, xpNeed: v.need });
+      // plus de niveau d'Artisan (choix d'Enzo) : les recettes s'ouvrent avec le niveau du personnage
+      el.querySelector('.sh-head .lvl')!.textContent = `Recettes jusqu’au niveau ${v.level}`;
       el.querySelectorAll<HTMLElement>('.at-tabs .gr-tab').forEach((t) => t.classList.toggle('on', Number(t.dataset.t) === this.atMode));
       return v;
     };

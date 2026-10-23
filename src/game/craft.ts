@@ -58,16 +58,21 @@ export interface Workshop {
   locked?: number[];
   /** Kamas (payent la forgemagie). */
   kamas?: number;
+  /** Niveau du personnage : il ouvre les recettes (le niveau d'Artisan est supprimé, choix d'Enzo). */
+  heroLevel?: number;
 }
+
+/** Niveau qui ouvre les recettes : celui du personnage (l'ancien niveau d'Artisan ne sert plus qu'aux vieux tests). */
+export const crafterLevel = (w: Workshop) => w.heroLevel ?? jobLevel(w.jobXp);
 
 /** Quantité d'une ressource utilisable par l'atelier (0 si verrouillée). */
 export const usable = (w: Workshop, id: number) => (w.locked?.includes(id) ? 0 : w.resources[id] ?? 0);
 
 export type CraftCheck = { ok: true; max: number } | { ok: false; reason: string; max: 0 };
 
-/** Peut-on fabriquer cette recette ? (niveau d'Artisan, ingrédients) et combien de fois au maximum. */
+/** Peut-on fabriquer cette recette ? (niveau du personnage, ingrédients) et combien de fois au maximum. */
 export function canCraft(w: Workshop, r: Recipe): CraftCheck {
-  if (jobLevel(w.jobXp) < r.level) return { ok: false, reason: `Artisan niveau ${r.level} requis`, max: 0 };
+  if (crafterLevel(w) < r.level) return { ok: false, reason: `Niveau ${r.level} requis`, max: 0 };
   const max = Math.min(...r.ingredients.map(([id, q]) => Math.floor(usable(w, id) / q)));
   if (max <= 0) {
     const lockedOnly = r.ingredients.every(([id, q]) => (w.resources[id] ?? 0) >= q);
@@ -102,7 +107,7 @@ export function craft(w: Workshop, r: Recipe, times: number, rnd: () => number):
       if (out.resources[id] <= 0) delete out.resources[id];
     }
     if (isEquipment(r.id)) {
-      const crit = rnd() < critChance(jobLevel(out.jobXp), r.level);
+      const crit = rnd() < critChance(crafterLevel(out), r.level);
       if (crit) crits++;
       out.inventory = addNew(out.inventory, r.id, crit ? 1 : 0, rnd);
       made.push(out.inventory.nextUid - 1);

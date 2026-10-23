@@ -1,35 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { AREAS, zoneEquipRange } from './data/areas';
-import { isEquipment, ITEMS } from './data/items';
-import { ZONE_EQUIP } from './data/items.gen';
+import { AREAS } from './data/areas';
+import { isEquipment, isSpecial, ITEMS, SETS } from './data/items';
 import { rollDrops, ZONE_EQUIP_CHANCE, zoneEquipPool } from './loot';
 import { rng } from '../iso';
 
-describe('Équipement de zone (validé par Enzo)', () => {
-  it('tranches : Incarnam 1-10, Astrub 11-21, Bouftous 22-30, Amakna 31-40 ; carte : jusqu’à son niveau + 2', () => {
-    expect(zoneEquipRange('champs')).toMatchObject({ lo: 1, hi: 5 });
-    expect(zoneEquipRange('crypte')).toMatchObject({ lo: 1, hi: 10 });
-    expect(zoneEquipRange('cite')).toMatchObject({ lo: 11, hi: 14 });
-    expect(zoneEquipRange('chateau')).toMatchObject({ lo: 11, hi: 21 });
-    expect(zoneEquipRange('tainela')).toMatchObject({ lo: 22, hi: 24 });
-    expect(zoneEquipRange('cour')).toMatchObject({ lo: 22, hi: 30 });
-    expect(zoneEquipRange('squelettes')).toMatchObject({ lo: 31, hi: 40 });
-  });
-
-  it('des centaines de vrais équipements, tous droppables quelque part, chacun dans sa tranche', () => {
-    expect(ZONE_EQUIP.length).toBeGreaterThan(500);
-    const everywhere = new Set(Object.keys(AREAS).flatMap((id) => zoneEquipPool(id)));
-    for (const id of ZONE_EQUIP) {
-      expect(isEquipment(id)).toBe(true);
-      expect(everywhere.has(id), ITEMS[id].name).toBe(true);
-    }
+describe('Équipement de zone : « une zone = ses panoplies » (refonte validée par Enzo)', () => {
+  it('chaque carte a ses pièces de panoplie, et seulement des pièces de panoplie', () => {
     for (const id of Object.keys(AREAS)) {
-      const r = zoneEquipRange(id);
-      if (!r) continue;
       const pool = zoneEquipPool(id);
       expect(pool.length, id).toBeGreaterThan(0);
-      for (const i of pool) expect(ITEMS[i].level >= r.lo && ITEMS[i].level <= r.hi).toBe(true);
+      for (const i of pool) {
+        expect(isEquipment(i)).toBe(true);
+        expect(ITEMS[i].set, ITEMS[i].name).toBeTruthy();
+      }
     }
+  });
+
+  it('vraies panoplies des monstres : Bouftou aux Bouftous, Kwaks aux Craqueleurs, Grüt chez les Bworks, Arakne aux Souterrains', () => {
+    const sets = (id: string) => new Set(zoneEquipPool(id).map((i) => SETS[ITEMS[i].set!].name));
+    expect(sets('tainela').has('Panoplie du Bouftou')).toBe(true);
+    expect(sets('cour').has('Panoplie du Bouftou Royal')).toBe(true);
+    expect(sets('craqueleurs').has('Panoplie du Kwak de Glace')).toBe(true);
+    expect(sets('campementBworks').has('Panoplie de Grüt')).toBe(true);
+    expect(sets('souterrains').has('Panoplie Arakne')).toBe(true);
+    expect(sets('calanques').has('Panoplie en Mousse')).toBe(true);
+  });
+
+  it('un équipement hors panoplie de la carte ne tombe jamais (il se fabrique)', () => {
+    const r = rng(3);
+    const pool = zoneEquipPool('crypte');
+    for (let i = 0; i < 3000; i++)
+      for (const id of rollDrops({ dofusId: 4051, boss: true, prospection: 300, zonePool: pool }, r))
+        if (isEquipment(id) && !isSpecial(id)) expect(pool).toContain(id);
   });
 
   it('chances : 5 % par monstre, 20 % par élite, 50 % par boss (Prospection 100, choix d’Enzo)', () => {

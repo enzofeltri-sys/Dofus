@@ -1,10 +1,10 @@
 import { isEquipment, item, statLabel } from './data/items';
-import { DUNGEON_DROPS, REGION_DROPS, ZONE_EQUIP } from './data/items.gen';
+import { DUNGEON_DROPS, REGION_DROPS } from './data/items.gen';
 import { MONSTERS } from './data/monsters';
 import { RECIPES, recipeFor } from './craft';
-import { DROP_MULT, ZONE_EQUIP_CHANCE } from './loot';
+import { DROP_MULT, ZONE_EQUIP_CHANCE, zoneEquipPool } from './loot';
 import { RUNE_STAT } from './forge';
-import { AREAS, ZONE_TIERS, ZONES } from './data/areas';
+import { AREAS } from './data/areas';
 
 /** Où obtenir un objet : fabrication, butin du donjon (chance réelle en jeu), butin de région. */
 export interface Source {
@@ -25,20 +25,21 @@ export function sourcesOf(id: number): Source[] {
   const rune = RUNE_STAT.get(id);
   if (rune) out.push({ kind: 'break', text: `Brisage d’un objet avec la stat ${statLabel(rune[0])} (Atelier)` });
   const r = recipeFor(id);
-  if (r) out.push({ kind: 'craft', text: `Fabrication · Artisan niveau ${r.level}` });
+  if (r) out.push({ kind: 'craft', text: `Fabrication · dès le niveau ${r.level}` });
+  // équipement : seulement les pièces des panoplies de zone tombent (refonte validée par Enzo)
+  const zoneAreas = isEquipment(id) ? Object.values(AREAS).filter((a) => zoneEquipPool(a.id).includes(id)) : [];
+  const dropsHere = !isEquipment(id) || zoneAreas.length > 0;
   for (const [mid, drops] of Object.entries(DUNGEON_DROPS)) {
     const d = drops.find(([i]) => i === id);
-    if (!d) continue;
+    if (!d || !dropsHere) continue;
     const boss = BOSS_IDS.has(Number(mid));
     const chance = d[1] * (boss ? (isEquipment(id) ? DROP_MULT.bossEquipment : 1) : isEquipment(id) ? DROP_MULT.equipment : DROP_MULT.resource);
     out.push({ kind: 'dungeon', text: `${monsterName(Number(mid))}${boss ? ' (boss)' : ''} · ${placeOf(Number(mid))} · ${pct(chance)}` });
   }
-  if (ZONE_EQUIP.includes(id)) {
-    const lv = item(id).level;
-    const zones = ZONES.filter((z) => ZONE_TIERS[z.id] && lv >= ZONE_TIERS[z.id][0] && lv <= ZONE_TIERS[z.id][1]).map((z) => z.name);
-    if (zones.length) out.push({ kind: 'zone', text: `Équipement de zone · ${zones.join(', ')} · ${pct(ZONE_EQUIP_CHANCE.monster * 100)} par monstre, ${pct(ZONE_EQUIP_CHANCE.monster * ZONE_EQUIP_CHANCE.elite * 100)} par élite, ${pct(ZONE_EQUIP_CHANCE.boss * 100)} par boss (un objet au hasard de la zone)` });
+  if (zoneAreas.length) {
+    out.push({ kind: 'zone', text: `Panoplie de zone · ${zoneAreas.map((a) => a.name).join(', ')} · ${pct(ZONE_EQUIP_CHANCE.monster * 100)} par monstre, ${pct(ZONE_EQUIP_CHANCE.monster * ZONE_EQUIP_CHANCE.elite * 100)} par élite, ${pct(ZONE_EQUIP_CHANCE.boss * 100)} par boss (une pièce au hasard des panoplies de la carte)` });
   }
-  const region = [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))];
+  const region = dropsHere ? [...new Set(REGION_DROPS.filter(([i]) => i === id).map(([, , m]) => m))] : [];
   if (region.length) out.push({ kind: 'region', text: `Butin de région (Incarnam) · ${region.join(', ')}` });
   return out;
 }
