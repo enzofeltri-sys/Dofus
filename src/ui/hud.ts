@@ -14,6 +14,7 @@ import type { BreakView, CraftView, FmRuneBtn, FmView, ForgeRow, FusionView } fr
 import type { BeastCard } from './bestiary-view';
 import type { BeastKind } from '../game/bestiary';
 import type { AtlasView } from './atlas-view';
+import type { PieceView, SetsView } from './sets-view';
 import { RARITIES } from '../game/forge';
 
 /** Une case de sort telle qu'affichée (null = case vide). */
@@ -135,9 +136,18 @@ export class Hud {
           <textarea class="s-text" readonly hidden></textarea>
         </div>
       </div>
+      <div class="sets gr-paper" hidden>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sets">Panoplies</button><button type="button" class="sec-tab" data-panel="inv">Sac</button><button type="button" class="sec-tab" data-panel="atelier">Atelier</button></div>
+        <div class="sh-head"><h2 class="gr-h2">Panoplies</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="st-strip"></div>
+        <label class="st-zone"><span class="gr-label">Zone</span><select class="st-zsel"></select></label>
+        <div class="st-ready"></div>
+        <div class="st-list"></div>
+        <div class="inv-detail st-modal" hidden><div class="det-card gr-panel gold"></div></div>
+      </div>
       <div class="inv gr-paper" hidden>
-        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
-        <div class="sh-head"><h2 class="gr-h2">Inventaire</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sets">Panoplies</button><button type="button" class="sec-tab" data-panel="inv">Sac</button><button type="button" class="sec-tab" data-panel="atelier">Atelier</button></div>
+        <div class="sh-head"><h2 class="gr-h2">Sac</h2><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="inv-doll">
           <div class="col left"></div>
           <div class="mid"><div class="hero">${sacrieurSvg()}</div><div class="row pair"></div></div>
@@ -154,7 +164,7 @@ export class Hud {
         <div class="inv-detail inv-modal" hidden><div class="det-card gr-panel gold"></div></div>
       </div>
       <div class="atelier gr-paper" hidden>
-        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="inv">Inventaire</button><button type="button" class="sec-tab" data-panel="atelier">Artisanat</button></div>
+        <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sets">Panoplies</button><button type="button" class="sec-tab" data-panel="inv">Sac</button><button type="button" class="sec-tab" data-panel="atelier">Atelier</button></div>
         <div class="sh-head"><div><h2 class="gr-h2">Atelier</h2><span class="gr-chip lvl"></span></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
         <div class="gr-tabs at-tabs at-modes"><button type="button" class="gr-tab on" data-t="0">Fabrication</button><button type="button" class="gr-tab" data-t="3">Forge&shy;magie</button></div>
         <div class="flt at-flt"></div>
@@ -454,17 +464,19 @@ export class Hud {
     zones?: ZoneHooks,
     beasts?: { get(): BeastCard[]; fresh(): number; seen(): void; claim?(id: string): boolean },
     spells?: { get(): GrimoireRow[]; fav(id: SpellId): void },
+    sets?: SetsHooks,
   ): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.camp')!;
     const nav = this.root.querySelector<HTMLElement>('.camp-nav')!;
     this.work = work ?? null;
     if (look) this.setHeroLook(look.get());
-    type Panel = 'sheet' | 'look' | 'inv' | 'atelier' | 'atlas' | 'bestiary' | 'encyclo' | 'grimoire';
-    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire' | 'grimoire'> = { sheet: 'perso', look: 'perso', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire', encyclo: 'bestiaire', grimoire: 'grimoire' };
+    type Panel = 'sheet' | 'look' | 'sets' | 'inv' | 'atelier' | 'atlas' | 'bestiary' | 'encyclo' | 'grimoire';
+    const SECTION: Record<Panel, 'perso' | 'equip' | 'donjons' | 'bestiaire' | 'grimoire'> = { sheet: 'perso', look: 'perso', sets: 'equip', inv: 'equip', atelier: 'equip', atlas: 'donjons', bestiary: 'bestiaire', encyclo: 'bestiaire', grimoire: 'grimoire' };
     let current: Panel | null = null;
     const open: Record<Panel, () => Promise<void>> = {
       sheet: () => this.charSheet(sheet, act),
       look: () => (look ? this.appearance(look) : Promise.resolve()),
+      sets: () => (sets ? this.setsPanel(sets) : Promise.resolve()),
       inv: () => (inv ? this.inventory(inv) : Promise.resolve()),
       atelier: () => (work ? this.atelier(work) : Promise.resolve()),
       atlas: () => (zones ? this.atlas(zones, () => el.querySelector<HTMLButtonElement>('.enter')!.click()) : Promise.resolve()),
@@ -543,7 +555,7 @@ export class Hud {
         this.root.querySelector<HTMLButtonElement>(`.${current} .sh-head .close`)?.click();
         return;
       }
-      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : sec === 'grimoire' ? 'grimoire' : 'inv');
+      void show(sec === 'perso' ? 'sheet' : sec === 'donjons' ? 'atlas' : sec === 'bestiaire' ? 'bestiary' : sec === 'grimoire' ? 'grimoire' : sets ? 'sets' : 'inv');
     };
     nav.querySelector<HTMLElement>('[data-sec="equip"]')!.hidden = !inv;
     nav.querySelector<HTMLElement>('[data-sec="bestiaire"]')!.hidden = !beasts;
@@ -947,7 +959,8 @@ export class Hud {
     };
   }
 
-  private atTab = 0;
+  /** Fabrication : 2 autour de mon niveau (par défaut), 0 fabricables, 1 toutes (choix d'Enzo : la recherche trouve tout). */
+  private atTab = 2;
   /** Onglet de l'Atelier : 0 Fabrication, 3 Forgemagie (Fusion et Brisage sont dans l'inventaire, choix d'Enzo). */
   private atMode = 0;
   private atOpen: number | null = null;
@@ -975,16 +988,19 @@ export class Hud {
     const renderCraft = (): number => {
       const v = head();
       const f = this.filters('craft', init);
-      const rows = applyFilters(this.atTab === 0 ? v.rows.filter((r) => r.ok) : v.rows, f).sort((a, b) => Number(b.ok) - Number(a.ok));
+      // autour de mon niveau (±5) par défaut ; une recherche tapée cherche dans toutes les recettes
+      const lo = Math.max(1, v.level - 5), hi = v.level + 5;
+      const base = this.atTab === 0 ? v.rows.filter((r) => r.ok) : this.atTab === 2 && !f.q.trim() ? v.rows.filter((r) => r.level >= lo && r.level <= hi) : v.rows;
+      const rows = applyFilters(base, f).sort((a, b) => Number(b.ok) - Number(a.ok));
       const focus = focusStat(f);
-      const sub = `<div class="cat-mode"><button type="button" class="flt-chip ${this.atTab === 0 ? 'on' : ''}" data-sub="0">Disponibles</button><button type="button" class="flt-chip ${this.atTab === 1 ? 'on' : ''}" data-sub="1">Toutes les recettes</button></div>`;
+      const sub = `<div class="cat-mode"><button type="button" class="flt-chip ${this.atTab === 2 ? 'on' : ''}" data-sub="2">Mon niveau (${lo}-${hi})</button><button type="button" class="flt-chip ${this.atTab === 0 ? 'on' : ''}" data-sub="0">Fabricables</button><button type="button" class="flt-chip ${this.atTab === 1 ? 'on' : ''}" data-sub="1">Toutes</button></div>`;
       list.innerHTML = sub + (rows.length ? rows.map((r) => {
         const fv = focusValue(r.facets, focus);
         return `
         <div class="at-row ${r.ok ? '' : 'off'} ${this.atOpen === r.id ? 'open' : ''}" data-id="${r.id}">
           <div class="at-ico">${r.icon}</div>
           <div class="at-main">
-            <b>${r.name}${fv !== null ? ` <span class="fv gr-num">${fv > 0 ? '+' : ''}${fv}</span>` : ''}</b><small>${r.sub}</small>
+            <b>${r.name}${fv !== null ? ` <span class="fv gr-num">${fv > 0 ? '+' : ''}${fv}</span>` : ''}${r.better === 'up' ? ' <span class="at-better">▲ Mieux</span>' : ''}</b><small>${r.sub}</small>
             <div class="at-ings">${r.ingredients.map((g) => `<span class="${g.locked ? 'lk' : g.have >= g.need ? 'ok' : 'no'}" title="${g.name}">${g.icon}<i class="gr-num">${g.locked ? LOCK_SVG : ''}${g.have}/${g.need}</i></span>`).join('')}</div>
             ${this.atOpen === r.id ? `<div class="at-detail">${r.lines.map((l) => `<div>${l}</div>`).join('')}${r.set ? `<em>${r.set}</em>` : ''}${r.lines.length ? '' : '<em>Ressource intermédiaire, sert à d’autres recettes.</em>'}</div>` : ''}
           </div>
@@ -1311,6 +1327,99 @@ export class Hud {
 
   /** Bestiaire : tous les monstres (silhouette tant qu'on ne les a pas croisés), filtrés par catégorie ; fiche au toucher. */
   /** Grimoire : les 22 sorts du Sacrieur, débloqués selon le niveau ; favoris (plus souvent dans les cartes). */
+  private stZone = '';
+  /**
+   * Panoplies (refonte validée par Enzo) : la collection de la zone choisie, pièces obtenues ou en silhouette ;
+   * une pièce s'ouvre en fiche : Équiper, Améliorer (3 identiques), Briser, où la trouver, la fabriquer.
+   */
+  setsPanel(h: SetsHooks): Promise<void> {
+    const el = this.root.querySelector<HTMLElement>('.sets')!;
+    const modal = el.querySelector<HTMLElement>('.st-modal')!;
+    const closeModal = () => {
+      modal.hidden = true;
+      modal.onclick = null;
+    };
+    const render = () => {
+      const v = h.view(this.stZone || undefined);
+      this.stZone = v.zone;
+      el.querySelector('.st-strip')!.innerHTML = h.worn().map((s) =>
+        `<button type="button" class="st-slot ${s.id ? `full r${s.rarity}` : ''}" ${s.id ? `data-piece="${s.id}"` : ''} aria-label="${s.name}">${s.icon || `<span>${s.name}</span>`}</button>`).join('');
+      el.querySelector('.st-zsel')!.innerHTML = v.zones.map((z) => `<option value="${z.id}" ${z.id === v.zone ? 'selected' : ''}>${z.name}</option>`).join('');
+      el.querySelector('.st-ready')!.innerHTML = v.ready.length
+        ? `<div class="st-fz"><b>Prêtes à monter de rang</b>${v.ready.map((r) => `<button type="button" class="st-fzr" data-piece="${r.id}"><span>▲ ${r.name}</span><small>3 exemplaires → ${r.next}</small></button>`).join('')}</div>` : '';
+      el.querySelector('.st-list')!.innerHTML = v.sets.length ? v.sets.map((s) => `
+        <div class="st-set ${s.goal ? 'goal' : ''}">
+          <div class="st-h"><b>${s.name}</b><span class="st-prog gr-num">${s.have} / ${s.total}</span></div>
+          <div class="st-bar"><i style="width:${Math.round((100 * s.have) / Math.max(1, s.total))}%"></i></div>
+          <div class="st-pcs">${s.pieces.map((p) => `<button type="button" class="st-pc ${p.owned ? `has r${p.rarity}` : 'miss'} ${p.worn ? 'worn' : ''}" data-piece="${p.id}" title="${p.name}">${p.icon}${p.owned > 1 ? `<i class="st-n">×${p.owned}</i>` : ''}${p.fusable ? '<i class="st-up">▲</i>' : ''}</button>`).join('')}</div>
+          <div class="st-b">${s.goal ? `<span class="st-goal">Objectif niveau ${s.level}</span>` : ''}${s.bonusNow ? `<div>${s.bonusNow}</div>` : ''}<div class="dim">Complète : ${s.bonusFull || '—'}</div></div>
+        </div>`).join('') : '<p class="inv-empty">Aucune panoplie dans cette zone.</p>';
+    };
+    const openPiece = (id: number) => {
+      const draw = () => {
+        const p = h.piece(id);
+        const cmp = p.compare === 'up' ? '<span class="st-cmp up">▲ Mieux que ce que tu portes</span>' : p.compare === 'down' ? '<span class="st-cmp down">▼ Moins bien que ce que tu portes</span>' : p.compare === 'same' ? '<span class="st-cmp">≈ Comme ce que tu portes</span>' : '';
+        modal.querySelector('.det-card')!.innerHTML = `
+          <div class="det-head"><span class="det-ico ${p.owned.length ? `r${p.owned[0].rarity}` : 'st-sil'}">${p.icon}</span><div><h3 class="gr-h3">${p.name}</h3><span class="det-sub">${p.sub}</span></div></div>
+          ${cmp}
+          <div class="det-lines">${p.lines.map((l) => `<div><span>${l}</span></div>`).join('')}</div>
+          ${p.owned.length ? `<div class="det-src"><span class="gr-label">Tes exemplaires</span></div>${p.owned.map((o) => `
+            <div class="st-own"><div><b class="rar-${o.rarity}">${o.worn ? 'Porté · ' : ''}${o.text}</b></div>
+              <div class="st-own-b">
+                <button type="button" class="gr-btn sm ${o.worn ? 'ghost' : 'turquoise'}" data-eq="${o.uid}">${o.worn ? 'Retirer' : 'Équiper'}</button>
+                ${o.fusable ? `<button type="button" class="gr-btn sm magic" data-fz="${o.uid}">Améliorer</button>` : ''}
+                ${o.worn ? '' : `<button type="button" class="gr-btn sm coral" data-br="${o.uid}">Briser</button>`}
+              </div></div>`).join('')}` : ''}
+          <div class="det-src"><span class="gr-label">Où la trouver</span>${p.sources.map((s) => `<div class="st-src">${s}</div>`).join('')}</div>
+          ${p.recipe ? `<div class="det-src"><span class="gr-label">Ou la fabriquer</span>${p.recipe.ings.map((g) => `<div class="st-ing">${g.icon}<span>${g.name}</span><b class="gr-num ${g.have >= g.need ? 'ok' : 'no'}">${g.have}/${g.need}</b></div>`).join('')}
+            <button type="button" class="gr-btn sm leaf st-make" ${p.recipe.ok ? '' : 'disabled'}>${p.recipe.ok ? 'Fabriquer' : p.recipe.reason}</button></div>` : ''}
+          <div class="det-btns"><button type="button" class="gr-btn ghost sm md-close">Fermer</button></div>`;
+      };
+      draw();
+      modal.hidden = false;
+      modal.onclick = (e) => {
+        const t = e.target as HTMLElement;
+        if (t === modal || t.closest('.md-close')) return closeModal();
+        const eq = t.closest<HTMLElement>('[data-eq]');
+        if (eq) {
+          h.toggle(Number(eq.dataset.eq));
+          draw();
+          render();
+          return;
+        }
+        const w = this.work;
+        const fz = t.closest<HTMLElement>('[data-fz]');
+        if (fz && w) return this.fusionModal(modal, w, Number(fz.dataset.fz), () => render());
+        const br = t.closest<HTMLElement>('[data-br]');
+        if (br && w) return this.breakModal(modal, w, [Number(br.dataset.br)], () => render());
+        if (t.closest('.st-make')) {
+          this.toast(h.craft(id), 1800);
+          draw();
+          render();
+        }
+      };
+    };
+    el.onclick = (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('.st-modal')) return;
+      const pc = t.closest<HTMLElement>('[data-piece]');
+      if (pc) openPiece(Number(pc.dataset.piece));
+    };
+    el.querySelector<HTMLSelectElement>('.st-zsel')!.onchange = (e) => {
+      this.stZone = (e.target as HTMLSelectElement).value;
+      render();
+    };
+    render();
+    el.hidden = false;
+    return new Promise((resolve) => {
+      el.querySelector<HTMLButtonElement>('.sh-head .close')!.onclick = () => {
+        closeModal();
+        el.hidden = true;
+        resolve();
+      };
+    });
+  }
+
   grimoire(h: { get(): GrimoireRow[]; fav(id: SpellId): void }): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.grimoire')!;
     const render = () => {
@@ -1788,6 +1897,18 @@ export interface InvHooks {
   catalog(id: number): ItemDetail;
   /** Met / enlève favori ou verrou sur un équipement (uid) ou une ressource (id). */
   mark(kind: 'uid' | 'res', id: number, mark: Mark): void;
+}
+
+/** Écran Panoplies (fourni par le jeu). */
+export interface SetsHooks {
+  view(zone?: string): SetsView;
+  piece(id: number): PieceView;
+  /** Ce qui est porté (bande du haut). */
+  worn(): { name: string; id: number | null; icon: string; rarity: number }[];
+  /** Équipe ou retire. */
+  toggle(uid: number): void;
+  /** Fabrique une fois ; renvoie le message. */
+  craft(id: number): string;
 }
 
 /** Ce dont l'écran Donjons a besoin (fourni par le jeu). */

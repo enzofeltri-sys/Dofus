@@ -31,6 +31,7 @@ console.log('butin :', await p.evaluate(async () => {
   return Object.entries(eq).map(([k, n]) => `${n}× ${k}`).join(' | ');
 }));
 await p.click('.nav-tab[data-sec="equip"]');
+await p.click('.sets .sec-tab[data-panel="inv"]');
 await p.click('.inv .sec-tab[data-panel="atelier"]');
 await p.waitForTimeout(500);
 console.log('atelier :', await p.textContent('.atelier .sh-head'));

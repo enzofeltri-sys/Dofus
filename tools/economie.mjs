@@ -42,6 +42,7 @@ await shot('eco_camp');
 
 // 1) fusion : 3 anneaux différents de même rang
 await p.click('.nav-tab[data-sec="equip"]');
+await p.click('.sets .sec-tab[data-panel="inv"]');
 await p.waitForTimeout(500);
 const ringUid = await p.evaluate(async () => {
   const { item } = await import('/src/game/data/items.ts');

@@ -32,6 +32,8 @@ import { fmtLine, item, statLabel, type SlotId } from './game/data/items';
 import { allItemIconUrls, itemIconImg, itemIconUrl, weaponIconUrl } from './ui/item-icons';
 import { craft, recipeFor } from './game/craft';
 import { breakView, craftView, fmView, forgeRows, fusionView } from './ui/craft-view';
+import { pieceView, setsView } from './ui/sets-view';
+import { caracWeights } from './game/collection';
 import { bestiaryView } from './ui/bestiary-view';
 import { beastBonuses, claimable } from './game/bestiary';
 import { applyRune, fmCheck, FM_NAMES, FM_NAMES_SIMPLE, type FmMode } from './game/fm';
@@ -1117,11 +1119,11 @@ async function main() {
       storeSave(save);
     },
   }, {
-    get: () => craftView(workshop()),
+    get: () => craftView(workshop(), caracWeights(heroFromSave().stats)),
     craft(id, n) {
       const r = recipeFor(id);
       if (!r) return '';
-      const res = craft({ resources: save.resources, inventory: save.inventory, jobXp: save.jobXp, locked: save.resMarks.lock }, r, n, Math.random);
+      const res = craft(workshop(), r, n, Math.random);
       save = { ...save, resources: res.workshop.resources, inventory: res.workshop.inventory, jobXp: res.workshop.jobXp };
       for (const uid of res.made) freshItems.add(uid);
       storeSave(save);
@@ -1196,6 +1198,23 @@ async function main() {
       const f = save.favSpells ?? [];
       save = { ...save, favSpells: f.includes(id) ? f.filter((x) => x !== id) : [...f, id] };
       storeSave(save);
+    },
+  }, {
+    // Panoplies (refonte validée par Enzo) : collection de la zone, fiche d'une pièce
+    view: (zone?: string) => setsView(workshop(), save.done, save.area, heroLevel(), zone),
+    piece: (id: number) => pieceView(workshop(), id, caracWeights(heroFromSave().stats)),
+    worn: () => invHooks.get().slots.filter((sl) => !sl.slot.startsWith('dofus')).map((sl) => ({
+      name: sl.name, icon: sl.icon, rarity: sl.rarity, id: sl.uid !== null ? save.inventory.items.find((o) => o.uid === sl.uid)?.id ?? null : null,
+    })),
+    toggle: (uid: number) => invHooks.toggle(uid),
+    craft(id: number) {
+      const r = recipeFor(id);
+      if (!r) return '';
+      const res = craft(workshop(), r, 1, Math.random);
+      if (!res.count) return 'Fabrication impossible';
+      setWorkshop(res.workshop);
+      for (const uid of res.made) freshItems.add(uid);
+      return `${item(id).name} fabriqué${res.crits ? ' · craft critique : Rare !' : ''}`;
     },
   }).then(refreshHeroLook);
   /** Première faiblesse / résistance vue sur un type de monstre : on l'écrit une fois. */

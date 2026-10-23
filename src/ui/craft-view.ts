@@ -8,6 +8,7 @@ import { instance, isWorn, itemLines } from '../game/inventory';
 import { itemIconImg } from './item-icons';
 import { fmCheck, fmLines, ownedRunes, puitsMax, type FmMode } from '../game/fm';
 import { fmtKamas, runeCost } from '../game/kamas';
+import { betterThanWorn } from '../game/collection';
 
 /** Atelier de l'Artisan tel qu'affiché au camp. */
 export interface CraftView {
@@ -31,9 +32,13 @@ export interface CraftRow {
   lines: string[];
   set: string;
   facets: Facets;
+  /** Niveau de la recette (filtre « autour de mon niveau »). */
+  level: number;
+  /** Comparé à ce qui est porté au même emplacement (jets moyens). */
+  better: 'up' | 'down' | 'same' | null;
 }
 
-export function craftView(w: Workshop): CraftView {
+export function craftView(w: Workshop, weights?: Record<string, number>): CraftView {
   return {
     level: crafterLevel(w), into: 0, need: 0, kamas: fmtKamas(w.kamas ?? 0),
     rows: sortedRecipes(w).map((r) => {
@@ -49,6 +54,8 @@ export function craftView(w: Workshop): CraftView {
         ingredients: r.ingredients.map(([id, q]) => ({ icon: itemIconImg(id), name: item(id).name, have: w.resources[id] ?? 0, need: q, locked: !!w.locked?.includes(id) })),
         lines: d.effects.map(([pth, a, b]) => (a === b ? fmtLine(pth, a) : `${a >= 0 ? '+' : ''}${a} à ${b} ${statLabel(pth)}`)),
         set: d.set ? SETS[d.set]?.name ?? '' : '',
+        level: r.level,
+        better: weights && d.slot ? betterThanWorn(w.inventory, r.id, weights) : null,
         facets: {
           name: d.name, level: r.level, slot: d.slot, set: d.set,
           stats: new Map(d.effects.map(([p, a, b]) => [p, Math.abs(b) >= Math.abs(a) ? b : a])),
