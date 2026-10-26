@@ -27,7 +27,8 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'kwakVent' | 'kwakereVent' | 'bwakVent' | 'kwakFlamme' | 'kwakereFlamme' | 'bwakFlamme' | 'kwakGlace' | 'kwakereGlace' | 'bwakGlace' | 'kwakTerre' | 'kwakereTerre' | 'bwakTerre' | 'kwakwa'
   | 'wabbit' | 'blackWabbit' | 'tiwabbit' | 'blackTiwabbit' | 'tiwabbitKiafin' | 'woWabbit' | 'grandPaWabbit' | 'waWabbit'
   | 'blopCoco' | 'blopIndigo' | 'blopGriotte' | 'blopReinette' | 'gloutoblop' | 'blopignon' | 'tronkoblop'
-  | 'blopCocoRoyal' | 'blopIndigoRoyal' | 'blopGriotteRoyal' | 'blopReinetteRoyal';
+  | 'blopCocoRoyal' | 'blopIndigoRoyal' | 'blopGriotteRoyal' | 'blopReinetteRoyal'
+  | 'craqueleur' | 'craqueleurLegendaire' | 'craquelourd' | 'craqueleurPlaines' | 'kirboule' | 'craqueboule' | 'craquelope' | 'elementerre';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -57,9 +58,11 @@ export const KWAKS: CritterKind[] = ['kwakVent', 'kwakereVent', 'bwakVent', 'kwa
 export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargrouille', 'ashimagari'];
 /** Blops (Lac de Cania, Clos des Blops) : gelées translucides à fleur (rig des gelées : flaque, corps, visage). */
 export const BLOPS: CritterKind[] = ['blopCoco', 'blopIndigo', 'blopGriotte', 'blopReinette', 'gloutoblop', 'blopignon', 'tronkoblop', 'blopCocoRoyal', 'blopIndigoRoyal', 'blopGriotteRoyal', 'blopReinetteRoyal'];
+/** Craqueleurs (Plaines Rocheuses, Pitons Rocheux) : golems de pierre bipèdes (pièces des plantes) ; l'Élémenterre est une carapace (rig des gelées). */
+export const CRAQS: CritterKind[] = ['craqueleur', 'craqueleurLegendaire', 'craquelourd', 'craqueleurPlaines', 'kirboule', 'craqueboule', 'craquelope', 'elementerre'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
-    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
+    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' || k === 'elementerre' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
 const PLANT_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [76, 112], leafF: [64, 114], head: [70, 96] };
@@ -95,6 +98,12 @@ export const CRITTER_PIVOTS = {
   ...Object.fromEntries(['milirat', 'ramane', 'scelerat', 'mobEponge'].map((k) => [k, { legB: [80, 118], legF: [62, 118], stem: [70, 142], leafB: [92, 84], leafF: [52, 86], head: [68, 82] }])),
   ...Object.fromEntries(['pichonOrange', 'pichonBleu', 'pichonBlanc', 'pichonVert', 'pichonKloune'].map((k) => [k, { wingB: [94, 98], legB: [102, 106], legF: [68, 122], body: [72, 132], crest: [74, 84], wingF: [74, 112] }])),
   ...Object.fromEntries(BLOPS.map((k) => [k, k === 'tronkoblop' ? { back: [70, 150], body: [70, 150], face: [70, 60] } : JELLY_PIVOTS])),
+  ...Object.fromEntries(['craqueleur', 'craqueleurLegendaire', 'craquelourd'].map((k) => [k, { legB: [92, 118], legF: [62, 120], stem: [72, 146], leafB: [104, 60], leafF: [56, 58], head: [58, 80] }])),
+  craqueleurPlaines: { legB: [98, 116], legF: [70, 118], stem: [78, 146], leafB: [106, 82], leafF: [56, 92], head: [60, 84] },
+  kirboule: { legB: [98, 116], legF: [70, 118], stem: [78, 146], leafB: [106, 82], leafF: [56, 92], head: [60, 84] },
+  craqueboule: { legB: [82, 124], legF: [58, 124], stem: [72, 140], leafB: [92, 100], leafF: [48, 100], head: [70, 96] },
+  craquelope: { legB: [82, 118], legF: [60, 120], stem: [70, 140], leafB: [92, 76], leafF: [52, 86], head: [68, 78] },
+  elementerre: JELLY_PIVOTS,
   ...Object.fromEntries(WABBITS.map((k) => [k, { legB: [84, 122], legF: [62, 122], stem: [72, 140], leafB: [94, 100], leafF: [54, 102], head: [66, 96] }])),
   ...Object.fromEntries(KWAKS.map((k) => [k, { wingB: [100, 98], legB: [86, 128], legF: [68, 128], body: [78, 128], crest: [62, 84], wingF: [80, 104] }])),
   ...Object.fromEntries(['tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant', 'tofuVentripotent', 'batofu', 'bomberfu', 'tofuMalefique'].map((k) => [k, { wingB: [104, 92], legB: [86, 146], legF: [58, 146], body: [74, 140], crest: [72, 64], wingF: [82, 112] }])),
@@ -1646,6 +1655,136 @@ function blopSvg(kind: CritterKind, part?: CritterPart): string {
   return assemble(kind, P, part);
 }
 
+/**
+ * Craqueleurs (Plaines Rocheuses, Pitons Rocheux ; d'après les illustrations DofusDB, retournées pour regarder à gauche) :
+ * golems de pierres taillées à facettes, mousse verte dans les creux.
+ * - Craqueleur : golem gris-kaki voûté, bras énormes jusqu'au sol, petite tête basse au bec orange. Le Légendaire : le même, plus moussu.
+ * - Craquelourd : golem doré en haut, vert olive en bas, cristaux sur les épaules.
+ * - Craqueleur des Plaines : bête dorée accroupie hérissée d'éclats ; Kirboule l'Érodé (même illustration DofusDB) : gris, éclats usés.
+ * - Craqueboule : petit, grosse tête ronde à pousse en vrille, gros yeux, bec orange.
+ * - Craquelope : cyclope jaune pâle à pousse verte, un bras levé en bloc.
+ * - Élémenterre : carapace de plaques beiges en pointe, visage cube noir à deux gros yeux.
+ */
+/** Pierre à facettes : bandes en diagonale claire / pleine / sombre (lumière en haut à gauche). */
+function stone(pts: string, col: string, ink: string, w = LW): string {
+  const g = uid('st');
+  return `<linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(col, 0.32)}"/><stop offset="0.36" stop-color="${shade(col, 0.32)}"/>` +
+    `<stop offset="0.36" stop-color="${col}"/><stop offset="0.72" stop-color="${col}"/><stop offset="0.72" stop-color="${shade(col, -0.2)}"/><stop offset="1" stop-color="${shade(col, -0.2)}"/></linearGradient>` +
+    `<polygon points="${pts}" fill="url(#${g})" stroke="${ink}" stroke-width="${w}" stroke-linejoin="round"/>`;
+}
+/** Éclat pointu (pique de pierre ou cristal) : base en (x, y), pointe à la distance len dans la direction a (degrés). */
+function shard(x: number, y: number, len: number, a: number, wd: number, col: string, ink: string): string {
+  const r = (a * Math.PI) / 180, px = -Math.sin(r), py = Math.cos(r);
+  return stone(`${f(x + px * wd)},${f(y + py * wd)} ${f(x + Math.cos(r) * len)},${f(y + Math.sin(r) * len)} ${f(x - px * wd)},${f(y - py * wd)}`, col, ink, 1.3);
+}
+/** Plaque de mousse dans un creux de pierre. */
+const moss = (x: number, y: number, s = 1) =>
+  `<g stroke="#3a6a14" stroke-width="0.9"><ellipse cx="${x - 4 * s}" cy="${y + 1 * s}" rx="${5 * s}" ry="${2.6 * s}" fill="#5a9a22"/>` +
+  `<ellipse cx="${x + 3 * s}" cy="${y - 0.5 * s}" rx="${4.4 * s}" ry="${2.4 * s}" fill="#7ab82a"/><ellipse cx="${x}" cy="${y + 2.6 * s}" rx="${3 * s}" ry="${1.6 * s}" fill="#8ac83a"/></g>` +
+  `<circle cx="${x + 2 * s}" cy="${y - 1 * s}" r="${1.1 * s}" fill="#c8e86a"/><circle cx="${x - 5 * s}" cy="${y}" r="${0.9 * s}" fill="#b8e05a"/>`;
+/** Pousse en vrille (Craqueboule, Craquelope). */
+const sprout = (x: number, y: number, h: number, col: string) => {
+  const d = `M${x},${y} Q${x - 4},${y - h * 0.6} ${x + 2},${y - h} Q${x + 10},${y - h - 6} ${x + 10},${y - h + 4} Q${x + 8},${y - h + 8} ${x + 4},${y - h + 4}`;
+  return `<path d="${d}" fill="none" stroke="#2e5a10" stroke-width="5.4" stroke-linecap="round"/><path d="${d}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round"/>`;
+};
+/** Petit œil rond sous un sourcil de pierre (tilt : sens du froncement). */
+const angryEye = (cx: number, cy: number, r: number, ink: string, tilt = 1) =>
+  `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fdfbe8" stroke="${ink}" stroke-width="1.2"/><circle cx="${cx - r * 0.3}" cy="${cy + r * 0.15}" r="${r * 0.5}" fill="#141410"/>` +
+  `<path d="M${cx - r - 2},${cy - r + 1 - tilt * 2} L${cx + r + 2},${cy - r + 1 + tilt * 2}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>`;
+
+const CRAQ: Record<string, { rock: string; low: string; ink: string; moss: number }> = {
+  craqueleur: { rock: '#b8b48e', low: '#a6a27c', ink: '#45432a', moss: 1 },
+  craqueleurLegendaire: { rock: '#b0b48a', low: '#9ea678', ink: '#3e4428', moss: 2 },
+  craquelourd: { rock: '#d8c058', low: '#6e7a2e', ink: '#3a3a10', moss: 1 },
+  craqueleurPlaines: { rock: '#cbb862', low: '#9a8a3a', ink: '#4a3e10', moss: 0 },
+  kirboule: { rock: '#aaa48a', low: '#857e62', ink: '#3a3626', moss: 1 },
+  craqueboule: { rock: '#aeae90', low: '#8a9070', ink: '#383a28', moss: 1 },
+  craquelope: { rock: '#dccb7c', low: '#b8a250', ink: '#4a4014', moss: 0 },
+  elementerre: { rock: '#d2b896', low: '#a8906e', ink: '#4a3a28', moss: 0 },
+};
+
+function craqSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const C = CRAQ[kind], ink = C.ink, R = C.rock, L = C.low;
+  const shadow = (rx: number) => `<ellipse cx="70" cy="150" rx="${rx}" ry="${rx * 0.18}" fill="#1a1a10" opacity="0.28"/>`;
+
+  if (kind === 'elementerre') {
+    // carapace de plaques en pointe, visage cube noir à deux gros yeux, cailloux autour
+    push(P, 'back', shadow(46), stone('22,146 30,138 38,146', L, ink, 1.2), stone('104,148 112,140 120,148', L, ink, 1.2));
+    push(P, 'body', stone('30,140 26,104 40,84 56,96 52,140', R, ink), stone('110,140 116,106 102,82 86,96 90,140', L, ink),
+      stone('48,92 66,8 82,54 92,92 70,100', R, ink), stone('40,84 54,66 66,74 58,98', shade(R, 0.08), ink), stone('86,96 92,70 104,82 100,100', R, ink));
+    push(P, 'face', stone('40,100 92,96 100,132 46,140', '#2a2a2e', '#0a0a0e'),
+      `<circle cx="56" cy="116" r="11" fill="#fdfdf6" stroke="#0a0a0e" stroke-width="1.4"/><circle cx="83" cy="113" r="10" fill="#fdfdf6" stroke="#0a0a0e" stroke-width="1.4"/>`,
+      `<circle cx="52" cy="118" r="5.4" fill="#0e0e10"/><circle cx="79" cy="115" r="5" fill="#0e0e10"/><circle cx="50" cy="116" r="1.6" fill="#fff"/><circle cx="77" cy="113" r="1.5" fill="#fff"/>`,
+      stone('36,138 50,132 62,142 44,148', R, ink, 1.4), stone('82,140 96,130 106,140 94,148', L, ink, 1.4));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'craqueleurPlaines' || kind === 'kirboule') {
+    // bête accroupie sur ses quatre membres, dos hérissé d'éclats (usés pour Kirboule)
+    const k = kind === 'kirboule' ? 0.55 : 1;
+    push(P, 'legB', stone('92,116 108,112 112,136 106,150 90,150 88,132', L, ink), shard(108, 132, 12 * k + 4, -20, 4, R, ink));
+    push(P, 'legF', stone('64,118 80,118 80,138 76,150 60,150 58,134', L, ink));
+    push(P, 'leafB', stone('96,78 116,82 124,108 118,128 104,124 98,100', L, ink), stone('104,124 124,122 128,140 122,150 102,150 100,138', R, ink), shard(120, 96, 14 * k + 4, -10, 4, R, ink));
+    push(P, 'stem', ...[[-150, 60, 52], [-120, 72, 46], [-95, 86, 44], [-70, 100, 52], [-40, 108, 66], [-15, 110, 86]].map(([a, x, y]) => shard(x, y, 30 * k + 8, a, 7, R, ink)),
+      stone('44,92 60,58 90,48 112,62 116,96 100,122 62,124', R, ink), stone('58,100 92,96 100,120 64,122', L, ink),
+      shard(82, 70, 16 * k + 6, -100, 5, shade(R, 0.1), ink), shard(96, 84, 14 * k + 6, -60, 5, shade(R, 0.1), ink));
+    if (kind === 'kirboule') push(P, 'stem', moss(74, 60, 1.1), moss(104, 98, 0.9));
+    push(P, 'head', shard(46, 70, 22 * k + 6, -110, 6, R, ink), shard(58, 66, 20 * k + 6, -70, 6, R, ink), shard(34, 82, 16 * k + 6, -160, 5, R, ink),
+      stone('22,90 32,72 56,66 70,80 66,104 44,112 26,106', R, ink), stone('22,96 44,100 46,112 28,108', L, ink, 1.4),
+      angryEye(36, 86, 4.2, ink, 1.3), angryEye(52, 84, 3.8, ink, -1.3), `<path d="M26,100 l6,-3 l5,4 l6,-3" fill="none" stroke="${ink}" stroke-width="1.6"/>`);
+    push(P, 'leafF', stone('48,90 66,92 70,116 60,128 46,124 42,104', L, ink), stone('30,124 58,120 64,138 58,150 34,150 28,138', R, ink), shard(40, 128, 12 * k + 4, -150, 4, R, ink));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'craqueboule') {
+    // petit : grosse tête ronde de pierre à pousse en vrille, gros yeux ronds, bec orange ; corps et pattes en blocs
+    push(P, 'legB', stone('76,124 90,124 92,142 96,150 76,150 74,138', L, ink));
+    push(P, 'legF', stone('52,124 66,124 66,142 64,150 46,150 48,138', L, ink));
+    push(P, 'leafB', stone('88,98 104,100 108,120 96,124 88,114', L, ink));
+    push(P, 'stem', stone('50,96 92,94 94,124 52,128', R, ink), moss(72, 108, 0.9));
+    push(P, 'head', sprout(72, 40, 26, '#a8d83a'), stone('34,62 50,40 86,36 104,56 104,82 88,98 54,100 36,88', R, ink), stone('36,84 52,94 46,100 34,92', L, ink, 1.4),
+      eyeChibi(52, 70, 11, 12, '#1a1a14', { look: [-0.3, 0.1] }), eyeChibi(76, 68, 9, 10.5, '#1a1a14', { look: [-0.3, 0.1] }),
+      stone('34,82 48,80 44,90', '#f08a1a', '#6a3008', 1.4));
+    push(P, 'leafF', stone('40,100 56,100 54,120 40,122 36,112', R, ink));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'craquelope') {
+    // cyclope : corps mince jaune pâle, un grand œil, pousse verte ; bras arrière levé en gros bloc, bras avant en bloc
+    push(P, 'legB', stone('76,118 90,118 92,142 96,150 78,150 74,136', L, ink));
+    push(P, 'legF', stone('54,120 68,120 68,142 64,150 48,150 50,136', L, ink));
+    push(P, 'leafB', stone('88,72 98,66 104,78 96,84', L, ink), stone('92,44 118,36 128,58 118,78 98,74 90,58', R, ink));
+    push(P, 'stem', stone('52,76 88,72 92,122 54,124 48,100', R, ink), stone('52,108 90,104 92,122 54,124', L, ink, 1.4));
+    push(P, 'head', sprout(70, 52, 30, '#a8d83a'), stone('46,58 62,46 86,50 92,72 76,84 52,80', R, ink),
+      eyeChibi(64, 64, 10, 11, '#3a2a10', { look: [-0.35, 0.05] }));
+    push(P, 'leafF', stone('44,84 58,82 56,98 46,100', L, ink), stone('22,92 50,88 54,112 40,122 20,114', R, ink));
+    return assemble(kind, P, part);
+  }
+
+  // Craqueleur, Craqueleur Légendaire, Craquelourd : golem voûté, bras énormes jusqu'au sol, petite tête basse devant
+  const lourd = kind === 'craquelourd', legend = kind === 'craqueleurLegendaire';
+  push(P, 'legB', stone('84,118 100,116 104,140 102,150 84,150 80,136', L, ink));
+  push(P, 'legF', stone('56,120 72,120 74,140 72,150 52,150 50,136', L, ink));
+  push(P, 'leafB', stone('92,58 118,52 128,78 122,104 102,104 94,84', R, ink), stone('104,100 124,100 128,124 116,130 104,126', L, ink),
+    stone('100,124 126,122 132,140 126,150 104,150 98,140', R, ink), moss(112, 64, C.moss > 1 ? 1.2 : 0.9));
+  if (lourd) push(P, 'leafB', shard(112, 56, 26, -80, 7, '#e8d060', ink), shard(122, 66, 20, -40, 6, '#e8d060', ink));
+  push(P, 'stem', stone('40,72 52,46 82,34 108,42 116,68 108,100 90,124 58,124 40,104', R, ink), stone('52,96 92,92 96,118 84,126 58,124', L, ink),
+    stone('62,52 84,44 98,58 88,72 66,70', shade(R, 0.1), ink, 1.4), moss(92, 50), moss(70, 110, 0.8));
+  if (lourd) push(P, 'stem', shard(78, 40, 30, -95, 8, '#e8d060', ink), shard(96, 44, 24, -60, 7, '#e8d060', ink), shard(64, 44, 22, -125, 6, '#e8d060', ink));
+  if (legend) push(P, 'stem', moss(52, 66, 1.2), moss(104, 84, 1.1), moss(80, 64, 0.9));
+  push(P, 'head', stone('28,80 38,66 60,62 68,78 64,98 44,104 28,96', R, ink), stone('30,72 40,64 62,62 64,72 34,76', shade(R, -0.12), ink, 1.4),
+    angryEye(40, 80, 3.6, ink, 1), angryEye(54, 78, 3.4, ink, -1), stone('30,88 42,86 40,96 30,94', '#f08a1a', '#6a3008', 1.4));
+  if (legend) push(P, 'head', moss(54, 64, 1));
+  push(P, 'leafF', stone('42,56 68,52 74,80 66,100 46,100 38,80', R, ink), stone('38,96 62,96 62,120 50,126 36,120', L, ink),
+    stone('24,120 54,118 60,138 54,150 30,150 22,138', R, ink), moss(56, 62, C.moss > 1 ? 1.2 : 0.9));
+  if (lourd) push(P, 'leafF', shard(54, 54, 22, -100, 6, '#e8d060', ink));
+  if (legend) push(P, 'leafF', moss(40, 132, 1));
+  return assemble(kind, P, part);
+}
+
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1668,6 +1807,7 @@ export const CRITTER_SVG = {
   ...(Object.fromEntries(KWAKS.map((k) => [k, (p?: CritterPart) => kwakSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(WABBITS.map((k) => [k, (p?: CritterPart) => wabbitSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(BLOPS.map((k) => [k, (p?: CritterPart) => blopSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
+  ...(Object.fromEntries(CRAQS.map((k) => [k, (p?: CritterPart) => craqSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
