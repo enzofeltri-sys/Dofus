@@ -60,12 +60,12 @@ describe('Niveaux 61-70 : les Craqueleurs (validés par Enzo)', () => {
     expect(w.hero.pa).toBe(0);
   });
 
-  it('Écrasement Handicapant de Kirboule : -2 PA', () => {
+  it('Écrasement Handicapant de Kirboule : -1 PA par coup (2 dans Dofus, mais il frappe plusieurs fois par tour)', () => {
     const w = new World(5, tough(), AREAS.pitonsRocheux);
     w.startRoom(3);
     const k = (w as unknown as { makeMonster: (d: unknown, g: number, x: number, y: number) => import('./world').Monster }).makeMonster(MONSTERS.kirboule, 3, 360, 600);
     w.hero.pa = 6;
     (w as unknown as { hurtHero: (m: unknown) => void }).hurtHero(k);
-    expect(w.hero.pa).toBe(4);
+    expect(w.hero.pa).toBe(5);
   });
 });
