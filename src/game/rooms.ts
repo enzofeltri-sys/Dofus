@@ -237,6 +237,10 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   // Clos des Blops (jungle sombre, dallage en damier terre cuite et crème, plantes lumineuses)
   lacCania: { block: [['sandrock', 0.95, 1.15], ['autumnTree', 1.05, 1.25], ['sandrock', 0.9, 1.1], ['autumnTree', 1.05, 1.25], ['mossrock', 0.85, 1]], decor: ['flowers'] },
   closBlops: { block: [['mossrock', 0.9, 1.1], ['autumnTree', 1.0, 1.15], ['lantern', 1, 1], ['stone', 0.9, 1.05]], decor: ['flowers'] },
+  // Craqueleurs, d'après les vraies cartes : Plaines Rocheuses (grandes roches dorées, arbres d'automne) ;
+  // Pitons Rocheux (falaises beiges, arbres en fleurs roses et d'automne)
+  plainesRocheuses: { block: [['sandrock', 1.0, 1.2], ['autumnTree', 1.05, 1.2], ['sandrock', 0.95, 1.15], ['mossrock', 0.9, 1.05], ['sandrock', 1.0, 1.2]], decor: ['flowers'] },
+  pitonsRocheux: { block: [['mossrock', 0.95, 1.15], ['blossom', 1.0, 1.15], ['autumnTree', 1.0, 1.2], ['sandrock', 0.9, 1.05], ['mossrock', 0.95, 1.15]], decor: ['flowers'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 

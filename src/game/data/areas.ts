@@ -11,7 +11,8 @@ export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | '
   | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome'
   | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks'
   | 'cawotte' | 'couronne' | 'chateauWabbit'
-  | 'lacCania' | 'closBlops';
+  | 'lacCania' | 'closBlops'
+  | 'plainesRocheuses' | 'pitonsRocheux';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -438,6 +439,26 @@ export const CLOS_BLOPS: AreaDef = {
   theme: 'closBlops',
 };
 
+/** Niveaux 61-70 (validé par Enzo) : Plaines Rocheuses, Pitons Rocheux des Craqueleurs (vrais monstres de chaque endroit). */
+export const PLAINES_ROCHEUSES: AreaDef = {
+  id: 'plainesRocheuses', name: 'Plaines Rocheuses', kind: 'map', zone: 'amakna', level: 63, winsNeeded: 3,
+  sub: '5 salles · élite : Craquelourd d’élite · 3 victoires',
+  rooms: 5, pool: ['craqueleurPlaines', 'craquelourd', 'craquelope', 'elementerre'], count: { base: 4, perRoom: 0.7, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'craquelourdElite', grade: 2, adds: 3, addGrade: 2 },
+  archis: ['archi2438', 'archi2543'],
+  theme: 'plainesRocheuses',
+};
+
+export const PITONS_ROCHEUX: AreaDef = {
+  id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', kind: 'dungeon', zone: 'amakna', level: 70,
+  sub: '7 salles · mini-boss · Craqueleur Légendaire',
+  rooms: 7, pool: ['craqueleur', 'craqueleurPlaines', 'craqueboule', 'craquelope', 'elementerre'], count: { base: 4, perRoom: 0.7, max: 9 }, waveFrom: 2,
+  elite: { room: 3, id: 'kirboule', grade: 3, adds: 2, addGrade: 2 },
+  boss: { id: 'craqueleurLegendaire', grade: 5, adds: 2 },
+  archis: ['archi2436', 'archi2438', 'archi2326'],
+  theme: 'pitonsRocheux',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -554,6 +575,13 @@ export const ZONES: Zone[] = [
       { id: 'closBlops', name: 'Clos des Blops', level: 60, kind: 'dungeon', area: CLOS_BLOPS, needs: ['lacCania'] },
     ],
   },
+  {
+    id: 'craqueleursZone', name: 'Les Craqueleurs',
+    nodes: [
+      { id: 'plainesRocheuses', name: 'Plaines Rocheuses', level: 63, kind: 'map', area: PLAINES_ROCHEUSES, needs: [], needsAny: ['chateauWabbit', 'closBlops'] },
+      { id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', level: 70, kind: 'dungeon', area: PITONS_ROCHEUX, needs: ['plainesRocheuses'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -566,6 +594,7 @@ export const AREAS: Record<string, AreaDef> = {
   craqueleurs: CRAQUELEURS, nidKwakwa: NID_KWAKWA, campementBworks: CAMPEMENT_BWORKS, villageBworks: VILLAGE_BWORKS, donjonBworks: DONJON_BWORKS,
   cawotte: CAWOTTE, couronne: COURONNE, chateauWabbit: CHATEAU_WABBIT,
   lacCania: LAC_CANIA, closBlops: CLOS_BLOPS,
+  plainesRocheuses: PLAINES_ROCHEUSES, pitonsRocheux: PITONS_ROCHEUX,
 };
 
 /** Étapes jouables et débloquées. */
@@ -574,7 +603,7 @@ export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.incl
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
-  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60], blops: [51, 60],
+  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60], blops: [51, 60], craqueleursZone: [61, 70],
 };
 
 /** Zone de l'arbre qui contient cette carte ou ce donjon. */

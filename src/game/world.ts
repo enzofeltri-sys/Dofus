@@ -1559,6 +1559,8 @@ export class World {
       h.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, h.x));
       h.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, h.y));
     }
+    // Écrasement Handicapant, Pierre Étourdissante : retrait de PA (les sorts se grisent)
+    if (m.atk.drainPa && h.hp > 0) h.pa = Math.max(0, h.pa - m.atk.drainPa);
     // Enchevêtrement (Ashi-magari) : le héros ne peut plus bouger
     if (m.atk.root) {
       h.rootT = Math.max(h.rootT, m.atk.root);

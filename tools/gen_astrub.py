@@ -185,6 +185,25 @@ d('tronkoblop', 1183, 'tronkoblop', 'brute', 55, 30, 1.15, "{ shape: 'circle', t
   'Blopzone : vol de vie Feu 21-30 autour de lui ; Blopsoin : soigne ses alliés de 21-30 PV tous les 2 tours ; 2 PM (presque immobile). Le +1 PM des alliés et Blopium ne sont pas repris',
   ", support: { name: 'Blopsoin', every: 8, radius: 200, heal: [21, 30] }")
 
+# Niveaux 61-70 (validé par Enzo) : Plaines Rocheuses, Pitons Rocheux des Craqueleurs
+d('craqueleur', 106, 'craqueleur', 'melee', 145, 32, 1.3, MEL('terre', 3, 5),
+  'Écrasement Handicapant : Terre 13-18 au corps à corps, 2 fois par tour ; 6 PM. Le retrait de PA, Carapace (bouclier) et Jet de pierre ne sont pas repris')
+d('craqueleurPlaines', 293, 'craqueleurPlaines', 'melee', 100, 32, 1.2, MEL('terre', 3, 5),
+  'Écrasement Handicapant : Terre 13-18 au corps à corps ; Frappe Sismique : soigne ses alliés de 50 PV tous les 6 tours ; 3 PM (lent). Jet de pierre et les retraits de PA ne sont pas repris',
+  ", support: { name: 'Frappe Sismique', every: 24, radius: 200, heal: [50, 50] }")
+d('craqueboule', 483, 'craqueboule', 'melee', 130, 24, 0.9, MEL('neutre', 5, 8),
+  'Martèlement : Neutre 21-30 au corps à corps ; 4 PM. Le retrait de PA, Manteau Tellurique (renvoi) et Motivation Tellurique (+PA, +PM des alliés) ne sont pas repris')
+d('craquelope', 4573, 'craquelope', 'caster', 110, 26, 1.05, "{ shape: 'circle', trigger: 300, size: 62, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.7, 2.3], roll: roll('terre', 4, 6), atTarget: true }",
+  'Caillassage : Terre 16-25 à 2-6 cases (le -2 PO n\'est pas repris) ; 4 PM. Percussion (téléportation) et Pierrade (Feu au contact) ne sont pas reprises')
+d('elementerre', 4570, 'elementerre', 'melee', 120, 28, 1, MEL('terre', 3, 5),
+  'Terpanation : Terre 13-18 au corps à corps ; Terraportation : se téléporte sur sa cible et frappe en Terre 17-24 à 1-5 cases, ici une charge annoncée ; 4 PM. Sismologie (glyphe) n\'est pas reprise',
+  ", charge: { every: 9, dash: 220, attack: { shape: 'line', trigger: 300, size: 260, spread: 28, offset: 0, windup: 0.8, recover: 0.5, cooldown: [1.2, 1.6], roll: roll('terre', 4, 6) } }")
+d('craquelourd', 4571, 'craquelourd', 'brute', 85, 34, 1.4, "{ shape: 'circle', trigger: 120, size: 100, spread: 0, offset: 0, windup: 0.65, recover: 0.4, cooldown: [1.6, 2.2], roll: roll('terre', 5, 8) }",
+  'Choc Dessus : Terre 21-30 autour de lui (le -1 PM n\'est pas repris) ; 5 PM. Snaille Pierre (Eau 15-20 à distance, repousse) et Gravure dans la Roche (+1 PM) ne sont pas reprises')
+d('kirboule', 826, 'kirboule', 'melee', 100, 38, 1.35, "{ shape: 'circle', trigger: 105, size: 66, spread: 0, offset: 56, windup: 0.5, recover: 0.3, cooldown: [1.1, 1.5], roll: roll('terre', 3, 5), drainPa: 1 }",
+  'Mini-boss des Pitons Rocheux. Écrasement Handicapant : Terre 13-18 au corps à corps, -2 PA ; Frappe Sismique : soigne ses alliés de 50 PV tous les 6 tours ; 3 PM (lent). Jet de pierre (Feu 9-10 à distance, -PM) n\'est pas repris : un seul coup par monstre',
+  ", support: { name: 'Frappe Sismique', every: 24, radius: 220, heal: [50, 50] }")
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -196,7 +215,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2549, 'boostachePrepubere'),
          (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage'),
          (2304, 'wabbit'), (2403, 'blackWabbit'), (2293, 'tiwabbit'), (2402, 'blackTiwabbit'), (2294, 'tiwabbitKiafin'), (2308, 'woWabbit'), (2498, 'grandPaWabbit'),
-         (2404, 'blopCoco'), (2405, 'blopGriotte'), (2406, 'blopIndigo'), (2407, 'blopReinette')]
+         (2404, 'blopCoco'), (2405, 'blopGriotte'), (2406, 'blopIndigo'), (2407, 'blopReinette'),
+         (2436, 'craqueleur'), (2438, 'craqueleurPlaines'), (2326, 'craqueboule'), (2543, 'craquelourd')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -204,7 +224,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits ; Blops) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits ; Blops ; Craqueleurs) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

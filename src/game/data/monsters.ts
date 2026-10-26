@@ -60,6 +60,8 @@ export interface MonsterAttack {
   root?: number;
   /** Repousse le héros touché de `push` cases (Kwakoukas Kwayal du Kwakwa : 4). */
   push?: number;
+  /** Retire des PA au héros touché (Écrasement Handicapant de Kirboule : 2 ; Pierre Étourdissante : tous). */
+  drainPa?: number;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -394,6 +396,28 @@ export const MONSTERS: Record<string, MonsterDef> = {
       nova: { every: 12, spell: 'Abwutissement', attack: { shape: 'circle', trigger: 160, size: 150, spread: 0, offset: 0, windup: 1.0, recover: 0.45, cooldown: [1.0, 1.4], roll: { min: 31, max: 35, critBonus: 3, critBase: 3, element: 'eau' } } } },
   },
   ...blopRoyals(),
+  /**
+   * Craqueleur Légendaire (669) : boss des Pitons Rocheux des Craqueleurs, niveau 70, 3 100 à 4 600 PV, Intelligence 520 ;
+   * résistances Neutre 58 %, Terre -12 %, Feu 58 %, Eau 67 %, Air -17 % ; 8 PA, 3 PM (lent). Sorts réels (validés par Enzo) :
+   * Frappe du Craqueleur Légendaire : Feu 26-35 au contact, blesse aussi autour de la cible → coup en zone devant lui ;
+   * Invocation Montagnarde : un Craqueboule, un Craqueleur ou un Craqueleur des Plaines, tous les 3 tours → toutes les 12 s, 3 au plus ;
+   * Pierre Étourdissante : Feu 11-20 autour de lui et -100 PA, tous les 5 tours → zone annoncée, le héros touché perd tous ses PA ;
+   * Peau de Silex : +50 % de résistances pendant 1 tour, tous les 5 tours → dommages subis × 0,5 pendant 4 s toutes les 20 s.
+   * Peau de Granite, Peau de Topaze et Cœur de Craqueleur (+1 PA) sont regroupés dans Peau de Silex (choix validé).
+   */
+  craqueleurLegendaire: {
+    id: 'craqueleurLegendaire', name: 'Craqueleur Légendaire', dofusId: 669,
+    grades: ([[3100, 70000], [3500, 88000], [3800, 100000], [4200, 120000], [4600, 141120]] as const).map(([hp, xp]) => g(70, hp, 140, [58, -12, 58, 67, -17], xp, 70, 0, 7, 9, { intelligence: 520, chance: 140, agilite: 140 })),
+    behavior: 'boss', speed: 100, radius: 50, art: 'craqueleurLegendaire', scale: 1.75,
+    attack: { shape: 'circle', trigger: 130, size: 92, spread: 0, offset: 60, windup: 0.75, recover: 0.4, cooldown: [3.2, 4.0], roll: { min: 26, max: 35, critBonus: 3, critBase: 3, element: 'feu' } },
+    boss: {
+      crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 6, summonEvery: 12,
+      summon: ['craqueboule', 'craqueleur', 'craqueleurPlaines'], maxSummons: 3,
+      armor: { every: 20, duration: 4, taken: 0.5, shield: 0, spell: 'Peau de Silex' },
+      nova: { every: 15, spell: 'Pierre Étourdissante', attack: { shape: 'circle', trigger: 170, size: 160, spread: 0, offset: 0, windup: 1.1, recover: 0.5, cooldown: [1.0, 1.4], roll: { min: 11, max: 20, critBonus: 3, critBase: 3, element: 'feu' }, drainPa: 99 } },
+    },
+  },
+  craquelourdElite: eliteOf(ASTRUB.craquelourd, 'craquelourdElite', 'Craquelourd d’élite'),
   blopCocoElite: eliteOf(ASTRUB.blopCoco, 'blopCocoElite', 'Blop Coco d’élite'),
   blopGriotteElite: eliteOf(ASTRUB.blopGriotte, 'blopGriotteElite', 'Blop Griotte d’élite'),
   blopignonElite: eliteOf(ASTRUB.blopignon, 'blopignonElite', 'Blopignon d’élite'),

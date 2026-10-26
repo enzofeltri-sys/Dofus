@@ -37,6 +37,8 @@ const gearFor = (level: number) => {
 const score = (c: Card) => (c.kind === 'spell' ? 3 : c.kind === 'upgrade' ? (c.up === 'dmg' ? 2 : 1.5) : c.stat === 'vitalite' ? 1.8 : 1);
 
 const firstWin: number[] = [];
+/** Salle de chaque défaite (1 = première salle), pour voir où ça bloque. */
+const deaths = new Map<number, number>();
 const byRun = new Map<number, { room: number[]; level: number[]; min: number[] }>();
 for (let p = 1; p <= players; p++) {
   let prof: Profile = { ...newProfile(), xp: XP_TABLE[startLevel] ?? 0 };
@@ -80,6 +82,7 @@ for (let p = 1; p <= players; p++) {
     byRun.set(r, row);
     prof = addXp(prof, w.stats.xp);
     if (won) firstWin.push(r);
+    else deaths.set(w.roomIndex + 1, (deaths.get(w.roomIndex + 1) ?? 0) + 1);
   }
 }
 const avg = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
@@ -89,4 +92,5 @@ for (const [r, row] of byRun) {
   if (r > 12 && r % 4) continue;
   console.log(`${String(r).padStart(6)} | ${avg(row.level).toFixed(1).padStart(16)} | ${avg(row.room).toFixed(1).padStart(30)} | ${avg(row.min).toFixed(1)} min  (${row.room.length} joueurs)`);
 }
+console.log('défaites par salle :', [...deaths].sort((a, b) => a[0] - b[0]).map(([k, v]) => `salle ${k} : ${v}`).join(', ') || 'aucune');
 console.log('première victoire :', firstWin.length ? `${firstWin.length}/${players} joueurs, partie n° ${avg(firstWin).toFixed(1)} en moyenne` : 'aucune');
