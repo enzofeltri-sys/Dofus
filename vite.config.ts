@@ -7,6 +7,8 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 // publiés ensemble sur l'artefact (la page seule est limitée à 16 Mo).
 export default defineConfig(({ mode }) => ({
   base: './',
+  // date de construction, affichée dans Paramètres (« Version du … »)
+  define: { __BUILD__: JSON.stringify(new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })) },
   server: { port: 5173 },
   plugins: mode === 'single' ? [viteSingleFile()] : [],
   build: mode === 'single' ? { assetsInlineLimit: 100_000_000, outDir: 'dist-single' }

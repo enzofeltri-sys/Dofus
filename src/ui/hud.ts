@@ -1,4 +1,5 @@
 import { rawSave } from '../game/save';
+import { BACKUP_LABEL, deleteBackup, importSave, listBackups, makeBackup, MAX_BACKUPS, resetGame, restoreBackup, storageKb } from '../game/backups';
 import type { SpellId } from '../game/data/spells';
 import type { GrimoireRow } from './grimoire-view';
 import type { TestPreset } from '../game/testmode';
@@ -34,6 +35,8 @@ const PA_MAX = 6;
 const portraitSvg = (c?: SacriColors) => sacrieurSvg('head', c).replace(/viewBox="[^"]*" width="\d+" height="\d+"/, `viewBox="${SACRIEUR_FACE_BOX}"`);
 
 const PAUSE_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5.5" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/><rect x="13.9" y="4.5" width="4.6" height="15" rx="2" fill="#3b2414"/></svg>`;
+
+const GEAR_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.4h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1a7.4 7.4 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>';
 
 /** Interface de combat (DOM au-dessus du canvas), charte « grimoire d'aventurier ». */
 export class Hud {
@@ -85,7 +88,7 @@ export class Hud {
       </div>
       <div class="camp gr-paper" hidden>
         <div class="camp-top gr-panel">
-          <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span><span class="gr-chip camp-kamas" hidden></span><span class="camp-brand">Dofus · version Enzo</span></div>
+          <div class="camp-name"><b>Sacrieur</b><span class="gr-chip lvl">Niveau 10</span><span class="gr-chip camp-kamas" hidden></span><span class="camp-brand">Dofus · version Enzo</span><button type="button" class="camp-gear" aria-label="Paramètres">${GEAR_SVG}</button></div>
           <div class="camp-xp xpbar"><span class="track"><span class="fill"></span></span><span class="gr-num txt"></span></div>
         </div>
         <div class="camp-hero">${sacrieurSvg()}</div>
@@ -130,11 +133,6 @@ export class Hud {
           <div class="row"><button type="button" class="gr-btn ghost sm t-zones">Débloquer toutes les zones</button><button type="button" class="gr-btn sm magic t-bouftous">Prêt pour le Donjon des Bouftous</button></div>
           <small>Modifie la vraie sauvegarde (niveau, zones, objets).</small>
         </details>
-        <div class="sh-save">
-          <button type="button" class="gr-btn ghost sm s-copy">Copier ma sauvegarde</button>
-          <small class="s-msg"></small>
-          <textarea class="s-text" readonly hidden></textarea>
-        </div>
       </div>
       <div class="sets gr-paper" hidden>
         <div class="sec-tabs"><button type="button" class="sec-tab" data-panel="sets">Panoplies</button><button type="button" class="sec-tab" data-panel="inv">Sac</button><button type="button" class="sec-tab" data-panel="atelier">Atelier</button></div>
@@ -212,7 +210,9 @@ export class Hud {
         <button type="button" class="gr-btn ghost sm quit">Quitter le combat</button>
         <p class="pm-note"></p>
       </div></div>
+      <div class="settings gr-paper" hidden></div>
       <div class="overlay" hidden><div class="card gr-panel gold"><h2 class="gr-title"></h2><p></p><button type="button" class="gr-btn btn"></button></div></div>`;
+    root.querySelector<HTMLButtonElement>('.camp-gear')!.onclick = () => this.settings();
     this.paFill = root.querySelector('.pa-side .vfill')!;
     this.paVal = root.querySelector('.pa-side .val')!;
     root.querySelector('.pa-side .ticks')!.innerHTML = '<i></i>'.repeat(PA_MAX - 1);
@@ -434,8 +434,10 @@ export class Hud {
   }
 
   /** Écran plein (défaite, pause, fin de démo) avec un bouton. Retourne une promesse résolue au clic. */
-  overlay(title: string, text: string, button: string): Promise<void> {
+  overlay(title: string, text: string, button: string, front = false): Promise<void> {
     const el = this.root.querySelector<HTMLElement>('.overlay')!;
+    // au-dessus du camp et de sa barre (message au lancement)
+    el.classList.toggle('front', front);
     el.querySelector('h2')!.textContent = title;
     el.querySelector('p')!.textContent = text;
     const btn = el.querySelector<HTMLButtonElement>('.btn')!;
@@ -449,8 +451,144 @@ export class Hud {
     });
   }
 
+  /**
+   * Paramètres (demande d'Enzo) : copies de sauvegarde (automatiques, manuelles), restauration, export et import,
+   * réinitialisation du jeu. Restaurer, importer ou réinitialiser recharge le jeu (une copie de l'actuelle est faite avant).
+   */
+  settings() {
+    const el = this.root.querySelector<HTMLElement>('.settings')!;
+    let ask: string | null = null;
+    let msg = '';
+    const when = (t: number) => new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const plural = (n: number, w: string) => `${n} ${w}${n > 1 ? 's' : ''}`;
+    const render = () => {
+      const list = listBackups(), kb = storageKb();
+      el.innerHTML = `
+        <div class="sh-head"><div><h2 class="gr-h2">Paramètres</h2></div><button type="button" class="gr-btn ghost sm close">Fermer</button></div>
+        ${msg ? `<p class="st-msg gr-panel">${msg}</p>` : ''}
+        <section class="st-box gr-panel">
+          <h3 class="gr-h3">Copies de sauvegarde</h3>
+          <p class="st-note">Une copie automatique par jour, et une avant chaque restauration, import ou réinitialisation. ${MAX_BACKUPS} copies au plus, gardées sur ce téléphone.</p>
+          <button type="button" class="gr-btn sm turquoise st-new">Faire une copie maintenant</button>
+          <ul class="st-list">${list.length ? list.map((b) => `
+            <li class="st-row ${ask === `restore:${b.at}` ? 'ask' : ''}" data-at="${b.at}">
+              <div class="st-info"><b>${BACKUP_LABEL[b.kind]}</b><span>${when(b.at)} · niveau ${b.level} · ${plural(b.done, 'étape')} · ${plural(b.runs, 'partie')}</span></div>
+              ${ask === `restore:${b.at}`
+                ? `<button type="button" class="gr-btn sm coral st-yes" data-act="restore">Remplacer ma partie</button><button type="button" class="gr-btn ghost sm st-no">Annuler</button>`
+                : `<button type="button" class="gr-btn ghost sm st-restore">Restaurer</button><button type="button" class="gr-btn ghost sm st-del" aria-label="Supprimer">✕</button>`}
+            </li>`).join('') : '<li class="st-empty">Aucune copie pour l’instant.</li>'}</ul>
+        </section>
+        <section class="st-box gr-panel">
+          <h3 class="gr-h3">Exporter · importer</h3>
+          <p class="st-note">Pour garder ta partie ailleurs ou la passer sur un autre téléphone.</p>
+          <div class="st-btns"><button type="button" class="gr-btn ghost sm st-copy">Copier le texte</button><button type="button" class="gr-btn ghost sm st-file">Télécharger le fichier</button></div>
+          <textarea class="st-text" placeholder="Colle ici une sauvegarde pour l’importer"></textarea>
+          <div class="st-btns">
+            ${ask === 'import' ? `<button type="button" class="gr-btn sm coral st-yes" data-act="import">Remplacer ma partie</button><button type="button" class="gr-btn ghost sm st-no">Annuler</button>`
+              : `<button type="button" class="gr-btn ghost sm st-import">Importer le texte</button><label class="gr-btn ghost sm st-load">Charger un fichier<input type="file" accept=".json,.txt,application/json,text/plain" hidden></label>`}
+          </div>
+        </section>
+        <section class="st-box gr-panel st-danger">
+          <h3 class="gr-h3">Réinitialiser le jeu</h3>
+          <p class="st-note">Tout recommence au niveau 1 : personnage, objets, zones, bestiaire. Une copie de ta partie est faite avant (elle reste dans la liste ci-dessus).</p>
+          ${ask === 'reset' ? `<div class="st-btns"><button type="button" class="gr-btn sm coral st-yes" data-act="reset">Oui, tout recommencer</button><button type="button" class="gr-btn ghost sm st-no">Annuler</button></div>`
+            : '<button type="button" class="gr-btn sm coral st-reset">Réinitialiser le jeu</button>'}
+        </section>
+        <section class="st-box gr-panel st-about">
+          <h3 class="gr-h3">À propos</h3>
+          <p class="st-note">Version du ${__BUILD__} · sauvegarde ${kb.save} Ko · copies ${kb.backups} Ko</p>
+        </section>`;
+    };
+    const reload = () => {
+      el.innerHTML = '<p class="st-msg gr-panel">Chargement…</p>';
+      setTimeout(() => location.reload(), 150);
+    };
+    el.onclick = async (e) => {
+      const t = e.target as HTMLElement;
+      const at = Number(t.closest<HTMLElement>('.st-row')?.dataset.at);
+      msg = '';
+      if (t.closest('.close')) {
+        el.hidden = true;
+        ask = null;
+        return;
+      }
+      if (t.closest('.st-no')) ask = null;
+      else if (t.closest('.st-new')) msg = makeBackup('manuelle') ? 'Copie faite.' : 'Pas de partie à copier pour l’instant.';
+      else if (t.closest('.st-restore')) ask = `restore:${at}`;
+      else if (t.closest('.st-del')) deleteBackup(at);
+      else if (t.closest('.st-reset')) ask = 'reset';
+      else if (t.closest('.st-import')) {
+        const txt = el.querySelector<HTMLTextAreaElement>('.st-text')!.value;
+        if (!txt.trim()) msg = 'Colle d’abord une sauvegarde dans le cadre.';
+        else ask = 'import';
+        if (ask === 'import') {
+          const keep = txt;
+          render();
+          el.querySelector<HTMLTextAreaElement>('.st-text')!.value = keep;
+          return;
+        }
+      } else if (t.closest('.st-yes')) {
+        const act = t.closest<HTMLElement>('.st-yes')!.dataset.act;
+        if (act === 'reset' && resetGame()) return reload();
+        if (act === 'restore' && restoreBackup(Number(ask!.slice(8)))) return reload();
+        if (act === 'import') {
+          const r = importSave(el.querySelector<HTMLTextAreaElement>('.st-text')!.value);
+          if (r === true) return reload();
+          msg = r;
+        }
+        ask = null;
+      } else if (t.closest('.st-copy')) {
+        const txt = rawSave();
+        const area = el.querySelector<HTMLTextAreaElement>('.st-text')!;
+        if (!txt) msg = 'Pas encore de sauvegarde : joue une partie d’abord.';
+        else {
+          let ok = false;
+          try {
+            await navigator.clipboard.writeText(txt);
+            ok = true;
+          } catch {
+            area.value = txt;
+            area.select();
+            try { ok = document.execCommand('copy'); } catch { ok = false; }
+          }
+          msg = ok ? `Sauvegarde copiée (${Math.round(txt.length / 1024)} Ko).` : 'Le texte est dans le cadre : sélectionne-le et copie-le.';
+          if (!ok) {
+            render();
+            el.querySelector<HTMLTextAreaElement>('.st-text')!.value = txt;
+            return;
+          }
+        }
+      } else if (t.closest('.st-file')) {
+        const txt = rawSave();
+        if (!txt) msg = 'Pas encore de sauvegarde : joue une partie d’abord.';
+        else {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
+          a.download = `dofus-enzo-${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          msg = 'Fichier enregistré dans tes téléchargements.';
+        }
+      } else return;
+      render();
+    };
+    el.onchange = async (e) => {
+      const input = e.target as HTMLInputElement;
+      const f = input.files?.[0];
+      if (!f) return;
+      const txt = await f.text();
+      ask = 'import';
+      msg = `Fichier « ${f.name} » chargé : confirme pour remplacer ta partie.`;
+      render();
+      el.querySelector<HTMLTextAreaElement>('.st-text')!.value = txt;
+    };
+    render();
+    el.hidden = false;
+    el.scrollTop = 0;
+  }
+
   get overlayOpen(): boolean {
-    return ['.overlay', '.pausemenu', '.picker', '.camp', '.summary', '.sheet', '.inv', '.encyclo', '.look', '.atelier', '.atlas', '.grimoire'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
+    return ['.overlay', '.pausemenu', '.picker', '.camp', '.summary', '.sheet', '.inv', '.encyclo', '.look', '.atelier', '.atlas', '.grimoire', '.settings'].some((q) => !this.root.querySelector<HTMLElement>(q)!.hidden);
   }
 
   /** Écran d'accueil : le Sacrieur, son niveau, ses records, et l'entrée du donjon. Résout quand on entre. */
@@ -623,27 +761,6 @@ export class Hud {
         this.sheetTab = Number(tab.dataset.i);
         render();
       }
-    };
-    // Copier ma sauvegarde : le texte s'affiche (sélectionné) et part dans le presse-papiers si le navigateur le permet
-    el.querySelector<HTMLButtonElement>('.s-copy')!.onclick = async () => {
-      const txt = rawSave();
-      const area = el.querySelector<HTMLTextAreaElement>('.s-text')!, msg = el.querySelector<HTMLElement>('.s-msg')!;
-      area.hidden = false;
-      area.value = txt || '(aucune sauvegarde)';
-      area.focus();
-      area.select();
-      if (!txt) {
-        msg.textContent = 'Pas encore de sauvegarde : joue une partie d’abord.';
-        return;
-      }
-      let ok = false;
-      try {
-        await navigator.clipboard.writeText(txt);
-        ok = true;
-      } catch {
-        try { ok = document.execCommand('copy'); } catch { ok = false; }
-      }
-      msg.textContent = ok ? `Copiée (${Math.round(txt.length / 1024)} Ko) : colle-la dans la conversation.` : 'Le texte est sélectionné : copie-le (appui long → Copier) puis colle-le dans la conversation.';
     };
     el.querySelector<HTMLButtonElement>('.reset')!.onclick = () => {
       act.reset();

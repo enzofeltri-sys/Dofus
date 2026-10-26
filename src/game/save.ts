@@ -90,7 +90,13 @@ export interface RunResult {
   slain?: Record<string, number>;
 }
 
-const KEY = 'dofus-enzo-save';
+export const SAVE_KEY = 'dofus-enzo-save';
+const KEY = SAVE_KEY;
+/** Après une restauration ou une réinitialisation, la partie en cours n'écrit plus rien jusqu'au rechargement. */
+let frozen = false;
+export const freezeSaves = () => {
+  frozen = true;
+};
 
 /** Départ validé par Enzo (étape 9a) : niveau 1, sans équipement, à mains nues, dans les Champs d'Incarnam. */
 export const LEVEL1_START = true;
@@ -145,6 +151,7 @@ export function rawSave(): string {
 }
 
 export function storeSave(d: SaveData) {
+  if (frozen) return;
   try {
     localStorage.setItem(KEY, JSON.stringify(d));
   } catch {

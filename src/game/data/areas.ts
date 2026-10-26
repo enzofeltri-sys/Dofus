@@ -453,7 +453,7 @@ export const PITONS_ROCHEUX: AreaDef = {
   id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', kind: 'dungeon', zone: 'amakna', level: 70,
   sub: '7 salles · mini-boss · Craqueleur Légendaire',
   rooms: 7, pool: ['craqueleur', 'craqueleurPlaines', 'craqueboule', 'craquelope', 'elementerre'], count: { base: 4, perRoom: 0.7, max: 9 }, waveFrom: 2,
-  elite: { room: 3, id: 'kirboule', grade: 3, adds: 2, addGrade: 2 },
+  elite: { room: 3, id: 'kirboule', grade: 3, adds: 3, addGrade: 3 },
   boss: { id: 'craqueleurLegendaire', grade: 5, adds: 2 },
   archis: ['archi2436', 'archi2438', 'archi2326'],
   theme: 'pitonsRocheux',

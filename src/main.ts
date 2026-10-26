@@ -20,6 +20,7 @@ import { autopilotInput } from './game/autopilot';
 import { canFarm, collectExpedition, expeditionSeconds, FARM, instantFarm, instantLeft, startExpedition } from './game/farm';
 import { applyCard, cardInfo, drawCards, needsReplace, swapSlots, type StatBonus } from './game/cards';
 import { applyRun, claimTier, loadSave, storeSave, type RunResult, type SaveData } from './game/save';
+import { autoBackup, pendingReset } from './game/backups';
 import { entryCost, FREE_KEYS_PER_DAY, payEntry } from './game/keys';
 import { prospectionOf } from './game/formulas';
 import { SPELLS } from './game/data/spells';
@@ -119,6 +120,10 @@ interface Fx { g: Graphics; life: number; max: number; draw: (g: Graphics, k: nu
 interface Particle { s: Sprite; vx: number; vy: number; life: number; max: number; a0: number; grav: number }
 
 async function main() {
+  // réinitialisation demandée par Enzo (une seule fois, copie gardée dans Paramètres), puis la copie automatique du jour ;
+  // tout de suite au lancement, avant tout chargement
+  const wasReset = pendingReset();
+  autoBackup();
   installTheme();
   await Promise.all([document.fonts.load('20px "Lilita One"'), document.fonts.load('800 20px "Nunito"'), document.fonts.load('600 20px "Nunito"')]);
 
@@ -1406,6 +1411,7 @@ async function main() {
   await buildRoom(START_ROOM);
   camY = camTarget();
   document.getElementById('loading')?.classList.add('done');
+  if (wasReset) setTimeout(() => void hud.overlay('Jeu réinitialisé', 'Ta partie repart au niveau 1. L’ancienne est gardée dans Paramètres (la roue en haut du camp) : tu peux la restaurer quand tu veux.', 'C’est parti', true), 400);
   if (SHOW_CAMP) {
     void openCamp().then(async () => {
       // points répartis au camp : on reconstruit le Sacrieur avant d'entrer
