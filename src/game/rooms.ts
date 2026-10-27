@@ -241,6 +241,9 @@ const ISLAND_PROPS: Record<Exclude<Theme, 'crypt'>, { block: [PropKind, number, 
   // Pitons Rocheux (falaises beiges, arbres en fleurs roses et d'automne)
   plainesRocheuses: { block: [['sandrock', 1.0, 1.2], ['autumnTree', 1.05, 1.2], ['sandrock', 0.95, 1.15], ['mossrock', 0.9, 1.05], ['sandrock', 1.0, 1.2]], decor: ['flowers'] },
   pitonsRocheux: { block: [['mossrock', 0.95, 1.15], ['blossom', 1.0, 1.15], ['autumnTree', 1.0, 1.2], ['sandrock', 0.9, 1.05], ['mossrock', 0.95, 1.15]], decor: ['flowers'] },
+  // Pirates, d'après les vraies cartes : Arche d'Otomaï (pont du navire : caisses, tonneaux, mâts, lanternes) ; Cale (caisses, tonneaux, lanternes)
+  arche: { block: [['crates', 0.95, 1.1], ['barrels', 0.95, 1.1], ['lantern', 1, 1], ['crates', 0.9, 1.05], ['barrels', 0.95, 1.1]], decor: ['pebbles'] },
+  cale: { block: [['crates', 0.95, 1.1], ['barrels', 0.95, 1.1], ['lantern', 1, 1], ['crates', 0.9, 1.05], ['barrels', 0.9, 1.05]], decor: ['pebbles'] },
   scaraDonjon: { block: [['mossrock', 0.9, 1.15], ['mossrock', 0.9, 1.15], ['block', 0.85, 1.05], ['stone', 0.9, 1.1]], decor: ['flowers'] },
 };
 

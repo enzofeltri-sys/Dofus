@@ -204,6 +204,25 @@ d('kirboule', 826, 'kirboule', 'melee', 100, 38, 1.35, "{ shape: 'circle', trigg
   'Mini-boss des Pitons Rocheux. Écrasement Handicapant : Terre 13-18 au corps à corps, -2 PA ; Frappe Sismique : soigne ses alliés de 50 PV tous les 6 tours ; 3 PM (lent). Jet de pierre (Feu 9-10 à distance, -PM) n\'est pas repris : un seul coup par monstre',
   ", support: { name: 'Frappe Sismique', every: 24, radius: 220, heal: [50, 50] }")
 
+# Niveaux 61-70, deuxième donjon (validé par Enzo) : Arche d'Otomaï et Cale de l'Arche (pirates)
+d('sparo', 1048, 'sparo', 'melee', 130, 28, 1.1, MEL('neutre', 6, 9),
+  'Crochet : Neutre 26-35 au corps à corps (le -1 PM n\'est pas repris) ; 4 PM. Glouto Rhum (-100 Agilité, -20 esquive PM) n\'est pas repris')
+d('barbroussa', 1049, 'barbroussa', 'melee', 140, 28, 1.15, "{ shape: 'circle', trigger: 120, size: 64, spread: 0, offset: 56, windup: 0.45, recover: 0.25, cooldown: [1.0, 1.4], roll: roll('air', 7, 8) }",
+  'Rapine : Air 15 % de ses PV, à 1-4 cases (ici au contact) ; Abordage : Eau 25 et il échange sa place avec sa cible, à 2 cases ou plus (ici une charge annoncée) ; 5 PM',
+  ", charge: { every: 8, dash: 240, attack: { shape: 'line', trigger: 320, size: 280, spread: 28, offset: 0, windup: 0.75, recover: 0.5, cooldown: [1.2, 1.6], roll: roll('eau', 6, 7) } }")
+d('leFlib', 1050, 'leFlib', 'caster', 95, 28, 1.1, "{ shape: 'circle', trigger: 270, size: 60, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.6, 2.2], roll: roll('eau', 4, 5), atTarget: true }",
+  'Pétard Trempé : Eau 16-20 à 1-5 cases ; 3 PM (lent). Passton Tournoube (tour annulé), Trinquons ensemble moussaillon ! et Prestidigitation (invisibilité) ne sont pas repris')
+d('tonneauPirate', 1080, 'tonneauPirate', 'brute', 0, 22, 0.75, "{ shape: 'circle', trigger: 0, size: 0, spread: 0, offset: 0, windup: 0.5, recover: 0.3, cooldown: [9, 9], roll: neutre(0, 0) }",
+  'Invocation de Gourlo, immobile, 190 PV. Rhum Fourbe (Terre -200 % autour de lui pendant 3 tours, soin de Gourlo 101-150) : ici quand on le casse',
+  ", burst: { radius: 160, element: 'terre', pct: 200, duration: 12, heal: [101, 150], spell: 'Rhum Fourbe' }")
+d('boomba', 228, 'boomba', 'caster', 120, 28, 1.2, "{ shape: 'circle', trigger: 400, size: 66, spread: 0, offset: 0, windup: 0.8, recover: 0.4, cooldown: [1.8, 2.4], roll: roll('feu', 9, 10), atTarget: true, erosion: 15 }",
+  'Élite de la Cale (niveau 82-90). Bombe Pirate : Feu 36-40 à 1-8 cases, 15 % d\'érosion ; Feu d\'Artifesse : invisible un tour tous les 3 tours (le +30 % de critique n\'est pas repris) ; 4 PM',
+  ", vanish: { every: 12, duration: 4 }")
+d('nakunbra', 229, 'nakunbra', 'melee', 125, 28, 1.2, "{ shape: 'circle', trigger: 105, size: 70, spread: 0, offset: 58, windup: 1.5, recover: 0.4, cooldown: [1.4, 1.8], roll: neutre(9, 10), execute: 0.5 }",
+  'Élite de la Cale (niveau 82-90). Tranchage Mortel : Neutre 36-40 au contact, tue la cible à 50 % de ses PV ou moins (annoncé 1,5 s, choix d\'Enzo) ; 4 PM. Sus à l\'ennemi (attire de 3 cases) n\'est pas repris')
+d('canondorf', 231, 'canondorf', 'caster', 110, 32, 1.25, "{ shape: 'circle', trigger: 420, size: 66, spread: 0, offset: 0, windup: 0.85, recover: 0.45, cooldown: [1.8, 2.4], roll: roll('feu', 8, 9), atTarget: true, push: 2 }",
+  'Élite de la Cale (niveau 82-90). Gros Boulet Pirate : Feu 31-35 à distance, repousse de 2 cases ; 4 PM. Canon Tournoyant (repousse autour de lui, -25 % de résistances) n\'est pas repris')
+
 ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'piouRouge'), (2345, 'piouVert'), (2347, 'piouViolet'),
          (2312, 'arakneMalade'), (2356, 'tofuMalade'), (2348, 'pissenlitDiabo'), (2352, 'roseDemo'), (2358, 'tournesolSauvage'),
          (2331, 'larveOrange'), (2332, 'larveVerte'), (2339, 'larveJaune'), (2574, 'larveBleue'),
@@ -216,7 +235,8 @@ ARCHI = [(2341, 'piouBleu'), (2342, 'piouJaune'), (2343, 'piouRose'), (2344, 'pi
          (2367, 'kwakTerre'), (2368, 'kwakGlace'), (2369, 'kwakVent'), (2451, 'kwakFlamme'), (2416, 'bwork'), (2417, 'bworkArcher'), (2418, 'bworkMage'),
          (2304, 'wabbit'), (2403, 'blackWabbit'), (2293, 'tiwabbit'), (2402, 'blackTiwabbit'), (2294, 'tiwabbitKiafin'), (2308, 'woWabbit'), (2498, 'grandPaWabbit'),
          (2404, 'blopCoco'), (2405, 'blopGriotte'), (2406, 'blopIndigo'), (2407, 'blopReinette'),
-         (2436, 'craqueleur'), (2438, 'craqueleurPlaines'), (2326, 'craqueboule'), (2543, 'craquelourd')]
+         (2436, 'craqueleur'), (2438, 'craqueleurPlaines'), (2326, 'craqueboule'), (2543, 'craquelourd'),
+         (2588, 'sparo'), (2545, 'barbroussa')]
 
 L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à la main.',
      "import type { MonsterAttack, MonsterDef } from './monsters';",
@@ -224,7 +244,7 @@ L = ['// Généré par tools/gen_astrub.py depuis DofusDB : ne pas modifier à l
      '',
      "type Row = [number, number, [number, number, number, number, number], [number, number, number, number, number], number, number, number, number];",
      '',
-     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits ; Blops ; Craqueleurs) : grades réels, sorts de grade 1 × 0,25. */',
+     '/** Monstres d\'Astrub, branches A, B et C (Cité… Donjon des Champs ; Tainéla… Donjon des Bouftous ; Côte et Château Ensablé ; Champ des Ingalsse et Donjon des Tofus ; Plaine et Donjon des Scarafeuilles ; Cimetière, Cryptes et Donjon des Squelettes ; Maison Fantôme ; Kwaks et Bworks ; Wabbits ; Blops ; Craqueleurs ; pirates de l\'Arche) : grades réels, sorts de grade 1 × 0,25. */',
      'export function astrubMonsters(rows: (r: Row[]) => MonsterDef[\'grades\'], roll: (e: DamageRoll[\'element\'], a: number, b: number) => DamageRoll, neutre: (a: number, b: number) => DamageRoll): Record<string, MonsterDef> {',
      '  const atk: Record<string, MonsterAttack> = {};',
      '  const out: Record<string, MonsterDef> = {};']

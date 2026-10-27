@@ -155,7 +155,7 @@ async function main() {
   } as Record<MonsterArt, Texture[]>;
   /** Dessins des monstres d'une carte, préparés à l'entrée (pas tous au démarrage : il y en a beaucoup). */
   const loadArea = async (A: AreaDef) => {
-    const ids = new Set([...A.pool, A.elite?.id, A.boss?.id, ...(A.bossChoice ?? []), ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);
+    const ids = new Set([...A.pool, A.elite?.id, ...(A.eliteChoice ?? []), A.boss?.id, ...(A.bossChoice ?? []), ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);
     for (const id of [...ids]) {
       const d = MONSTERS[id], sm = d.boss?.summon;
       for (const x of [...[d.summons?.id ?? []].flat(), ...(Array.isArray(sm) ? sm : [sm])]) if (x) ids.add(x);
@@ -824,6 +824,16 @@ async function main() {
         break;
       case 'roomCleared':
         hud.toast(game.doors.length ? 'Choisis une porte : chacune mène à un Blop Royal différent' : 'Salle terminée !', game.doors.length ? 2600 : undefined);
+        break;
+      case 'burst':
+        // Rhum Fourbe : le tonneau éclate, la résistance Terre des monstres autour s'effondre
+        hud.toast(`${ev.spell} : résistance Terre -200 % autour du tonneau`, 1400);
+        addFx(0.7, (g, k) => {
+          g.clear().ellipse(0, 0, ev.radius * (1.1 - k * 0.4), ev.radius * PERSP * (1.1 - k * 0.4)).fill({ color: 0xc89a3a, alpha: 0.35 * k }).stroke({ width: 6 * k, color: 0x8a5a1e, alpha: k });
+        }, ev.x, ev.y);
+        break;
+      case 'execute':
+        hud.toast('Tranchage Mortel !', 1400);
         break;
       case 'ward':
         // Blotection : bouclier de l'élément sur le boss et ses invocations

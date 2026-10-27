@@ -62,6 +62,8 @@ export interface MonsterAttack {
   push?: number;
   /** Retire des PA au héros touché (Écrasement Handicapant de Kirboule : 2 ; Pierre Étourdissante : tous). */
   drainPa?: number;
+  /** Coup fatal (Tranchage Mortel de Nakunbra) : tue le héros s'il avait au plus cette part de ses PV quand le coup tombe. */
+  execute?: number;
 }
 
 /** Grade d'un monstre (1 à 5), valeurs réelles de DofusDB. */
@@ -111,6 +113,15 @@ export interface MonsterDef {
   xpMult?: number;
   /** Invocation (hors boss) : premier appel et intervalle (s), monstre invoqué, nombre maximum en même temps. */
   summons?: { first: number; every: number; id: string | string[]; max: number };
+  /** Attaque de près (Bombarde de Gourlo) : remplace l'attaque normale quand le héros est à `trigger` px ou moins. */
+  close?: MonsterAttack;
+  /**
+   * Rhum Fourbe (Tonneau Pirate) : quand il est cassé, les monstres à `radius` px ou moins perdent `pct` % de résistance
+   * dans `element` pendant `duration` s, et celui qui l'a invoqué récupère `heal` PV.
+   */
+  burst?: { radius: number; element: DamageRoll['element']; pct: number; duration: number; heal: [number, number]; spell: string };
+  /** Invisibilité (Feu d'Artifesse de Boomba) : invisible `duration` s toutes les `every` s. */
+  vanish?: { every: number; duration: number };
   /** Gloutage (Gloutoblop) : toutes les `every` s, dévore un allié proche (il meurt sans rien rapporter) et gagne `gain` PV. */
   glutton?: { every: number; radius: number; gain: number; spell: string };
   /** Archimonstre (version rare et nommée d'un monstre de la zone). */
@@ -418,6 +429,22 @@ export const MONSTERS: Record<string, MonsterDef> = {
     },
   },
   craquelourdElite: eliteOf(ASTRUB.craquelourd, 'craquelourdElite', 'Craquelourd d’élite'),
+  /**
+   * Gourlo le Terrible (1051) : boss de la Cale de l'Arche d'Otomaï, niveau 70, 1 900 à 3 100 PV, caractéristiques 140 ;
+   * 200 % de résistance partout dans DofusDB (ici plafonnée à 50 %, comme tous les monstres) ; 10 PA, 5 PM. Sorts réels (validés par Enzo) :
+   * Un gros boulet sur un autre boulet : Feu 31-50 à 4-8 cases → son attaque à distance ;
+   * Bombarde : Feu 11-110 au contact → remplace le boulet quand on le colle (le -1 % de critique n'est pas repris) ;
+   * Invocation de Tonneau : un Tonneau Pirate par tour → un toutes les 10 s, 3 au plus (le +200 Agilité de Gourlo n'est pas repris).
+   */
+  gourlo: {
+    id: 'gourlo', name: 'Gourlo le Terrible', dofusId: 1051,
+    grades: ([[1900, 70000], [2100, 88000], [2400, 100000], [2800, 120000], [3100, 141120]] as const).map(([hp, xp]) => g(70, hp, 140, [200, 200, 200, 200, 200], xp, 140, 0, -4, 0, { intelligence: 140, chance: 140, agilite: 140 })),
+    behavior: 'boss', speed: 130, radius: 46, art: 'gourlo', scale: 1.6,
+    attack: { shape: 'circle', trigger: 400, size: 74, spread: 0, offset: 0, windup: 0.9, recover: 0.45, cooldown: [3.0, 3.8], roll: { min: 31, max: 50, critBonus: 3, critBase: 3, element: 'feu' }, atTarget: true },
+    close: { shape: 'circle', trigger: 125, size: 82, spread: 0, offset: 58, windup: 0.6, recover: 0.4, cooldown: [3.0, 3.6], roll: { min: 11, max: 110, critBonus: 3, critBase: 3, element: 'feu' } },
+    boss: { crackEvery: 0, crackDuration: 0, haste: 1, crackRadius: 0, summonFirst: 5, summonEvery: 10, summon: 'tonneauPirate', maxSummons: 3 },
+  },
+  barbroussaElite: eliteOf(ASTRUB.barbroussa, 'barbroussaElite', 'Barbroussa d’élite'),
   blopCocoElite: eliteOf(ASTRUB.blopCoco, 'blopCocoElite', 'Blop Coco d’élite'),
   blopGriotteElite: eliteOf(ASTRUB.blopGriotte, 'blopGriotteElite', 'Blop Griotte d’élite'),
   blopignonElite: eliteOf(ASTRUB.blopignon, 'blopignonElite', 'Blopignon d’élite'),

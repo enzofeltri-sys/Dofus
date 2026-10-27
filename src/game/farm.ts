@@ -40,7 +40,7 @@ export function runKills(A: AreaDef, rnd: () => number): { id: string; elite: bo
   };
   for (let i = 0; i < A.rooms; i++) {
     if (A.elite && i === A.elite.room) {
-      out.push({ id: A.elite.id, elite: true });
+      out.push({ id: A.eliteChoice ? A.eliteChoice[Math.floor(rnd() * A.eliteChoice.length)] : A.elite.id, elite: true });
       for (let k = 0; k < A.elite.adds; k++) out.push({ id: pick(), elite: false });
       continue;
     }

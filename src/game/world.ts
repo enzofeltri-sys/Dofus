@@ -1,6 +1,6 @@
 import { kamasFor } from './kamas';
 import { rng } from '../iso';
-import { erosionLoss, escapeChance, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
+import { erosionLoss, escapeChance, RES_CAP, escapeOf, initiativeOf, prospectionOf, pushDamage, resolveHit, tackleOf, type DamageRoll, type Element, type HitContext } from './formulas';
 import { xpGain } from './progression';
 import { rollDrops, zoneEquipPool } from './loot';
 import { BOSS_DOFUS, ZONE_PETS } from './pets';
@@ -171,6 +171,8 @@ export interface Monster {
   armorShield?: number;
   /** Blotection (Blops Royaux) : temps restant de la protection, délai avant la suivante. */
   wardT?: number;
+  /** Rhum Fourbe : résistance retirée (élément, %, temps restant). */
+  rum?: { element: Element; pct: number; t: number };
   wardCdT?: number;
   /** Gloutage (Gloutoblop) : délai avant le prochain repas. */
   gluttonT?: number;
@@ -282,6 +284,8 @@ export type WorldEvent =
   | { type: 'wavesOver' }
   | { type: 'monsterHeal'; uid: number; x: number; y: number; amount: number; spell?: string }
   | { type: 'ward'; uid: number; x: number; y: number; spell: string; element: Element }
+  | { type: 'execute'; uid: number }
+  | { type: 'burst'; x: number; y: number; radius: number; spell: string }
   | { type: 'poisoned'; x: number; y: number }
   | { type: 'explode'; x: number; y: number; radius: number }
   | { type: 'bless'; uid: number; x: number; y: number; radius: number; spell: string }
@@ -507,7 +511,9 @@ export class World {
     if (A.elite && index === A.elite.room) {
       // salle de l'élite (mini-boss) et ses accompagnants
       this.reserve = [];
-      this.elite = this.makeMonster(MONSTERS[A.elite.id], A.elite.grade, ROOM_W / 2, this.bounds.y0 + 200);
+      // Cale de l'Arche (choix d'Enzo) : l'élite est tirée au hasard parmi plusieurs
+      const eliteId = A.eliteChoice ? A.eliteChoice[Math.floor(this.rnd() * A.eliteChoice.length)] : A.elite.id;
+      this.elite = this.makeMonster(MONSTERS[eliteId], A.elite.grade, ROOM_W / 2, this.bounds.y0 + 200);
       this.monsters.push(this.elite);
       for (let i = 0; i < A.elite.adds; i++) {
         const p = this.findSpawn();
@@ -1112,8 +1118,16 @@ export class World {
     return Math.max(0, Math.round((damage * (100 - r1)) / (100 - r0)));
   }
 
+  /** Rhum Fourbe : la résistance retirée fait monter les dommages de cet élément (plafond de résistance compris). */
+  private rumBoost(m: Monster, damage: number, element?: Element): number {
+    if (!element || !m.rum || m.rum.t <= 0 || m.rum.element !== element) return damage;
+    const res = m.stats.resPct[element] ?? 0;
+    const r0 = Math.min(RES_CAP, res), r1 = Math.min(RES_CAP, res - m.rum.pct);
+    return Math.round((damage * (100 - r1)) / Math.max(1, 100 - r0));
+  }
+
   private damageMonster(m: Monster, damage: number, crit: boolean, element?: Element, push = false) {
-    damage = this.wardCut(m, this.armorCut(m, damage), element);
+    damage = this.rumBoost(m, this.wardCut(m, this.armorCut(m, damage), element), element);
     m.hp -= damage;
     this.stats.dealt += damage;
     m.hurtT = 0.18;
@@ -1211,6 +1225,21 @@ export class World {
     m.hp = Math.min(m.hp, 0);
     m.hidden = false;
     this.events.push({ type: 'death', uid: m.uid, x: m.x, y: m.y });
+    // Rhum Fourbe (Tonneau Pirate cassé) : les monstres autour perdent leur résistance Terre, Gourlo boit un coup
+    const bu = m.def.burst;
+    if (bu) {
+      for (const o of this.monsters) {
+        if (o === m || o.state === 'dead' || flatDist(o.x, o.y, m.x, m.y) > bu.radius) continue;
+        o.rum = { element: bu.element, pct: bu.pct, t: bu.duration };
+      }
+      const owner = m.summoner !== null ? this.monsters.find((o) => o.uid === m.summoner && o.state !== 'dead') : undefined;
+      if (owner) {
+        const amount = Math.min(owner.maxHp - owner.hp, bu.heal[0] + Math.floor(this.rnd() * (bu.heal[1] - bu.heal[0] + 1)));
+        owner.hp += amount;
+        if (amount > 0) this.events.push({ type: 'monsterHeal', uid: owner.uid, x: owner.x, y: owner.y, amount, spell: bu.spell });
+      }
+      this.events.push({ type: 'burst', x: m.x, y: m.y, radius: bu.radius, spell: bu.spell });
+    }
     // les invocations disparaissent avec leur invocateur
     for (const s of this.monsters) if (s.summoner === m.uid && s.state !== 'dead') this.kill(s);
   }
@@ -1399,13 +1428,18 @@ export class World {
     if (m.def.support && h.alive) this.stepSupport(m, m.def.support);
     if (m.def.glutton && h.alive) this.stepGlutton(m, m.def.glutton);
     m.blessT = Math.max(0, m.blessT - STEP);
+    if (m.rum) m.rum.t -= STEP;
     m.contactT = Math.max(0, m.contactT - STEP);
 
-    // Chafer Furtif : alterne visible / invisible
+    // Chafer Furtif : alterne visible / invisible ; Boomba (Feu d'Artifesse) : invisible un instant de temps en temps
     if (m.def.behavior === 'stealth') {
       m.stealthT += STEP;
       const cycle = m.stealthT % 4.5;
       m.hidden = m.state === 'chase' && cycle > 2.6;
+    } else if (m.def.vanish) {
+      m.stealthT += STEP;
+      const v = m.def.vanish;
+      m.hidden = m.state === 'chase' && m.stealthT % v.every > v.every - v.duration;
     }
 
     const dx = h.x - m.x, dy = (h.y - m.y) / PERSP, d = Math.hypot(dx, dy) || 1;
@@ -1429,6 +1463,12 @@ export class World {
           m.atk = a = nv.attack;
           m.novaT = nv.every;
           m.cd = 0;
+        }
+        // Bombarde (Gourlo) : de près, l'attaque de contact remplace le boulet
+        const cl = m.def.close;
+        if (cl && a !== nv?.attack && a !== ch?.attack) {
+          const pickAtk = d <= cl.trigger ? cl : m.def.attack;
+          if (a !== pickAtk) m.atk = a = pickAtk;
         }
         let want = 0;
         if (m.def.behavior === 'lancer') {
@@ -1545,6 +1585,7 @@ export class World {
     // Graine Empoisonnée, Bénédiction : sorts sans dommages directs
     const dmg = m.atk.roll.max > 0 ? Math.round(hit.damage * (1 - this.passive('endurance'))) : 0;
     const absorbed = Math.min(h.shield, dmg);
+    const hpBefore = h.hp, maxBefore = h.maxHp;
     h.shield -= absorbed;
     h.hp = Math.max(0, h.hp - (dmg - absorbed));
     this.stats.taken += dmg - absorbed;
@@ -1558,6 +1599,11 @@ export class World {
       [h.x, h.y] = this.pushOut(h.x + m.dir.x * m.atk.push * CELL, h.y + m.dir.y * m.atk.push * CELL * PERSP, h.def.radius);
       h.x = Math.max(this.bounds.x0, Math.min(this.bounds.x1, h.x));
       h.y = Math.max(this.bounds.y0, Math.min(this.bounds.y1, h.y));
+    }
+    // Tranchage Mortel (Nakunbra) : fatal si le héros était déjà à moitié de ses PV ou moins
+    if (m.atk.execute && hpBefore <= maxBefore * m.atk.execute) {
+      h.hp = 0;
+      this.events.push({ type: 'execute', uid: m.uid });
     }
     // Écrasement Handicapant, Pierre Étourdissante : retrait de PA (les sorts se grisent)
     if (m.atk.drainPa && h.hp > 0) h.pa = Math.max(0, h.pa - m.atk.drainPa);

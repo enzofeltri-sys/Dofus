@@ -60,7 +60,7 @@ interface Land {
   frame?: boolean;
   water: [string, string, string];
   /** Sol : place pavée (Cité), arène de planches en damier (Grange), dalles moussues (Souterrains). */
-  floor?: 'plaza' | 'planks' | 'slabs' | 'checker';
+  floor?: 'plaza' | 'planks' | 'slabs' | 'checker' | 'deck';
   /** Carrés de blé et de tournesols, chemins de terre. */
   wheat: number;
   dirt: number;
@@ -77,7 +77,7 @@ const LOOKS: Record<Exclude<Theme, 'crypt'>, Look> = {
 };
 let L: Look = LOOKS.champs;
 
-function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome' | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks' | 'cawotte' | 'couronne' | 'chateauWabbit' | 'lacCania' | 'closBlops' | 'plainesRocheuses' | 'pitonsRocheux', Look> {
+function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prairies' | 'grange' | 'lisiere' | 'dunes' | 'calanques' | 'plage' | 'chateau' | 'tainela' | 'foretAstrub' | 'carriere' | 'egouts' | 'cour' | 'coinBouftous' | 'coinBoos' | 'abords' | 'ingalsse' | 'tofus' | 'plaineScara' | 'scaraDonjon' | 'cimetiereAmakna' | 'cryptes' | 'squelettes' | 'maisonFantome' | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks' | 'cawotte' | 'couronne' | 'chateauWabbit' | 'lacCania' | 'closBlops' | 'plainesRocheuses' | 'pitonsRocheux' | 'arche' | 'cale', Look> {
   const base = { flowers: 0, glyphs: false, cobbles: false, tiles: false, petals: false, fog: false, stone: '#d8d0bc', void: ['#7ac8f0', '#7ac8f0', '#7ac8f0', '#7ac8f0'] as [string, string, string, string] };
   const green = { grass: ['#8ccc4a', '#7cbc3e', '#6aa834'] as [string, string, string], light: '#b0e070', dark: '#4e8a2a', tuftTones: ['#4e8a2a', '#6aaa34', '#a0d860'] as [string, string, string], touch: ['#b8e878', '#5a9a2e'] as [string, string] };
   const sky: [string, string] = ['#6ab8ec', '#d8f0fa'];
@@ -140,6 +140,10 @@ function ASTRUB_LOOKS(): Record<'cite' | 'souterrains' | 'champsAstrub' | 'prair
     plainesRocheuses: { ...base, ...green, grass: ['#c4c23e', '#b8b638', '#aaa832'], light: '#e0dc6a', dark: '#7a7a22', tuftTones: ['#7a8a2a', '#9aaa34', '#c8d050'], flowers: 8, stone: '#e8d478', land: { sky, hills: ['#c8c050', '#a8a03a'], far: 'trees', border: 'rock', rockCol: ['#e2c868', '#6a5418'], water: ['#c8b468', '#a8904a', '#7a6630'], bank: '#8a7430', wheat: 0, dirt: 9, grassy: 1, arch: ['#e8d478', '#b09a40', '#5a4a14'] } },
     // Pitons Rocheux (d'après les vraies cartes) : plateaux d'herbe vert vif au-dessus des nuages, falaises calcaires beiges, dalles beiges, arbres en fleurs
     pitonsRocheux: { ...base, ...green, grass: ['#9ccc34', '#8ec02e', '#80b228'], flowers: 18, stone: '#e2d6b0', land: { sky: ['#a8d8f4', '#eef8fc'], hills: ['#e2d4ac', '#b8a878'], far: 'trees', border: 'rock', rockCol: ['#e2d4ac', '#6a5a3a'], water: ['#ffffff', '#e4eef6', '#c4d6e6'], bank: '#cabc94', wheat: 0, dirt: 3, grassy: 1, arch: ['#e8dcb8', '#a89870', '#4a3e26'] } },
+    // Arche d'Otomaï (d'après les vraies cartes) : pont intérieur du navire, carrelage beige-olive, mâts, cordages, lanternes jaunes
+    arche: { ...base, grass: ['#6a5c3a', '#625434', '#584c2e'], light: '#a8945a', dark: '#2a2210', tuftTones: ['#5a6a2a', '#6a7a32', '#8a9a40'], touch: ['#d8c880', '#3a3018'], stone: '#9a7a4a', cliff: ['#4a3a24', '#34281a', '#1e160e'], land: { sky: ['#0c0a06', '#1a140c'], hills: ['#3a2e1c', '#2a2014'], far: 'wall', border: 'wall', wallCol: ['#6a5034', '#8a6a44', '#2a1e10'], water: ['#2e3a2a', '#1e2a1e', '#101a12'], floor: 'deck', wheat: 0, dirt: 0, grassy: 0, arch: ['#a8844a', '#6a4a24', '#2a1a0a'] } },
+    // Cale de l'Arche (d'après les vraies cartes) : cale très sombre, planchers olive, caisses, tonneaux, chaînes, lanternes vertes
+    cale: { ...base, grass: ['#4c4228', '#443a22', '#3c331e'], light: '#8a7a48', dark: '#1a1408', tuftTones: ['#4a5a22', '#5a6a2a', '#7a8a36'], touch: ['#c8d870', '#2a2410'], stone: '#6a5434', cliff: ['#3a2e1c', '#2a2014', '#140e08'], land: { sky: ['#050403', '#0e0a06'], hills: ['#2a2014', '#1a140c'], far: 'wall', border: 'wall', wallCol: ['#4a3824', '#6a5234', '#1a120a'], water: ['#1e2a1e', '#141e14', '#0a120a'], floor: 'deck', wheat: 0, dirt: 0, grassy: 0, arch: ['#8a6a3a', '#5a3e1e', '#1e1208'] } },
     // Plaine des Scarafeuilles : herbe vert vif, larges chemins de terre, arbres d'automne
     plaineScara: { ...base, ...green, grass: ['#b0d44a', '#a2c842', '#92ba38'], flowers: 25, land: { sky, hills: ['#a8d050', '#88b83e'], far: 'trees', border: 'hedge', water, wheat: 0, dirt: 9, grassy: 1, arch: ['#e8c890', '#a87a40', '#5a3a1a'] } },
     // Donjon des Scarafeuilles : grotte-jungle sombre, lianes, puits de lumière, mousse
@@ -545,6 +549,13 @@ function landFloor(D: Land, r: () => number): string {
     for (let y = y0 + 30, row = 0; y < y1 + 40; y += 80, row++) for (let x = x0 + (row % 2 ? -50 : 0); x < x1 + 60; x += 100) {
       o.push(`<rect x="${f1(x + 3)}" y="${f1(y + 3)}" width="94" height="74" rx="6" fill="${shade(L.stone, (r() - 0.5) * 0.22)}" stroke="#2a2c22" stroke-width="2.4"/>`);
       if (r() < 0.35) o.push(`<ellipse cx="${f1(x + 20 + r() * 60)}" cy="${f1(y + 70)}" rx="${f1(14 + r() * 16)}" ry="6" fill="#5a8a2e" opacity="0.7"/>`);
+    }
+  } else if (D.floor === 'deck') {
+    // pont et cale du navire (Arche d'Otomaï) : longues planches décalées, clous, joints sombres
+    for (let y = y0 + 20, row = 0; y < y1 + 40; y += 34, row++) for (let x = x0 - 60 + ((row * 97) % 180); x < x1 + 60; x += 180) {
+      o.push(`<rect x="${f1(x)}" y="${f1(y)}" width="178" height="32" rx="3" fill="${shade(L.stone, (r() - 0.5) * 0.18)}" stroke="#1e140a" stroke-width="2"/>`);
+      o.push(`<path d="M${f1(x + 14)},${f1(y + 10)} q50,${f1((r() - 0.5) * 6)} 120,0" fill="none" stroke="${shade(L.stone, -0.3)}" stroke-width="1.2" opacity="0.6"/>`);
+      o.push(`<circle cx="${f1(x + 6)}" cy="${f1(y + 16)}" r="1.8" fill="#2a1a0a"/><circle cx="${f1(x + 172)}" cy="${f1(y + 16)}" r="1.8" fill="#2a1a0a"/>`);
     }
   } else if (D.floor === 'checker') {
     // Clos des Blops : grand dallage en damier terre cuite et crème, un peu de mousse dans les joints

@@ -54,7 +54,9 @@ MAP_MONSTERS = [970, 979, 980, 981, 972, 973, 971, 984, 982, 4106, 4105, 4048,
                 # niveaux 51-60, deuxième donjon : Lac de Cania et Clos des Blops (Blops, Biblops, Gloutoblop, Blopignon, Tronkoblop, archimonstres, 4 Blops Royaux)
                 273, 274, 275, 276, 277, 278, 279, 280, 1181, 1182, 1183, 2404, 2405, 2406, 2407, 1184, 1185, 1186, 1187,
                 # niveaux 61-70 : Plaines Rocheuses et Pitons Rocheux des Craqueleurs (+ archimonstres, Kirboule l'Érodé, Craqueleur Légendaire)
-                293, 4571, 4573, 4570, 2438, 2543, 106, 483, 826, 669, 2436, 2326]
+                293, 4571, 4573, 4570, 2438, 2543, 106, 483, 826, 669, 2436, 2326,
+                # niveaux 61-70 : Arche d'Otomaï et Cale de l'Arche (pirates, archimonstres, élites, Tonneau Pirate, Gourlo le Terrible)
+                1048, 1049, 1050, 2588, 2545, 228, 229, 231, 1080, 1051]
 # Incarnam, monde ouvert : Lac, Forêt, Champs, Pâturages, Mine, Cimetière, Route des âmes
 REGION_SUBAREAS = [442, 443, 444, 445, 778, 449, 450]
 # objets de départ (Panoplie du Jeune Aventurier) : toujours inclus
@@ -241,7 +243,7 @@ def useful(rid, depth=0):
 recipes = {k: v for k, v in recipes.items() if useful(k)}
 
 # 2 quater) Clés de donjon (étape 9c) : vraies recettes (métier Bricoleur dans Dofus, Artisan ici)
-DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570, 'maisonFantome': 11799, 'nidKwakwa': 12017, 'donjonBworks': 8135, 'chateauWabbit': 14464, 'closBlops': 9248, 'pitonsRocheux': 7927}
+DUNGEON_KEYS = {'crypte': 8545, 'grange': 8143, 'chateau': 8437, 'cour': 1568, 'tofus': 7918, 'scaraDonjon': 8139, 'squelettes': 1570, 'maisonFantome': 11799, 'nidKwakwa': 12017, 'donjonBworks': 8135, 'chateauWabbit': 14464, 'closBlops': 9248, 'pitonsRocheux': 7927, 'caleArche': 8971}
 dropped = {iid for lst in dungeon.values() for iid, _ in lst}
 for kid in DUNGEON_KEYS.values():
     d = get(f'/items/{kid}')

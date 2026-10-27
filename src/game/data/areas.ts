@@ -12,7 +12,8 @@ export type Theme = 'crypt' | 'champs' | 'paturages' | 'foret' | 'cimetiere' | '
   | 'craqueleurs' | 'nidKwakwa' | 'campementBworks' | 'villageBworks' | 'donjonBworks'
   | 'cawotte' | 'couronne' | 'chateauWabbit'
   | 'lacCania' | 'closBlops'
-  | 'plainesRocheuses' | 'pitonsRocheux';
+  | 'plainesRocheuses' | 'pitonsRocheux'
+  | 'arche' | 'cale';
 
 /**
  * Groupe errant. Sans décor : il remplace la moitié des monstres d'une salle (Incarnam).
@@ -42,6 +43,8 @@ export interface AreaDef {
   /** Élite (mini-boss) : salle, monstre, grade, accompagnants. */
   elite?: { room: number; id: string; grade: number; adds: number; addGrade: number };
   boss?: { id: string; grade: number; adds: number };
+  /** Élite tirée au hasard à chaque partie (Cale de l'Arche : Boomba, Nakunbra ou Canondorf ; choix d'Enzo). */
+  eliteChoice?: string[];
   /** Boss au choix (Clos des Blops, choix d'Enzo) : la salle d'avant a une porte par boss ; la porte prise décide du boss. */
   bossChoice?: string[];
   /** Archimonstres de la zone (1 % des monstres, plus forts, meilleur butin). */
@@ -459,6 +462,27 @@ export const PITONS_ROCHEUX: AreaDef = {
   theme: 'pitonsRocheux',
 };
 
+/** Niveaux 61-70, deuxième donjon (validé par Enzo) : Arche d'Otomaï, Cale de l'Arche (élite tirée au hasard parmi 3 pirates de niveau 82). */
+export const ARCHE_OTOMAI: AreaDef = {
+  id: 'arche', name: 'Arche d’Otomaï', kind: 'map', zone: 'amakna', level: 65, winsNeeded: 3,
+  sub: '5 salles · élite : Barbroussa d’élite · 3 victoires',
+  rooms: 5, pool: ['sparo', 'barbroussa', 'leFlib'], count: { base: 4, perRoom: 0.7, max: 8 }, waveFrom: 2,
+  elite: { room: 4, id: 'barbroussaElite', grade: 3, adds: 3, addGrade: 2 },
+  archis: ['archi2588', 'archi2545'],
+  theme: 'arche',
+};
+
+export const CALE_ARCHE: AreaDef = {
+  id: 'caleArche', name: 'Cale de l’Arche d’Otomaï', kind: 'dungeon', zone: 'amakna', level: 70,
+  sub: '7 salles · mini-boss · Gourlo le Terrible',
+  rooms: 7, pool: ['sparo', 'barbroussa', 'leFlib'], count: { base: 4, perRoom: 0.7, max: 9 }, waveFrom: 2,
+  elite: { room: 3, id: 'boomba', grade: 1, adds: 3, addGrade: 3 },
+  eliteChoice: ['boomba', 'nakunbra', 'canondorf'],
+  boss: { id: 'gourlo', grade: 5, adds: 2 },
+  archis: ['archi2588', 'archi2545'],
+  theme: 'cale',
+};
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -582,6 +606,13 @@ export const ZONES: Zone[] = [
       { id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', level: 70, kind: 'dungeon', area: PITONS_ROCHEUX, needs: ['plainesRocheuses'] },
     ],
   },
+  {
+    id: 'otomai', name: 'L’Arche d’Otomaï',
+    nodes: [
+      { id: 'arche', name: 'Arche d’Otomaï', level: 65, kind: 'map', area: ARCHE_OTOMAI, needs: [], needsAny: ['chateauWabbit', 'closBlops'] },
+      { id: 'caleArche', name: 'Cale de l’Arche d’Otomaï', level: 70, kind: 'dungeon', area: CALE_ARCHE, needs: ['arche'] },
+    ],
+  },
 ];
 
 export const AREAS: Record<string, AreaDef> = {
@@ -595,6 +626,7 @@ export const AREAS: Record<string, AreaDef> = {
   cawotte: CAWOTTE, couronne: COURONNE, chateauWabbit: CHATEAU_WABBIT,
   lacCania: LAC_CANIA, closBlops: CLOS_BLOPS,
   plainesRocheuses: PLAINES_ROCHEUSES, pitonsRocheux: PITONS_ROCHEUX,
+  arche: ARCHE_OTOMAI, caleArche: CALE_ARCHE,
 };
 
 /** Étapes jouables et débloquées. */
@@ -603,7 +635,7 @@ export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.incl
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {
   incarnam: [1, 10], astrub: [11, 21], cote: [11, 21], bouftous: [22, 30], amakna: [31, 40], squelettes: [31, 40], scarafeuilles: [31, 40],
-  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60], blops: [51, 60], craqueleursZone: [61, 70],
+  kwaks: [41, 50], bworks: [41, 50], wabbits: [51, 60], blops: [51, 60], craqueleursZone: [61, 70], otomai: [61, 70],
 };
 
 /** Zone de l'arbre qui contient cette carte ou ce donjon. */
