@@ -28,7 +28,8 @@ export type CritterKind = 'tofu' | 'pissenlit' | 'rose' | 'tournesol' | 'palicho
   | 'wabbit' | 'blackWabbit' | 'tiwabbit' | 'blackTiwabbit' | 'tiwabbitKiafin' | 'woWabbit' | 'grandPaWabbit' | 'waWabbit'
   | 'blopCoco' | 'blopIndigo' | 'blopGriotte' | 'blopReinette' | 'gloutoblop' | 'blopignon' | 'tronkoblop'
   | 'blopCocoRoyal' | 'blopIndigoRoyal' | 'blopGriotteRoyal' | 'blopReinetteRoyal'
-  | 'craqueleur' | 'craqueleurLegendaire' | 'craquelourd' | 'craqueleurPlaines' | 'kirboule' | 'craqueboule' | 'craquelope' | 'elementerre';
+  | 'craqueleur' | 'craqueleurLegendaire' | 'craquelourd' | 'craqueleurPlaines' | 'kirboule' | 'craqueboule' | 'craquelope' | 'elementerre'
+  | 'sparo' | 'barbroussa' | 'leFlib' | 'gourlo' | 'tonneauPirate' | 'boomba' | 'nakunbra' | 'canondorf';
 export const TOFU_PARTS = ['wingB', 'legB', 'legF', 'body', 'crest', 'wingF'] as const;
 export const PLANT_PARTS = ['legB', 'legF', 'stem', 'leafB', 'leafF', 'head'] as const;
 export const SHEEP_PARTS = ['tail', 'legB', 'body', 'legF', 'head', 'horn'] as const;
@@ -60,9 +61,11 @@ export const GHOSTS: CritterKind[] = ['boostache', 'boostachePrepubere', 'gargro
 export const BLOPS: CritterKind[] = ['blopCoco', 'blopIndigo', 'blopGriotte', 'blopReinette', 'gloutoblop', 'blopignon', 'tronkoblop', 'blopCocoRoyal', 'blopIndigoRoyal', 'blopGriotteRoyal', 'blopReinetteRoyal'];
 /** Craqueleurs (Plaines Rocheuses, Pitons Rocheux) : golems de pierre bipèdes (pièces des plantes) ; l'Élémenterre est une carapace (rig des gelées). */
 export const CRAQS: CritterKind[] = ['craqueleur', 'craqueleurLegendaire', 'craquelourd', 'craqueleurPlaines', 'kirboule', 'craqueboule', 'craquelope', 'elementerre'];
+/** Pirates (Arche d'Otomaï, Cale) : bipèdes (pièces des plantes) ; le Tonneau Pirate est un objet (rig des gelées). */
+export const PIRATES: CritterKind[] = ['sparo', 'barbroussa', 'leFlib', 'gourlo', 'tonneauPirate', 'boomba', 'nakunbra', 'canondorf'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
   (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
-    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' || k === 'elementerre' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
+    : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' || k === 'elementerre' || k === 'tonneauPirate' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
 const PLANT_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [70, 130], legF: [70, 130], stem: [70, 132], leafB: [76, 112], leafF: [64, 114], head: [70, 96] };
@@ -104,6 +107,14 @@ export const CRITTER_PIVOTS = {
   craqueboule: { legB: [82, 124], legF: [58, 124], stem: [72, 140], leafB: [92, 100], leafF: [48, 100], head: [70, 96] },
   craquelope: { legB: [82, 118], legF: [60, 120], stem: [70, 140], leafB: [92, 76], leafF: [52, 86], head: [68, 78] },
   elementerre: JELLY_PIVOTS,
+  sparo: { legB: [82, 132], legF: [60, 132], stem: [70, 146], leafB: [100, 104], leafF: [44, 100], head: [68, 84] },
+  barbroussa: { legB: [80, 122], legF: [64, 122], stem: [72, 140], leafB: [90, 96], leafF: [56, 96], head: [72, 90] },
+  leFlib: { legB: [84, 136], legF: [58, 136], stem: [72, 146], leafB: [100, 100], leafF: [48, 100], head: [66, 96] },
+  gourlo: { legB: [88, 120], legF: [60, 120], stem: [72, 140], leafB: [92, 70], leafF: [46, 82], head: [70, 84] },
+  tonneauPirate: JELLY_PIVOTS,
+  boomba: { legB: [80, 116], legF: [62, 116], stem: [72, 140], leafB: [84, 86], leafF: [60, 88], head: [66, 78] },
+  nakunbra: { legB: [80, 116], legF: [62, 116], stem: [72, 140], leafB: [84, 86], leafF: [60, 88], head: [66, 78] },
+  canondorf: { legB: [92, 138], legF: [52, 140], stem: [70, 140], leafB: [106, 94], leafF: [88, 100], head: [96, 96] },
   ...Object.fromEntries(WABBITS.map((k) => [k, { legB: [84, 122], legF: [62, 122], stem: [72, 140], leafB: [94, 100], leafF: [54, 102], head: [66, 96] }])),
   ...Object.fromEntries(KWAKS.map((k) => [k, { wingB: [100, 98], legB: [86, 128], legF: [68, 128], body: [78, 128], crest: [62, 84], wingF: [80, 104] }])),
   ...Object.fromEntries(['tofuJaune', 'tofuNoir', 'tofoune', 'tofukaz', 'tofuMutant', 'tofuVentripotent', 'batofu', 'bomberfu', 'tofuMalefique'].map((k) => [k, { wingB: [104, 92], legB: [86, 146], legF: [58, 146], body: [74, 140], crest: [72, 64], wingF: [82, 112] }])),
@@ -1785,6 +1796,163 @@ function craqSvg(kind: CritterKind, part?: CritterPart): string {
 }
 
 
+/**
+ * Pirates de l'Arche d'Otomaï et de la Cale (d'après les illustrations DofusDB, retournées pour regarder à gauche) :
+ * - Sparo : pirate enfoncé dans un tonneau vert cerclé de fer, transpercé de lames et de flèches, bandana rouge, lunettes rondes.
+ * - Barbroussa : énorme tricorne gris à tête de mort qui cache la tête (deux yeux rouges), maillot rayé, ceinture rouge, deux sabres.
+ * - Le Flib : grande crinière orange en pointes, long nez, assis dans une caisse de bois, une longue lame dans le dos.
+ * - Gourlo le Terrible : capitaine au visage vert, casque à cornes, long manteau rouge et or, jambe de bois, canon sur l'épaule.
+ * - Tonneau Pirate (invocation de Gourlo ; DofusDB lui donne l'illustration de Sparo) : le tonneau seul.
+ * - Boomba, Nakunbra, Canondorf : squelettes pirates (bombe et bandana rouge ; grand sabre et bandana blanc ; canon sur roues).
+ */
+const BONE = '#f2ead2', BONE_INK = '#5a4a30';
+
+function pirateSvg(kind: CritterKind, part?: CritterPart): string {
+  begin();
+  const P: Parts = {};
+  const ink = '#2a1c12';
+  const boot = (x: number, y: number) => blob(`M${x + 7},${y - 9} L${x + 7},${y + 3} L${x - 13},${y + 3} Q${x - 14},${y - 4} ${x - 5},${y - 5} L${x - 5},${y - 9} Z`, '#6a3e1e', { ink, w: 1.5 });
+  const pegLeg = (x: number, y0: number, y1: number) => tube(`M${x},${y0} L${x - 2},${y1}`, 5, '#a8743a', ink);
+  const bone = (d: string, w = 4.6) => tube(d, w, BONE, BONE_INK);
+  const hand = (x: number, y: number, col = BONE) => blob(circle(x, y, 4.6), col, { ink: col === BONE ? BONE_INK : ink, w: 1.3 });
+  const sabre = (x: number, y: number, len: number, a: number) => {
+    const r = (a * Math.PI) / 180, c = Math.cos(r), s = Math.sin(r);
+    const tx = x + c * len, ty = y + s * len, nx = -s, ny = c;
+    return blob(`M${f(x + nx * 3)},${f(y + ny * 3)} Q${f(x + c * len * 0.6 + nx * 10)},${f(y + s * len * 0.6 + ny * 10)} ${f(tx)},${f(ty)} Q${f(x + c * len * 0.5 - nx * 2)},${f(y + s * len * 0.5 - ny * 2)} ${f(x - nx * 3)},${f(y - ny * 3)} Z`, '#dfe4ea', { ink: '#3a4048', w: 1.4 }) +
+      blob(`M${f(x + nx * 7)},${f(y + ny * 7)} L${f(x - nx * 7)},${f(y - ny * 7)} L${f(x - c * 4 - nx * 5)},${f(y - s * 4 - ny * 5)} L${f(x - c * 4 + nx * 5)},${f(y - s * 4 + ny * 5)} Z`, '#e8b83a', { ink: '#6a4a08', w: 1.2, rim: false }) +
+      tube(`M${f(x - c * 4)},${f(y - s * 4)} L${f(x - c * 13)},${f(y - s * 13)}`, 3.4, '#5a3a1e', ink);
+  };
+  /** Crâne de squelette pirate (orbites, nez, dents), bandana noué derrière (à droite). */
+  const skull = (cx: number, cy: number, r: number, band: string | null, eyes = '#1a1010') =>
+    blob(`M${cx - r},${cy} Q${cx - r},${cy - r * 1.05} ${cx},${cy - r * 1.05} Q${cx + r},${cy - r * 1.05} ${cx + r},${cy} Q${cx + r * 0.9},${cy + r * 0.7} ${cx + r * 0.4},${cy + r * 0.85} L${cx - r * 0.5},${cy + r * 0.85} Q${cx - r * 0.95},${cy + r * 0.6} ${cx - r},${cy} Z`, BONE, { ink: BONE_INK }) +
+    `<ellipse cx="${cx - r * 0.42}" cy="${cy}" rx="${r * 0.26}" ry="${r * 0.3}" fill="${eyes}"/><ellipse cx="${cx + r * 0.18}" cy="${cy - r * 0.04}" rx="${r * 0.24}" ry="${r * 0.3}" fill="${eyes}"/>` +
+    `<circle cx="${cx - r * 0.45}" cy="${cy - r * 0.05}" r="${r * 0.08}" fill="#ff6a4a"/><circle cx="${cx + r * 0.15}" cy="${cy - r * 0.08}" r="${r * 0.08}" fill="#ff6a4a"/>` +
+    `<path d="M${cx - r * 0.2},${cy + r * 0.32} l${r * 0.1},-${r * 0.16} l${r * 0.1},${r * 0.16}" fill="none" stroke="${BONE_INK}" stroke-width="1.4"/>` +
+    `<path d="M${cx - r * 0.55},${cy + r * 0.62} h${r * 0.9} M${cx - r * 0.35},${cy + r * 0.5} v${r * 0.3} M${cx - r * 0.1},${cy + r * 0.5} v${r * 0.3} M${cx + r * 0.15},${cy + r * 0.5} v${r * 0.3}" stroke="${BONE_INK}" stroke-width="1.2"/>` +
+    (band ? blob(`M${cx - r * 1.04},${cy - r * 0.2} Q${cx - r * 0.9},${cy - r * 1.3} ${cx},${cy - r * 1.3} Q${cx + r * 1.0},${cy - r * 1.3} ${cx + r * 1.06},${cy - r * 0.3} Q${cx},${cy - r * 0.62} ${cx - r * 1.04},${cy - r * 0.2} Z`, band, { ink: shade(band, -0.6), w: 1.4 }) +
+      blob(`M${cx + r * 0.9},${cy - r * 0.5} Q${cx + r * 1.7},${cy - r * 1.1} ${cx + r * 2.1},${cy - r * 0.5} Q${cx + r * 1.6},${cy - r * 0.3} ${cx + r * 1.9},${cy + r * 0.2} Q${cx + r * 1.3},${cy} ${cx + r * 0.95},${cy - r * 0.2} Z`, shade(band, -0.08), { ink: shade(band, -0.6), w: 1.3 }) : '');
+  const ribs = (x: number, y: number) => `<path d="M${x - 9},${y} q9,-4 18,0 M${x - 9},${y + 6} q9,-4 18,0 M${x - 8},${y + 12} q8,-3 16,0" fill="none" stroke="${BONE_INK}" stroke-width="2"/>` + tube(`M${x},${y - 6} L${x},${y + 16}`, 3, BONE, BONE_INK);
+  const bomb = (x: number, y: number, r: number, mark = false) =>
+    blob(circle(x, y, r), '#2a2a30', { ink: '#0a0a0e', w: 1.5 }) + `<path d="M${x + r * 0.4},${y - r * 0.9} q4,-8 10,-6" fill="none" stroke="#8a6a3a" stroke-width="2.2"/>` + spark(x + r * 0.4 + 10, y - r * 0.9 - 6, 4) +
+    (mark ? `<circle cx="${x}" cy="${y - 1}" r="${r * 0.38}" fill="${BONE}"/><circle cx="${x - r * 0.14}" cy="${y - 2}" r="${r * 0.1}" fill="#2a2a30"/><circle cx="${x + r * 0.14}" cy="${y - 2}" r="${r * 0.1}" fill="#2a2a30"/>` : '');
+  /** Tonneau vert cerclé de fer (Sparo, Tonneau Pirate). */
+  const barrel = (cx: number, cy: number, rx: number, ry: number) => {
+    const c = uid('k');
+    const d = `M${cx - rx * 0.86},${cy - ry} Q${cx - rx * 1.12},${cy} ${cx - rx * 0.86},${cy + ry} L${cx + rx * 0.86},${cy + ry} Q${cx + rx * 1.12},${cy} ${cx + rx * 0.86},${cy - ry} Z`;
+    return `<clipPath id="${c}"><path d="${d}"/></clipPath>` + blob(d, '#7a8a3a', { ink }) +
+      `<g clip-path="url(#${c})" stroke="#4a5a1e" stroke-width="1.4">${[-0.55, -0.2, 0.15, 0.5].map((k) => `<path d="M${cx + rx * k},${cy - ry} Q${cx + rx * k * 1.25},${cy} ${cx + rx * k},${cy + ry}"/>`).join('')}</g>` +
+      [-0.62, 0.62].map((k) => `<path d="M${cx - rx * 1.02},${cy + ry * k} Q${cx},${cy + ry * k + 4} ${cx + rx * 1.02},${cy + ry * k}" fill="none" stroke="#3a3e44" stroke-width="5" clip-path="url(#${c})"/><path d="M${cx - rx * 1.02},${cy + ry * k - 1.5} Q${cx},${cy + ry * k + 2.5} ${cx + rx * 1.02},${cy + ry * k - 1.5}" fill="none" stroke="#a8b0b8" stroke-width="1.6" clip-path="url(#${c})"/>`).join('') +
+      blob(ellipse(cx, cy - ry, rx * 0.86, ry * 0.16), '#5a6a2a', { ink, w: 1.4, rim: false });
+  };
+  const arrow = (x0: number, y0: number, x1: number, y1: number) => tube(`M${x0},${y0} L${x1},${y1}`, 2, '#8a5a2a', ink) +
+    blob(`M${x1},${y1} l${x1 > x0 ? -6 : 6},-4 l0,8 Z`, '#c8ccd2', { ink: '#3a4048', w: 1, rim: false }) + `<path d="M${x0},${y0} l${x1 > x0 ? 6 : -6},-4 M${x0},${y0} l${x1 > x0 ? 6 : -6},4" stroke="#e8e0c8" stroke-width="2.4"/>`;
+
+  if (kind === 'tonneauPirate') {
+    push(P, 'back', `<ellipse cx="70" cy="146" rx="30" ry="6" fill="#1a1208" opacity="0.28"/>`);
+    push(P, 'body', barrel(70, 110, 32, 36));
+    push(P, 'face', `<circle cx="70" cy="110" r="10" fill="${BONE}" stroke="${BONE_INK}" stroke-width="1.4"/><circle cx="66.5" cy="108" r="2.6" fill="#2a2a30"/><circle cx="73.5" cy="108" r="2.6" fill="#2a2a30"/>` +
+      `<path d="M58,124 L82,98 M58,98 L82,124" stroke="${BONE}" stroke-width="3.4" stroke-linecap="round"/><path d="M58,124 L82,98 M58,98 L82,124" stroke="${BONE_INK}" stroke-width="1" stroke-linecap="round" opacity="0.6"/>`);
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'sparo') {
+    push(P, 'legB', tube('M80,132 L82,142', 6, '#d8b088', ink), boot(86, 148));
+    push(P, 'legF', tube('M60,132 L58,142', 6, '#d8b088', ink), boot(60, 148));
+    push(P, 'leafB', arrow(118, 92, 96, 102), tube('M100,104 Q110,108 112,116', 4.6, '#e8c0a0', ink), hand(112, 118, '#e8c0a0'));
+    push(P, 'stem', barrel(70, 106, 34, 32), sabre(98, 82, 50, 145), arrow(24, 120, 48, 112), sabre(58, 126, 30, 120));
+    push(P, 'head', blob(ellipse(68, 70, 18, 16), '#f0c8a0', { ink }),
+      `<circle cx="58" cy="70" r="6" fill="#fff" fill-opacity="0.5" stroke="#3a3a3a" stroke-width="1.8"/><circle cx="72" cy="69" r="5.5" fill="#fff" fill-opacity="0.5" stroke="#3a3a3a" stroke-width="1.8"/><path d="M64,70 h2" stroke="#3a3a3a" stroke-width="1.8"/>`,
+      `<circle cx="57" cy="71" r="1.8" fill="#1a1010"/><circle cx="71" cy="70" r="1.8" fill="#1a1010"/>`, blob('M50,78 Q52,82 58,82', '#f0c8a0', { ink, w: 1.4, rim: false }),
+      blob('M50,66 Q50,48 70,48 Q88,50 86,66 Q70,58 50,66 Z', '#d8301e', { ink: '#5a0a08', w: 1.5 }), blob('M84,58 Q98,52 102,58 Q96,62 100,68 Q90,66 84,64 Z', '#c0281a', { ink: '#5a0a08', w: 1.3 }),
+      `<circle cx="66" cy="54" r="2.4" fill="#fff"/><circle cx="74" cy="56" r="2" fill="#fff"/>`);
+    push(P, 'leafF', tube('M44,100 Q34,104 32,112', 4.6, '#e8c0a0', ink), hand(32, 114, '#e8c0a0'), sabre(32, 114, 26, 200));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'barbroussa') {
+    push(P, 'legB', tube('M80,124 L84,140', 5, '#efe0c8', ink), boot(88, 148));
+    push(P, 'legF', tube('M64,124 L60,140', 5, '#efe0c8', ink), boot(62, 148));
+    push(P, 'leafB', tube('M90,96 Q104,104 108,116', 4.2, '#efe0c8', ink), hand(108, 118, '#efe0c8'), sabre(108, 118, 34, -20));
+    push(P, 'stem', (() => {
+      const c = uid('k');
+      const d = 'M56,88 Q72,82 90,88 L92,118 Q72,124 54,118 Z';
+      return `<clipPath id="${c}"><path d="${d}"/></clipPath>` + blob(d, '#f4f4f8', { ink }) +
+        `<g clip-path="url(#${c})">${[92, 100, 108].map((y) => `<rect x="50" y="${y}" width="48" height="4" fill="#3a8ae0"/>`).join('')}</g>` +
+        blob('M54,110 Q72,116 92,110 L92,120 Q72,126 54,120 Z', '#d8301e', { ink: '#5a0a08', w: 1.4 });
+    })());
+    push(P, 'head', blob('M52,90 Q50,78 60,76 Q74,74 84,78 Q92,82 90,92 Q72,96 52,90 Z', '#2a2a30', { ink }),
+      `<circle cx="62" cy="86" r="4" fill="#ff3a2a"/><circle cx="76" cy="85" r="4" fill="#ff3a2a"/><circle cx="62" cy="86" r="1.6" fill="#ffd0c0"/><circle cx="76" cy="85" r="1.6" fill="#ffd0c0"/>`,
+      blob('M14,72 Q30,64 50,66 Q56,36 72,34 Q92,34 98,62 Q114,58 128,70 Q118,74 104,76 Q72,86 30,78 Q20,78 14,72 Z', '#5a5e66', { ink: '#1a1c20' }),
+      blob('M50,66 Q56,40 72,38 Q90,38 96,62 Q74,56 50,66 Z', '#6a6e78', { ink: '#1a1c20', w: 1.4 }),
+      `<circle cx="73" cy="52" r="6" fill="${BONE}"/><circle cx="71" cy="51" r="1.6" fill="#2a2a30"/><circle cx="75.5" cy="51" r="1.6" fill="#2a2a30"/><path d="M64,62 L82,52 M64,52 L82,62" stroke="${BONE}" stroke-width="2.6" stroke-linecap="round"/>`);
+    push(P, 'leafF', tube('M56,96 Q44,104 40,114', 4.2, '#efe0c8', ink), hand(40, 116, '#efe0c8'), sabre(40, 116, 34, 160));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'leFlib') {
+    push(P, 'legB', tube('M84,136 L88,144', 5, '#e8c8a0', ink), blob(ellipse(90, 148, 8, 4), '#e8c8a0', { ink, w: 1.3 }));
+    push(P, 'legF', tube('M58,136 L54,144', 5, '#e8c8a0', ink), blob(ellipse(50, 148, 8, 4), '#e8c8a0', { ink, w: 1.3 }));
+    push(P, 'leafB', `<path d="M98,24 L104,104" stroke="#3a4048" stroke-width="7" stroke-linecap="round"/><path d="M98,24 L104,104" stroke="#d8dde4" stroke-width="4.4" stroke-linecap="round"/>`,
+      blob('M96,98 L112,96 L112,102 L96,104 Z', '#e8b83a', { ink: '#6a4a08', w: 1.2, rim: false }));
+    push(P, 'stem', stone('40,100 100,96 104,140 44,142', '#c8904a', '#4a2a10'),
+      `<path d="M42,112 L102,108 M42,126 L103,122" stroke="#7a4a1e" stroke-width="2"/><path d="M58,100 L60,142 M84,98 L86,140" stroke="#7a4a1e" stroke-width="1.6"/>`);
+    push(P, 'head', blob(spiky(70, 66, 30, 30, 9, 0.75, Math.PI * 0.85, Math.PI * 2.35), '#f0901a', { ink: '#7a3a08', w: 1.5 }),
+      blob(spiky(76, 62, 22, 22, 7, 0.6, Math.PI * 1.0, Math.PI * 2.2), '#f8b030', { ink: '#7a3a08', w: 1.2, rim: false }),
+      blob('M50,72 Q52,58 66,58 Q80,60 80,76 Q78,94 62,98 Q50,96 50,72 Z', '#f0d0a8', { ink }),
+      blob('M52,74 Q38,80 34,90 Q44,90 54,84 Z', '#f0d0a8', { ink, w: 1.4 }),
+      `<ellipse cx="58" cy="70" rx="3" ry="3.6" fill="#fff" stroke="${ink}" stroke-width="1"/><ellipse cx="68" cy="70" rx="3" ry="3.6" fill="#fff" stroke="${ink}" stroke-width="1"/><circle cx="59" cy="71" r="1.5" fill="#1a1010"/><circle cx="67" cy="71" r="1.5" fill="#1a1010"/>`,
+      `<path d="M54,64 l8,2 M64,66 l8,-2" stroke="#7a3a08" stroke-width="2.4" stroke-linecap="round"/><path d="M52,90 q6,3 12,0" fill="none" stroke="${ink}" stroke-width="1.6"/>`);
+    push(P, 'leafF', tube('M48,100 Q40,104 40,110', 5, '#f0d0a8', ink), hand(40, 112, '#f0d0a8'));
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'gourlo') {
+    push(P, 'legB', pegLeg(88, 120, 148), blob(ellipse(86, 149, 5, 2.4), '#8a5a2a', { ink, w: 1.1, rim: false }));
+    push(P, 'legF', tube('M60,120 L56,138', 9, '#4a5a2a', ink), boot(56, 148));
+    push(P, 'leafB', `<g transform="rotate(-38 92 64)">` + blob('M70,52 L142,52 Q146,64 142,76 L70,76 Q64,64 70,52 Z', '#3a3e46', { ink: '#0e1014' }) +
+      blob(ellipse(142, 64, 6, 13), '#1a1c20', { ink: '#0e1014', w: 1.4 }) + `<path d="M82,52 v24 M126,52 v24" stroke="#c8a040" stroke-width="3"/></g>`);
+    push(P, 'stem', blob('M44,74 Q70,64 100,74 L108,128 Q72,138 38,128 Z', '#c8281e', { ink: '#4a0a08' }),
+      blob('M58,76 Q72,72 86,76 L88,120 Q72,124 56,120 Z', '#5a6a2a', { ink }),
+      `<path d="M44,74 L38,128 M100,74 L108,128" stroke="#f0c43a" stroke-width="4"/><path d="M56,100 h32" stroke="#3a2410" stroke-width="5"/><rect x="68" y="96" width="9" height="8" rx="1.5" fill="#f0c43a" stroke="#6a4a08"/>`);
+    push(P, 'head', blob('M46,62 Q46,38 70,38 Q92,40 92,62 Q90,82 70,86 Q50,84 46,62 Z', '#7aa83a', { ink: '#1e3a08' }),
+      blob('M48,70 Q56,94 72,92 Q86,90 90,72 Q78,82 70,80 Q58,80 48,70 Z', '#3a2410', { ink, w: 1.4 }),
+      `<ellipse cx="58" cy="60" rx="4" ry="3.4" fill="#fff"/><ellipse cx="72" cy="60" rx="4" ry="3.4" fill="#fff"/><circle cx="57" cy="61" r="2" fill="#1a1010"/><circle cx="71" cy="61" r="2" fill="#1a1010"/>`,
+      `<path d="M52,54 l10,3 M66,57 l10,-3" stroke="#1e3a08" stroke-width="2.6" stroke-linecap="round"/><path d="M60,72 l3,4 l3,-4 l3,4" fill="#fff" stroke="${ink}" stroke-width="1"/>`,
+      blob('M42,50 Q44,26 70,24 Q96,26 96,50 Q70,42 42,50 Z', '#2a2a30', { ink: '#0a0a0e' }),
+      blob('M46,40 Q30,32 28,14 Q40,26 50,32 Z', BONE, { ink: BONE_INK, w: 1.3 }), blob('M92,40 Q108,32 110,14 Q98,26 88,32 Z', BONE, { ink: BONE_INK, w: 1.3 }),
+      `<circle cx="70" cy="36" r="5" fill="${BONE}"/><circle cx="68" cy="35" r="1.3" fill="#2a2a30"/><circle cx="72" cy="35" r="1.3" fill="#2a2a30"/>`);
+    push(P, 'leafF', tube('M46,82 Q34,96 36,108', 8, '#c8281e', '#4a0a08'), blob(circle(36, 112, 6.5), '#7aa83a', { ink: '#1e3a08', w: 1.4 }), `<path d="M30,104 h12" stroke="#f0c43a" stroke-width="3"/>`);
+    return assemble(kind, P, part);
+  }
+
+  if (kind === 'canondorf') {
+    // squelette derrière un canon noir sur roues (bouche vers la gauche), boulet-tête de mort levé
+    push(P, 'legB', blob(circle(92, 138, 13), '#a8743a', { ink }), `<circle cx="92" cy="138" r="4" fill="#5a3a1e"/><path d="M92,126 v24 M80,138 h24" stroke="#5a3a1e" stroke-width="2"/>`);
+    push(P, 'legF', blob(circle(52, 140, 12), '#a8743a', { ink }), `<circle cx="52" cy="140" r="4" fill="#5a3a1e"/><path d="M52,129 v22 M41,140 h22" stroke="#5a3a1e" stroke-width="2"/>`);
+    push(P, 'head', skull(96, 70, 15, '#d8301e'), ribs(96, 96));
+    push(P, 'leafB', bone('M106,94 Q118,82 116,66'), hand(116, 62), bomb(118, 50, 11, true));
+    push(P, 'stem', blob('M28,104 Q24,92 36,90 L100,98 Q118,104 114,120 Q110,132 96,132 L36,126 Q24,124 28,104 Z', '#2a2c32', { ink: '#0a0a0e' }),
+      blob(ellipse(30, 108, 8, 16), '#1a1c20', { ink: '#0a0a0e', w: 1.6 }), blob(ellipse(30, 108, 4.5, 10), '#050506', { w: 0, rim: false }),
+      `<path d="M50,92 v34 M84,96 v34" stroke="#c8a040" stroke-width="3"/>`,
+      `<circle cx="68" cy="110" r="8" fill="${BONE}"/><circle cx="65.5" cy="108.5" r="2" fill="#2a2c32"/><circle cx="70.5" cy="108.5" r="2" fill="#2a2c32"/><path d="M58,122 L78,100 M58,100 L78,122" stroke="${BONE}" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>`);
+    push(P, 'leafF', bone('M88,100 Q78,108 80,116', 4), hand(80, 118));
+    return assemble(kind, P, part);
+  }
+
+  // Boomba (bombe, bandana rouge, gilet jaune) et Nakunbra (grand sabre, bandana blanc, jambe de bois)
+  const naku = kind === 'nakunbra';
+  push(P, 'legB', bone('M80,118 L84,138'), boot(88, 148));
+  push(P, 'legF', naku ? pegLeg(62, 118, 148) : bone('M62,118 L58,138'), naku ? '' : boot(62, 148));
+  push(P, 'leafB', bone(naku ? 'M84,86 Q98,92 102,102' : 'M84,86 Q98,96 98,108'), hand(naku ? 102 : 98, naku ? 104 : 110));
+  push(P, 'stem', ribs(72, 92), naku ? '' : blob('M58,84 Q72,80 86,84 L86,104 L76,108 L76,90 L68,90 L68,108 L58,104 Z', '#e8b83a', { ink: '#6a4a08', w: 1.4 }),
+    blob('M58,108 Q72,112 86,108 L86,118 Q72,122 58,118 Z', '#d8301e', { ink: '#5a0a08', w: 1.4 }), blob('M84,112 L94,128 L86,128 Z', '#c0281a', { ink: '#5a0a08', w: 1.2, rim: false }));
+  push(P, 'head', skull(64, 62, 17, naku ? '#f0ece4' : '#d8301e'));
+  if (naku) push(P, 'leafF', bone('M60,88 Q48,92 42,84'), hand(40, 82), sabre(40, 82, 62, 220));
+  else push(P, 'leafF', bone('M60,88 Q46,96 42,106'), hand(42, 108), bomb(36, 116, 11));
+  return assemble(kind, P, part);
+}
+
+
 export const CRITTER_SVG = {
   tofu: tofuSvg, pissenlit: pissenlitSvg, rose: roseSvg, tournesol: tournesolSvg,
   plikplok: (p) => jellySvg('plikplok', p), gloot: (p) => jellySvg('gloot', p), splatch: (p) => jellySvg('splatch', p),
@@ -1808,6 +1976,7 @@ export const CRITTER_SVG = {
   ...(Object.fromEntries(WABBITS.map((k) => [k, (p?: CritterPart) => wabbitSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(BLOPS.map((k) => [k, (p?: CritterPart) => blopSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(CRAQS.map((k) => [k, (p?: CritterPart) => craqSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
+  ...(Object.fromEntries(PIRATES.map((k) => [k, (p?: CritterPart) => pirateSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),
