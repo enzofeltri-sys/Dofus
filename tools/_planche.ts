@@ -9,18 +9,20 @@ const art = (k: string) => (CHAFERS.includes(k) ? chaferChibiSvg(k as ChaferKind
 const size = (k: string): [number, number] => (CHAFERS.includes(k) ? [CHAFER_W, CHAFER_H] : [CRITTER_W, CRITTER_H]);
 // [dessin, nom, gfx DofusDB, taille proposée]
 const T: [string, string, number, number][] = [
-  ['sparo', 'Sparo', 572, 1.1], ['barbroussa', 'Barbroussa', 573, 1.15], ['leFlib', 'Le Flib', 574, 1.1], ['tonneauPirate', 'Tonneau Pirate (invocation)', 572, 0.75],
-  ['boomba', 'Boomba (élite)', 124, 1.2], ['nakunbra', 'Nakunbra (élite)', 125, 1.2], ['canondorf', 'Canondorf (élite)', 127, 1.25], ['gourlo', 'Gourlo le Terrible (boss)', 575, 1.6],
+  ['wobot', 'Wobot', 102, 1.15], ['blackWoWabbit', 'Black Wo Wabbit', 1007, 1.25], ['wobotKiafin', 'Wobot Kiafin', 1008, 1.1], ['blancPaWabbit', 'Blanc Pa Wabbit', 1009, 1.15],
+  ['tiwobot', 'Tiwobot', 1018, 0.9], ['waWobot', 'Wa Wobot (boss)', 1006, 1.7],
+  ['scordionBleu', 'Scordion Bleu', 1489, 1.15], ['fennex', 'Fennex', 1490, 0.95], ['boulepique', 'Boulépique', 1491, 1.1], ['leolhyene', 'Léolhyène', 1493, 1.15],
+  ['ouroboulos', 'Ouroboulos', 1494, 1.05], ['mantiscore', 'Mantiscore (boss)', 1495, 1.7],
 ];
 const uri = (s: string) => 'data:image/svg+xml;base64,' + Buffer.from(s).toString('base64');
-const cell = ([k, n, g]: (typeof T)[number]) => `<div class="c"><img class="ref" src="file://${S}/pir/g${g}.png"><img class="me" src="${uri(art(k))}"><b>${n}</b></div>`;
+const cell = ([k, n, g]: (typeof T)[number]) => `<div class="c"><img class="ref" src="file://${S}/t80/ref/g${g}.png"><img class="me" src="${uri(art(k))}"><b>${n}</b></div>`;
 const line = [...T.map(([k, n, , sc]) => [k, n, sc] as const), ['bouftou', 'Bouftou (repère)', 1.25] as const]
   .map(([k, n, sc]) => { const [w, h] = size(k); return `<div class="l"><img src="${uri(art(k))}" style="width:${w * sc * 0.8}px;height:${h * sc * 0.8}px"><i>${n}<br>×${sc}</i></div>`; }).join('');
-writeFileSync(`${S}/plancheP.html`, `<!doctype html><meta charset="utf-8"><style>
+writeFileSync(`${S}/planche80.html`, `<!doctype html><meta charset="utf-8"><style>
 body{margin:0;background:#2a2228;color:#f4ead8;font:14px sans-serif;padding:14px}h2{margin:6px 0 10px}
 .row{display:flex;gap:8px;flex-wrap:wrap}.c{background:#3a3234;border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;width:160px}
 .ref{width:110px;height:110px;background:#fff;border-radius:8px}.me{width:150px;height:174px;background:radial-gradient(#6b6058,#3a3230);border-radius:8px;margin-top:6px;object-fit:contain}
 .lineup{display:flex;align-items:flex-end;gap:2px;background:linear-gradient(#4a5a3a,#2e3a24);border-radius:12px;padding:10px 10px 4px;margin-top:10px}
 .l{display:flex;flex-direction:column;align-items:center}.l i{font-size:11px;text-align:center}
-</style><h2>Pirates — en haut : illustration DofusDB (référence) ; en bas : mon dessin</h2><div class="row">${T.map(cell).join('')}</div>
+</style><h2>Niveaux 71-80 — en haut : illustration DofusDB (référence) ; en bas : mon dessin</h2><div class="row">${T.map(cell).join('')}</div>
 <h2>Tailles en jeu</h2><div class="lineup">${line}</div>`);
