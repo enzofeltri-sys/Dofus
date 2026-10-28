@@ -20,7 +20,7 @@ await p.waitForTimeout(400);
 await p.click('.atlas .back');
 await p.waitForTimeout(300);
 console.log('zones :', await p.$$eval('.zone-card', (e) => e.map((x) => x.querySelector('b').textContent + (x.disabled ? ' (fermée)' : '')).join(', ')));
-await p.click('.zone-card[data-zone="craqueleursZone"]');
+await p.click('.zone-card[data-region="amakna"]');
 await p.waitForTimeout(300);
 await p.screenshot({ path: 'shots/craq_zone.png' });
 await p.click('.map-row[data-id="plainesRocheuses"] .go');

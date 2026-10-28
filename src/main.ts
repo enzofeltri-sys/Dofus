@@ -224,15 +224,17 @@ async function main() {
     return uid !== undefined ? inv.items.find((i) => i.uid === uid)?.id ?? null : null;
   };
   const heroFromSave = () => startingHero(save.profile, gearStats(save.inventory), weaponOf(save.inventory));
+  /** Niveau du personnage (les étapes des régions demandent leur niveau − 10). */
+  const heroLv = () => levelForXp(save.profile.xp);
   /** Carte ou donjon choisi au camp (s'il est débloqué ; sinon les Champs). */
   const areaOf = () => {
     const node = ZONES.flatMap((z) => z.nodes).find((n) => n.id === save.area);
-    return node?.area && isUnlocked(node, save.done) ? node.area : CHAMPS;
+    return node?.area && isUnlocked(node, save.done, heroLv()) ? node.area : CHAMPS;
   };
   /** Étapes débloquées déjà vues dans l'écran Donjons (pour la pastille). */
-  let seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
+  let seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done, heroLv())).length;
   const zoneHooks = {
-    view: () => atlasView(save.done, areaOf().id, save.mapWins),
+    view: () => atlasView(save.done, areaOf().id, save.mapWins, heroLv()),
     choose(id: string) {
       save = { ...save, area: id };
       storeSave(save);
@@ -286,9 +288,9 @@ async function main() {
       storeSave(save);
       return farmRows(r);
     },
-    fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length - seenOpen),
+    fresh: () => Math.max(0, ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done, heroLv())).length - seenOpen),
     seen() {
-      seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).length;
+      seenOpen = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done, heroLv())).length;
     },
   };
   /** Butin d'un farm (instantané, expédition) pour l'affichage : équipements d'abord. */
@@ -1274,7 +1276,7 @@ async function main() {
       seen: { ...st.seen }, slain: { ...st.slain },
     };
     const levelBefore = levelForXp(save.profile.xp);
-    const openBefore = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done)).map((n) => n.name);
+    const openBefore = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done, heroLv())).map((n) => n.name);
     const applied = applyRun(save, result);
     save = applied.save;
     for (const uid of applied.fresh) freshItems.add(uid);
@@ -1282,7 +1284,7 @@ async function main() {
     const best = new Map<number, number>();
     for (const it of save.inventory.items) if (applied.fresh.includes(it.uid)) best.set(it.id, Math.max(best.get(it.id) ?? 0, it.rarity ?? 0));
     const rares = save.inventory.items.filter((it) => applied.fresh.includes(it.uid) && (it.rarity ?? 0) > 0);
-    const unlocked = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done) && !openBefore.includes(n.name)).map((n) => n.name);
+    const unlocked = ZONES.flatMap((z) => z.nodes).filter((n) => isUnlocked(n, save.done, heroLv()) && !openBefore.includes(n.name)).map((n) => n.name);
     const lootList = [
       ...Object.entries(st.loot).map(([k, n]) => ({ id: Number(k), count: n, boss: false })),
       ...Object.entries(st.bossLoot).map(([k, n]) => ({ id: Number(k), count: n, boss: true })),

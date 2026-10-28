@@ -22,10 +22,11 @@ describe('Niveaux 61-70, deuxième donjon : les pirates de l’Arche (validés p
     expect(MONSTERS.boomba.grades[0].level).toBe(82);
   });
 
-  it('arbre : l’Arche s’ouvre avec le Château du Wa Wabbit OU le Clos des Blops', () => {
-    expect(isUnlocked(node('arche'), ['lacCania'])).toBe(false);
-    expect(isUnlocked(node('arche'), ['closBlops'])).toBe(true);
-    expect(isUnlocked(node('caleArche'), ['chateauWabbit', 'arche'])).toBe(true);
+  it('région Île d’Otomaï : l’Arche s’ouvre avec la carte du monde ET le niveau 55, la Cale au niveau 60', () => {
+    expect(isUnlocked(node('arche'), ['lacCania'], 80)).toBe(false);
+    expect(isUnlocked(node('arche'), ['nidKwakwa'], 54)).toBe(false);
+    expect(isUnlocked(node('arche'), ['nidKwakwa'], 55)).toBe(true);
+    expect(isUnlocked(node('caleArche'), ['nidKwakwa', 'arche'], 60)).toBe(true);
   });
 
   it('l’élite de la Cale est tirée au hasard : Boomba, Nakunbra ou Canondorf', () => {

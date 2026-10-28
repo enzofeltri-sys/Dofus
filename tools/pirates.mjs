@@ -20,7 +20,7 @@ await p.waitForTimeout(400);
 await p.click('.atlas .back');
 await p.waitForTimeout(300);
 console.log('zones :', await p.$$eval('.zone-card', (e) => e.map((x) => x.querySelector('b').textContent + (x.disabled ? ' (fermée)' : '')).join(', ')));
-await p.click('.zone-card[data-zone="otomai"]');
+await p.click('.zone-card[data-region="otomai"]');
 await p.waitForTimeout(300);
 await p.screenshot({ path: 'shots/pir_zone.png' });
 await p.click('.map-row[data-id="arche"] .go');

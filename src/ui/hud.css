@@ -1129,3 +1129,14 @@ details.sh-test:not([open]) { padding-top: 6px; padding-bottom: 6px; }
 .st-text { width: 100%; height: 90px; font: 11px/1.3 ui-monospace, monospace; border-radius: 10px; border: 2px solid var(--ink); background: #fffaf0; color: var(--ink); padding: 6px; box-sizing: border-box; }
 .st-load { position: relative; cursor: pointer; }
 .st-danger h3 { color: var(--coral-dark); }
+
+/* ---------- Carte du monde : régions (validées par Enzo) ---------- */
+.rg-note { margin: 0 2px 4px; font-size: 13px; color: var(--ink-2, #6a4a2a); }
+.rg-card { position: relative; overflow: hidden; padding-left: 18px; }
+.rg-band { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--c); z-index: 2; }
+.rg-card.soon { opacity: .85; }
+.rg-card.locked .rg-band { filter: grayscale(.5); }
+.rg-card.locked { cursor: pointer; }
+.rg-peek { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.4; color: var(--ink); background: rgba(255, 250, 240, .7); border-radius: 10px; padding: 6px 8px; }
+.dj-card.soon { opacity: .7; }
+.dj-card.soon em { font-style: normal; font-weight: 800; color: var(--ink-2, #6a4a2a); }

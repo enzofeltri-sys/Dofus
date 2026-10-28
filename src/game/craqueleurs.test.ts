@@ -19,11 +19,12 @@ describe('Niveaux 61-70 : les Craqueleurs (validés par Enzo)', () => {
     expect(MONSTERS[AREAS.pitonsRocheux.boss!.id].boss).toBeDefined();
   });
 
-  it('arbre : les Plaines Rocheuses s’ouvrent avec le Château du Wa Wabbit OU le Clos des Blops', () => {
-    expect(isUnlocked(node('plainesRocheuses'), ['lacCania'])).toBe(false);
-    expect(isUnlocked(node('plainesRocheuses'), ['chateauWabbit'])).toBe(true);
-    expect(isUnlocked(node('plainesRocheuses'), ['closBlops'])).toBe(true);
-    expect(isUnlocked(node('pitonsRocheux'), ['closBlops', 'plainesRocheuses'])).toBe(true);
+  it('région Amakna (suite) : les Plaines Rocheuses s’ouvrent avec la carte du monde ET le niveau 53 (63 − 10)', () => {
+    expect(isUnlocked(node('plainesRocheuses'), ['lacCania'], 70)).toBe(false);
+    expect(isUnlocked(node('plainesRocheuses'), ['nidKwakwa'], 52)).toBe(false);
+    expect(isUnlocked(node('plainesRocheuses'), ['donjonBworks'], 53)).toBe(true);
+    expect(isUnlocked(node('pitonsRocheux'), ['nidKwakwa', 'plainesRocheuses'], 59)).toBe(false);
+    expect(isUnlocked(node('pitonsRocheux'), ['nidKwakwa', 'plainesRocheuses'], 60)).toBe(true);
   });
 
   it('vraies fiches : Craqueleur Légendaire 3 100-4 600 PV, Kirboule 1 900-2 300 PV', () => {

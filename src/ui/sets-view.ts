@@ -41,7 +41,7 @@ export interface SetsView {
 const bonusText = (s: number, n: number) => (n > 0 ? (SETS[s].bonus[n - 1] ?? []).map(([p, v]) => fmtLine(p, v)).join(' · ') : '');
 
 export function setsView(w: Workshop, done: string[], area: string, heroLevel: number, zone?: string): SetsView {
-  const zones = openZones(done).map((z) => ({ id: z.id, name: z.name }));
+  const zones = openZones(done, heroLevel).map((z) => ({ id: z.id, name: z.name }));
   const z = zone && zones.some((x) => x.id === zone) ? zone : zones.some((x) => x.id === zoneOfArea(area)) ? zoneOfArea(area) : zones[0]?.id ?? '';
   const worn = setCounts(w.inventory);
   const ready: SetsView['ready'] = [];

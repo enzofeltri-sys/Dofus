@@ -483,6 +483,42 @@ export const CALE_ARCHE: AreaDef = {
   theme: 'cale',
 };
 
+/** La carte du monde s'ouvre avec le Nid du Kwakwa ou le Donjon des Bworks (validé par Enzo). */
+export const WORLD = ['nidKwakwa', 'donjonBworks'];
+export const worldOpen = (done: string[]) => WORLD.some((id) => done.includes(id));
+
+/** Étape d'une région pas encore dans le jeu (vrai donjon DofusDB, pour montrer la suite). */
+export interface UpcomingStep { name: string; level: number; boss: string }
+/**
+ * Régions de la carte du monde (validées par Enzo) : chacune s'ouvre au niveau de son premier donjon − 10 et a son propre arbre.
+ * `levels` : niveaux de ses vrais donjons (DofusDB) ; `upcoming` : donjons pas encore construits.
+ */
+export interface Region { id: string; name: string; color: string; levels: [number, number]; open: number; upcoming: UpcomingStep[]; /** Nombre réel de donjons de la région (DofusDB). */ total: number }
+export const REGIONS: Region[] = [
+  { id: 'otomai', name: 'Île d’Otomaï', color: '#2f9a8a', levels: [50, 180], open: 40, total: 6, upcoming: [
+    { name: 'Grotte Hesque', level: 50, boss: 'Corailleur Magistral' }, { name: 'Goulet du Rasboul', level: 110, boss: 'Silf le Rasboul Majeur' },
+    { name: 'Laboratoire du Tynril', level: 140, boss: 'les Tynril' }, { name: 'Canopée du Kimbo', level: 160, boss: 'Kimbo' }, { name: 'Antre du Kralamoure Géant', level: 180, boss: 'Kralamoure Géant' }] },
+  { id: 'wabbits', name: 'Île des Wabbits', color: '#e89a3a', levels: [60, 80], open: 50, total: 2, upcoming: [{ name: 'Terrier du Wa Wabbit', level: 80, boss: 'Wa Wobot' }] },
+  { id: 'cania', name: 'Plaines de Cania', color: '#5aa82a', levels: [60, 160], open: 50, total: 5, upcoming: [
+    { name: 'Bibliothèque du Maître Corbac', level: 110, boss: 'Maître Corbac' }, { name: 'Antre du Blop Multicolore Royal', level: 120, boss: 'Blop Multicolore Royal' },
+    { name: 'Volière de la Haute Truche', level: 130, boss: 'Haute Truche' }, { name: 'Grotte de Kanigroula', level: 160, boss: 'Kanigroula' }] },
+  { id: 'moon', name: 'Île de Moon', color: '#c8784a', levels: [60, 100], open: 50, total: 3, upcoming: [
+    { name: 'Village Kanniboul', level: 60, boss: 'Kanniboul Ebil' }, { name: 'Bateau du Chouque', level: 90, boss: 'Le Chouque' }, { name: 'Arbre de Moon', level: 100, boss: 'Moon' }] },
+  { id: 'amakna', name: 'Amakna (suite)', color: '#a8945a', levels: [70, 150], open: 60, total: 5, upcoming: [
+    { name: 'Repaire du Kharnozor', level: 100, boss: 'Kharnozor' }, { name: 'Antre de Crocabulia', level: 120, boss: 'Crocabulia' },
+    { name: 'Tofulailler Royal', level: 120, boss: 'Tofu Royal' }, { name: 'Repaire de Sphincter Cell', level: 150, boss: 'Sphincter Cell' }] },
+  { id: 'sidimote', name: 'Landes de Sidimote', color: '#7a4e8a', levels: [70, 200], open: 60, total: 8, upcoming: [
+    { name: 'Laboratoire de Brumen Tinctorias', level: 70, boss: 'Nelween' }, { name: 'Chapiteau des Magik Riktus', level: 90, boss: 'Choudini' }, { name: 'Tanière du Meulou', level: 100, boss: 'Meulou' }] },
+  { id: 'saharach', name: 'Saharach', color: '#d8b04a', levels: [80, 200], open: 70, total: 4, upcoming: [
+    { name: 'Cimetière des Mastodontes', level: 80, boss: 'Mantiscore' }, { name: 'Caverne d’El Piko', level: 130, boss: 'El Piko' }] },
+  { id: 'abraknydes', name: 'Forêt des Abraknydes', color: '#4a6a2a', levels: [90, 140], open: 80, total: 3, upcoming: [
+    { name: 'Antre de la Reine Nyée', level: 90, boss: 'Reine Nyée' }, { name: 'Domaine Ancestral', level: 90, boss: 'Abraknyde Ancestral' }, { name: 'Clairière du Chêne Mou', level: 140, boss: 'Chêne Mou' }] },
+  { id: 'pandala', name: 'Île de Pandala', color: '#c8504a', levels: [110, 140], open: 100, total: 5, upcoming: [
+    { name: 'Bambusaie de Damadrya', level: 110, boss: 'Damadrya' }, { name: 'Dojo du Vent', level: 140, boss: 'Shihan et Hanshi' }] },
+  { id: 'frigost', name: 'Île de Frigost', color: '#6ab0e0', levels: [120, 200], open: 110, total: 17, upcoming: [
+    { name: 'Serre du Royalmouth', level: 120, boss: 'Royalmouth' }, { name: 'Excavation du Mansot Royal', level: 140, boss: 'Mansot Royal' }, { name: 'Épave du Grolandais violent', level: 150, boss: 'Ben le Ripate' }] },
+];
+
 /** Une étape de l'arbre : une carte ou un donjon jouable, ou une case à venir. */
 export interface TreeNode {
   id: string;
@@ -496,12 +532,16 @@ export interface TreeNode {
   needsAny?: string[];
   /** Pas encore dans le jeu. */
   soon?: boolean;
+  /** Niveau du personnage demandé (régions : niveau de l'étape − 10, validé par Enzo). */
+  minLevel?: number;
 }
 
 export interface Zone {
   id: string;
   name: string;
   nodes: TreeNode[];
+  /** Région de la carte du monde (après le continent) ; sans région : le continent (Incarnam → Bworks). */
+  region?: string;
 }
 
 /** Arbre des zones (une zone = ses cartes de farm puis son donjon ; validé par Enzo). Astrub (après la Crypte) : Cité → Souterrains, Champs d'Astrub → Prairies → Donjon des Champs (les 4 cartes). Incarnam : Champs → Pâturages, Forêt, Cimetière (dans l'ordre qu'on veut) → Crypte de Kardorim (les 4 cartes terminées). */
@@ -585,32 +625,32 @@ export const ZONES: Zone[] = [
     ],
   },
   {
-    id: 'wabbits', name: 'Les Wabbits',
+    id: 'wabbits', name: 'Les Wabbits', region: 'wabbits',
     nodes: [
-      { id: 'cawotte', name: 'Île de la Cawotte', level: 52, kind: 'map', area: CAWOTTE, needs: [], needsAny: ['nidKwakwa', 'donjonBworks'] },
-      { id: 'couronne', name: 'Îlot de la Couronne', level: 55, kind: 'map', area: COURONNE, needs: ['cawotte'] },
-      { id: 'chateauWabbit', name: 'Château du Wa Wabbit', level: 60, kind: 'dungeon', area: CHATEAU_WABBIT, needs: ['cawotte', 'couronne'] },
+      { id: 'cawotte', name: 'Île de la Cawotte', level: 52, kind: 'map', area: CAWOTTE, needs: [], needsAny: WORLD, minLevel: 42 },
+      { id: 'couronne', name: 'Îlot de la Couronne', level: 55, kind: 'map', area: COURONNE, needs: ['cawotte'], minLevel: 45 },
+      { id: 'chateauWabbit', name: 'Château du Wa Wabbit', level: 60, kind: 'dungeon', area: CHATEAU_WABBIT, needs: ['cawotte', 'couronne'], minLevel: 50 },
     ],
   },
   {
-    id: 'blops', name: 'Les Blops',
+    id: 'blops', name: 'Les Blops', region: 'cania',
     nodes: [
-      { id: 'lacCania', name: 'Lac de Cania', level: 55, kind: 'map', area: LAC_CANIA, needs: [], needsAny: ['nidKwakwa', 'donjonBworks'] },
-      { id: 'closBlops', name: 'Clos des Blops', level: 60, kind: 'dungeon', area: CLOS_BLOPS, needs: ['lacCania'] },
+      { id: 'lacCania', name: 'Lac de Cania', level: 55, kind: 'map', area: LAC_CANIA, needs: [], needsAny: WORLD, minLevel: 45 },
+      { id: 'closBlops', name: 'Clos des Blops', level: 60, kind: 'dungeon', area: CLOS_BLOPS, needs: ['lacCania'], minLevel: 50 },
     ],
   },
   {
-    id: 'craqueleursZone', name: 'Les Craqueleurs',
+    id: 'craqueleursZone', name: 'Les Craqueleurs', region: 'amakna',
     nodes: [
-      { id: 'plainesRocheuses', name: 'Plaines Rocheuses', level: 63, kind: 'map', area: PLAINES_ROCHEUSES, needs: [], needsAny: ['chateauWabbit', 'closBlops'] },
-      { id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', level: 70, kind: 'dungeon', area: PITONS_ROCHEUX, needs: ['plainesRocheuses'] },
+      { id: 'plainesRocheuses', name: 'Plaines Rocheuses', level: 63, kind: 'map', area: PLAINES_ROCHEUSES, needs: [], needsAny: WORLD, minLevel: 53 },
+      { id: 'pitonsRocheux', name: 'Pitons Rocheux des Craqueleurs', level: 70, kind: 'dungeon', area: PITONS_ROCHEUX, needs: ['plainesRocheuses'], minLevel: 60 },
     ],
   },
   {
-    id: 'otomai', name: 'L’Arche d’Otomaï',
+    id: 'otomai', name: 'L’Arche d’Otomaï', region: 'otomai',
     nodes: [
-      { id: 'arche', name: 'Arche d’Otomaï', level: 65, kind: 'map', area: ARCHE_OTOMAI, needs: [], needsAny: ['chateauWabbit', 'closBlops'] },
-      { id: 'caleArche', name: 'Cale de l’Arche d’Otomaï', level: 70, kind: 'dungeon', area: CALE_ARCHE, needs: ['arche'] },
+      { id: 'arche', name: 'Arche d’Otomaï', level: 65, kind: 'map', area: ARCHE_OTOMAI, needs: [], needsAny: WORLD, minLevel: 55 },
+      { id: 'caleArche', name: 'Cale de l’Arche d’Otomaï', level: 70, kind: 'dungeon', area: CALE_ARCHE, needs: ['arche'], minLevel: 60 },
     ],
   },
 ];
@@ -629,8 +669,9 @@ export const AREAS: Record<string, AreaDef> = {
   arche: ARCHE_OTOMAI, caleArche: CALE_ARCHE,
 };
 
-/** Étapes jouables et débloquées. */
-export const isUnlocked = (n: TreeNode, done: string[]) => !n.soon && (done.includes(n.id) || (n.needs.every((id) => done.includes(id)) && (!n.needsAny || n.needsAny.some((id) => done.includes(id)))));
+/** Étapes jouables et débloquées (avec le niveau du personnage : les étapes des régions demandent leur niveau − 10). */
+export const isUnlocked = (n: TreeNode, done: string[], level = Infinity) => !n.soon && (done.includes(n.id) ||
+  (n.needs.every((id) => done.includes(id)) && (!n.needsAny || n.needsAny.some((id) => done.includes(id))) && (n.minLevel ?? 0) <= level));
 
 /** Équipement de zone (validé par Enzo) : tranche de niveaux des équipements qui tombent dans chaque zone. */
 export const ZONE_TIERS: Record<string, [number, number]> = {

@@ -1269,9 +1269,14 @@ export class Hud {
   }
 
   private atlasZone: string | null = null;
+  /** Carte du monde (validée par Enzo) : null = la carte, 'continent' = l'arbre d'Incarnam aux Bworks, sinon une région. */
+  private atlasRegion: string | null = null;
+  /** Région fermée dont on regarde le détail. */
+  private atlasPeek: string | null = null;
   /**
    * « Où aller ? » (bouton Jouer) : d'abord les zones (débloquées ou non, progression), puis, dans une zone,
    * ses cartes de farm (terminée, disponible, verrouillée) et son donjon (niveau, boss, clés, Entrer).
+   * Après le Nid du Kwakwa ou les Bworks : la carte du monde (le continent, puis une région par île), chaque région avec son arbre.
    * Toucher « Jouer » ou « Entrer » lance directement la partie (`start`).
    */
   atlas(h: ZoneHooks, start: () => void): Promise<void> {
@@ -1279,47 +1284,90 @@ export class Hud {
     const back = el.querySelector<HTMLButtonElement>('.sh-head .back')!;
     const title = el.querySelector<HTMLElement>('.sh-head .gr-h2')!;
     const bossOf = (sub: string) => sub.split('·').map((x) => x.trim()).filter((x) => !/salles|mini-boss|victoires/.test(x)).pop() ?? '';
-    const render = () => {
-      const v = h.view();
-      const zone = v.zones.find((z) => z.id === this.atlasZone);
-      back.hidden = !zone;
-      title.textContent = zone ? zone.name : 'Où aller ?';
-      const box = el.querySelector('.atlas-zones')!;
-      if (!zone) {
-        box.innerHTML = v.zones.map((z) => {
-          const open = z.nodes.some((n) => n.state === 'open' || n.state === 'done');
-          const done = z.nodes.filter((n) => n.state === 'done').length;
-          const lv = z.nodes.map((n) => n.level);
-          const here = z.nodes.some((n) => n.selected);
-          return `<button type="button" class="zone-card gr-panel ${open ? '' : 'locked'} ${here ? 'here' : ''}" data-zone="${z.id}" ${open ? '' : 'disabled'}>
-            <span class="zc-txt"><b>${z.name}</b><small>Niveaux ${Math.min(...lv)} à ${Math.max(...lv)}${here ? ' · tu y es' : ''}</small>
-            ${open ? `<span class="zc-bar"><i style="width:${Math.round((100 * done) / z.nodes.length)}%"></i></span><small class="gr-num">${done}/${z.nodes.length} terminées</small>` : `<em>${LOCK_SVG} ${z.nodes[0].need}</em>`}</span>
-            ${open ? '<span class="zc-go">›</span>' : ''}</button>`;
-        }).join('');
-        return;
-      }
-      box.innerHTML = zone.nodes.map((n) => {
-        const playable = n.state === 'open' || n.state === 'done';
-        const wins = n.wins ? `<span class="gr-chip mw">${n.wins[0]}/${n.wins[1]} victoires</span>` : '';
-        if (n.kind === 'map') return `<div class="map-row ${n.state}" data-id="${n.id}">
+    const nodeHtml = (n: AtlasView['zones'][number]['nodes'][number]) => {
+      const playable = n.state === 'open' || n.state === 'done';
+      const wins = n.wins ? `<span class="gr-chip mw">${n.wins[0]}/${n.wins[1]} victoires</span>` : '';
+      if (n.kind === 'map') return `<div class="map-row ${n.state}" data-id="${n.id}">
           <span class="an-dot">${n.state === 'done' ? '✓' : n.state === 'locked' ? LOCK_SVG : ''}</span>
           <span class="an-txt"><b>${n.name}</b><small>Carte · niveau ${n.level}</small>${wins}${n.state === 'locked' ? `<em>${n.need}</em>` : ''}</span>
           ${n.state === 'done' && h.farmInfo ? `<button type="button" class="gr-btn sm gold farm">Farm</button>` : ''}${playable ? `<button type="button" class="gr-btn sm turquoise go">Jouer</button>` : ''}</div>`;
-        const key = playable ? h.info(n.id).key : undefined;
-        return `<div class="dj-card gr-panel gold ${n.state}" data-id="${n.id}">
+      if (n.state === 'soon') return `<div class="dj-card gr-panel soon"><span class="gr-label">Donjon · niveau ${n.level}</span><b class="djc-name">${n.name}</b>
+          <span class="djc-boss">Boss : ${n.boss ?? bossOf(n.sub)}</span><em>Bientôt</em></div>`;
+      const key = playable ? h.info(n.id).key : undefined;
+      return `<div class="dj-card gr-panel gold ${n.state}" data-id="${n.id}">
           <span class="gr-label">Donjon · niveau ${n.level}${n.state === 'done' ? ' · vaincu ✓' : ''}</span>
           <b class="djc-name">${n.name}</b>
           <span class="djc-boss">Boss : ${bossOf(n.sub)}</span>
           ${n.state === 'locked' ? `<em>${LOCK_SVG} ${n.need}</em>` : `<span class="dj-key ${key?.ok === false ? 'none' : ''}">${key?.text ?? ''}</span>
           <span class="djc-acts">${n.state === 'done' && h.farmInfo ? `<button type="button" class="gr-btn sm gold farm" ${key?.ok === false ? 'disabled' : ''}>Farm auto</button>` : ''}<button type="button" class="gr-btn go" ${key?.ok === false ? 'disabled' : ''}>Entrer${key && /gratuite|clé|Clef/.test(key.text) && key.ok ? ' — 1 clé' : ''}</button></span>`}
         </div>`;
+    };
+    const zoneList = (v: AtlasView) => v.zones.map((z) => {
+      const open = z.nodes.some((n) => n.state === 'open' || n.state === 'done');
+      const done = z.nodes.filter((n) => n.state === 'done').length;
+      const lv = z.nodes.map((n) => n.level);
+      const here = z.nodes.some((n) => n.selected);
+      return `<button type="button" class="zone-card gr-panel ${open ? '' : 'locked'} ${here ? 'here' : ''}" data-zone="${z.id}" ${open ? '' : 'disabled'}>
+            <span class="zc-txt"><b>${z.name}</b><small>Niveaux ${Math.min(...lv)} à ${Math.max(...lv)}${here ? ' · tu y es' : ''}</small>
+            ${open ? `<span class="zc-bar"><i style="width:${Math.round((100 * done) / z.nodes.length)}%"></i></span><small class="gr-num">${done}/${z.nodes.length} terminées</small>` : `<em>${LOCK_SVG} ${z.nodes[0].need}</em>`}</span>
+            ${open ? '<span class="zc-go">›</span>' : ''}</button>`;
+    }).join('');
+    const worldList = (v: AtlasView) => {
+      const cont = v.zones.flatMap((z) => z.nodes);
+      const contHere = cont.some((n) => n.selected);
+      const contDone = cont.filter((n) => n.kind === 'dungeon' && n.state === 'done').length, contDj = cont.filter((n) => n.kind === 'dungeon').length;
+      const card = `<button type="button" class="zone-card gr-panel rg-card ${contHere ? 'here' : ''}" data-region="continent" style="--c:#8a7a5a"><i class="rg-band"></i>
+          <span class="zc-txt"><b>Le continent</b><small>Incarnam → Bworks · niveaux 1 à 50${contHere ? ' · tu y es' : ''}</small><small class="gr-num">${contDone}/${contDj} donjons</small></span><span class="zc-go">›</span></button>`;
+      return `<p class="rg-note">Chaque région s’ouvre au niveau de ton personnage et a son propre arbre.</p>` + card + v.regions.map((r) => {
+        const peek = this.atlasPeek === r.id;
+        const lvTxt = `niveaux ${r.levels[0]} à ${r.levels[1]}`;
+        if (r.state === 'locked') return `<button type="button" class="zone-card gr-panel rg-card locked ${peek ? 'peek' : ''}" data-peek="${r.id}" style="--c:${r.color}"><i class="rg-band"></i>
+          <span class="zc-txt"><b>${r.name}</b><small>${lvTxt} · ${r.dungeons[1]} donjons</small><em>${LOCK_SVG} S’ouvre au niveau ${r.open}</em>
+          ${peek ? `<span class="rg-peek">Tu es niveau ${v.heroLevel} : encore ${r.open - v.heroLevel} niveau${r.open - v.heroLevel > 1 ? 'x' : ''}.<br>Premiers donjons : ${r.steps.filter((n) => n.kind === 'dungeon').slice(0, 3).map((n) => `${n.name} (${n.level})`).join(', ')}</span>` : ''}</span></button>`;
+        return `<button type="button" class="zone-card gr-panel rg-card ${r.state} ${r.here ? 'here' : ''}" data-region="${r.id}" style="--c:${r.color}"><i class="rg-band"></i>
+          <span class="zc-txt"><b>${r.name}</b><small>${lvTxt}${r.here ? ' · tu y es' : ''}</small><small class="gr-num">${r.state === 'soon' ? 'Bientôt' : `${r.dungeons[0]}/${r.dungeons[1]} donjons`}</small></span><span class="zc-go">›</span></button>`;
       }).join('');
+    };
+    const render = () => {
+      const v = h.view();
+      const box = el.querySelector('.atlas-zones')!;
+      const region = v.regions.find((r) => r.id === this.atlasRegion);
+      const inContinent = !v.world || this.atlasRegion === 'continent';
+      const zone = inContinent ? v.zones.find((z) => z.id === this.atlasZone) : undefined;
+      back.hidden = !v.world ? !zone : this.atlasRegion === null;
+      back.textContent = zone ? '‹ Zones' : '‹ Monde';
+      if (zone) {
+        title.textContent = zone.name;
+        box.innerHTML = zone.nodes.map(nodeHtml).join('');
+        return;
+      }
+      if (region) {
+        title.textContent = region.name;
+        box.innerHTML = `<p class="rg-note">Niveaux ${region.levels[0]} à ${region.levels[1]} · ${region.dungeons[0]}/${region.dungeons[1]} donjons · chaque étape s’ouvre quand la précédente est finie et que tu as son niveau − 10.</p>` + region.steps.map(nodeHtml).join('');
+        return;
+      }
+      if (inContinent) {
+        title.textContent = v.world ? 'Le continent' : 'Où aller ?';
+        box.innerHTML = zoneList(v) + (v.world ? '' : `<div class="zone-card gr-panel locked rg-world"><span class="zc-txt"><b>Carte du monde</b><em>${LOCK_SVG} Termine le Nid du Kwakwa ou le Donjon des Bworks</em></span></div>`);
+        return;
+      }
+      title.textContent = 'Carte du monde';
+      box.innerHTML = worldList(v);
     };
     el.onclick = (e) => {
       const t = e.target as HTMLElement;
       const z = t.closest<HTMLElement>('.zone-card[data-zone]');
       if (z) { this.atlasZone = z.dataset.zone!; render(); el.scrollTop = 0; return; }
-      if (t.closest('.sh-head .back')) { this.atlasZone = null; render(); return; }
+      const rg = t.closest<HTMLElement>('.zone-card[data-region]');
+      if (rg) { this.atlasRegion = rg.dataset.region!; this.atlasZone = null; render(); el.scrollTop = 0; return; }
+      const pk = t.closest<HTMLElement>('.zone-card[data-peek]');
+      if (pk) { this.atlasPeek = this.atlasPeek === pk.dataset.peek ? null : pk.dataset.peek!; render(); return; }
+      if (t.closest('.sh-head .back')) {
+        if (this.atlasZone !== null) this.atlasZone = null;
+        else this.atlasRegion = null;
+        render();
+        return;
+      }
       const fb = t.closest<HTMLButtonElement>('.farm');
       if (fb && !fb.disabled) {
         const id = fb.closest<HTMLElement>('[data-id]')!.dataset.id!;
@@ -1334,8 +1382,16 @@ export class Hud {
       start();
     };
     h.seen();
-    // on ouvre directement la zone où l'on joue
-    if (this.atlasZone === null) this.atlasZone = h.view().zones.find((z) => z.nodes.some((n) => n.selected))?.id ?? null;
+    // on ouvre directement la zone (ou la région) où l'on joue
+    if (this.atlasZone === null && this.atlasRegion === null) {
+      const v0 = h.view();
+      const r = v0.regions.find((x) => x.here);
+      if (r) this.atlasRegion = r.id;
+      else {
+        this.atlasZone = v0.zones.find((z) => z.nodes.some((n) => n.selected))?.id ?? null;
+        if (v0.world) this.atlasRegion = 'continent';
+      }
+    }
     render();
     el.hidden = false;
     return new Promise((resolve) => {

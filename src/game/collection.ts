@@ -38,7 +38,7 @@ export function zoneSets(zoneId: string): ZoneSet[] {
 export const zoneOfArea = (areaId: string) => ZONES.find((z) => z.nodes.some((n) => n.area?.id === areaId))?.id ?? ZONES[0].id;
 
 /** Zones ouvertes (au moins une étape débloquée). */
-export const openZones = (done: string[]) => ZONES.filter((z) => z.nodes.some((n) => !n.soon && isUnlocked(n, done)));
+export const openZones = (done: string[], level = Infinity) => ZONES.filter((z) => z.nodes.some((n) => !n.soon && isUnlocked(n, done, level)));
 
 /** Cartes et donjons où une pièce tombe. */
 export const dropAreasOf = (id: number) => Object.values(AREAS).filter((a) => zoneEquipPool(a.id).includes(id));
