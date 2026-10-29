@@ -70,7 +70,7 @@ export const WOBOTS: CritterKind[] = ['wobot', 'waWobot', 'wobotKiafin', 'tiwobo
 /** Saharach : quadrupèdes (corps de mouton) ; Boulépique et Ouroboulos, vers (rig des gelées). */
 export const DESERTS: CritterKind[] = ['scordionBleu', 'fennex', 'boulepique', 'leolhyene', 'ouroboulos', 'mantiscore'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
-  (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' || ['scordionBleu', 'fennex', 'leolhyene', 'mantiscore'].includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
+  (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' || ['scordionBleu', 'fennex', 'leolhyene'].includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
     : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' || k === 'elementerre' || k === 'tonneauPirate' || k === 'tiwobot' || k === 'boulepique' || k === 'ouroboulos' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
@@ -124,7 +124,8 @@ export const CRITTER_PIVOTS = {
   tiwobot: { back: [70, 146], body: [70, 146], face: [70, 100] },
   scordionBleu: { tail: [100, 120], legB: [96, 128], body: [74, 136], legF: [62, 130], head: [50, 120], horn: [40, 120] },
   fennex: { tail: [96, 112], legB: [92, 124], body: [80, 132], legF: [70, 126], head: [60, 108], horn: [56, 88] },
-  leolhyene: SHEEP_PIVOTS, mantiscore: SHEEP_PIVOTS,
+  leolhyene: SHEEP_PIVOTS,
+  mantiscore: { legB: [84, 124], legF: [62, 124], stem: [72, 146], leafB: [96, 102], leafF: [56, 100], head: [66, 96] },
   boulepique: JELLY_PIVOTS, ouroboulos: { back: [70, 146], body: [70, 146], face: [66, 68] },
   boomba: { legB: [80, 116], legF: [62, 116], stem: [72, 140], leafB: [84, 86], leafF: [60, 88], head: [66, 78] },
   nakunbra: { legB: [80, 116], legF: [62, 116], stem: [72, 140], leafB: [84, 86], leafF: [60, 88], head: [66, 78] },
@@ -2059,6 +2060,32 @@ function desertSvg(kind: CritterKind, part?: CritterPart): string {
   const C = DESERT[kind], ink = C.ink;
   const seg = (x: number, y: number, r: number, col = C.body) => blob(ellipse(x, y, r, r * 0.86), col, { ink, w: 1.4 });
   const paw = (x: number, y: number) => blob(ellipse(x, y, 7, 4), C.body, { ink, w: 1.3 });
+  if (kind === 'mantiscore') {
+    // d'après la grande illustration du guide du donjon : petit guerrier en armure rouge (dessous bleu nuit), casque à deux cornes beiges,
+    // yeux jaunes ; une immense pince en bouclier devant lui ; queue de scorpion en anneaux qui passe au-dessus de lui et finit en tête à bec noir
+    const R = '#d0502a', RD = '#8a2a14', NAVY = '#2e3a4a', BEIGE = '#e8cf9a', ik = '#2a0a04';
+    const spot = (x: number, y: number, r = 2.4) => `<ellipse cx="${x}" cy="${y}" rx="${r * 1.3}" ry="${r}" fill="${BEIGE}" stroke="${ik}" stroke-width="0.8"/>`;
+    push(P, 'legB', tube('M84,124 L88,140', 8, NAVY, ik), blob('M80,138 L96,136 L98,148 L78,150 Z', R, { ink: ik, w: 1.4 }));
+    push(P, 'legF', tube('M62,124 L58,140', 8, NAVY, ik), blob('M50,138 L66,136 L68,148 L48,150 Z', R, { ink: ik, w: 1.4 }), spot(58, 143, 2));
+    push(P, 'stem', ...[[96, 104, 10], [108, 88, 11], [116, 70, 12], [114, 50, 13]].map(([x, y, r]) => blob(ellipse(x, y, r, r * 0.9), R, { ink: ik, w: 1.4 }) +
+      `<path d="M${x - r * 0.4},${y - r * 0.2} q${r * 0.4},${-r * 0.5} ${r * 0.7},0" fill="none" stroke="${RD}" stroke-width="2"/>` + spot(x + r * 0.7, y - r * 0.5, 1.8)),
+      blob('M118,36 Q114,18 90,16 Q66,16 62,30 Q60,42 72,48 Q96,52 112,48 Q120,44 118,36 Z', '#e0702a', { ink: ik }),
+      blob('M66,30 Q44,26 26,38 Q46,40 70,44 Z', '#141418', { ink: '#000', w: 1.4 }), `<path d="M30,38 Q48,40 66,40" stroke="#5a5a66" stroke-width="1.2" fill="none"/>`,
+      `<path d="M80,26 q8,-8 16,0 M88,34 q8,-6 14,2" fill="none" stroke="${RD}" stroke-width="2.6" stroke-linecap="round"/>`, blob(ellipse(84, 20, 6, 2.6), '#f8b040', { ink: ik, w: 0.8, rim: false }),
+      blob('M74,44 L70,52 L80,48 Z', BEIGE, { ink: ik, w: 1 }), blob('M106,48 L112,56 L114,46 Z', BEIGE, { ink: ik, w: 1 }),
+      blob('M56,98 Q58,86 72,86 Q90,86 92,100 L90,120 Q74,126 58,120 Z', NAVY, { ink: ik }),
+      blob('M54,96 Q60,84 74,84 Q92,86 94,98 L88,104 Q74,98 60,104 Z', R, { ink: ik }), blob('M58,108 L88,108 L86,122 Q72,126 60,122 Z', R, { ink: ik, w: 1.4 }),
+      blob('M88,92 L98,82 L96,96 Z', BEIGE, { ink: ik, w: 1.1 }), spot(66, 114), spot(80, 116, 2));
+    push(P, 'leafB', tube('M94,102 Q104,108 104,118', 5, NAVY, ik), blob('M100,114 Q114,110 118,122 L108,122 L114,130 Q102,134 98,124 Z', R, { ink: ik, w: 1.4 }));
+    push(P, 'head', blob('M46,96 Q44,78 60,74 Q78,72 82,88 Q82,100 72,104 L54,104 Q46,102 46,96 Z', R, { ink: ik }),
+      blob('M50,80 Q42,66 50,58 Q54,70 58,76 Z', BEIGE, { ink: ik, w: 1.2 }), blob('M70,74 Q74,58 86,56 Q82,68 78,78 Z', BEIGE, { ink: ik, w: 1.2 }),
+      blob('M48,92 L80,90 L78,102 L50,104 Z', '#141418', { ink: '#000', w: 1.2, rim: false }), `<path d="M50,100 l4,-4 l4,4 l4,-4 l4,4 l4,-4 l4,4" fill="none" stroke="#6a7a8a" stroke-width="1.2"/>`,
+      `<circle cx="56" cy="93" r="3" fill="#ffe24a"/><circle cx="68" cy="92" r="2.8" fill="#ffe24a"/><circle cx="56" cy="93" r="5" fill="#ffe24a" opacity="0.3"/><circle cx="68" cy="92" r="4.6" fill="#ffe24a" opacity="0.3"/>`);
+    push(P, 'leafF', tube('M58,100 Q44,106 40,114', 5, NAVY, ik),
+      blob('M24,150 L20,104 Q20,92 28,90 L32,100 L34,84 L44,98 L42,112 L46,150 Z', R, { ink: ik }), blob('M26,96 L30,88 L32,98 Z', RD, { ink: ik, w: 1, rim: false }),
+      `<path d="M28,108 L38,108" stroke="${RD}" stroke-width="2"/>`, spot(30, 122), spot(38, 136), spot(32, 144, 2));
+    return assemble(kind, P, part);
+  }
   if (kind === 'boulepique') {
     // ver brun à segments, boule d'épines au bout de la queue (derrière, à droite)
     push(P, 'back', `<ellipse cx="70" cy="148" rx="44" ry="7" fill="#1a1208" opacity="0.28"/>`, blob(spiky(108, 72, 16, 16, 9, 0.55), '#a8986a', { ink, w: 1.4 }), blob(circle(108, 72, 13), '#c8b88a', { ink, w: 1.3 }));
@@ -2086,16 +2113,14 @@ function desertSvg(kind: CritterKind, part?: CritterPart): string {
       tube('M40,126 Q24,132 16,124', 4, C.dark, ink), blob('M4,122 Q6,110 18,116 Q24,124 18,130 L12,126 Z', C.body, { ink }));
     return assemble(kind, P, part);
   }
-  // Fennex, Léolhyène, Mantiscore : quadrupèdes
-  const fen = kind === 'fennex', leo = kind === 'leolhyene', man = kind === 'mantiscore';
+  // Fennex, Léolhyène : quadrupèdes
+  const fen = kind === 'fennex', leo = kind === 'leolhyene';
   if (fen) push(P, 'tail', tube('M96,112 Q120,104 118,80', 7, C.body, ink), `<path d="M108,108 l6,-4 M116,96 l7,-1 M118,86 l6,1" stroke="${C.dark}" stroke-width="5" stroke-linecap="round"/>`, blob(ellipse(118, 76, 6, 8), '#f8f0e0', { ink, w: 1.3 }));
   if (leo) push(P, 'tail', tube('M98,112 Q118,112 120,96', 5, C.body, ink), blob(spiky(120, 90, 7, 9, 5, 0.6), '#f8d040', { ink, w: 1.2 }));
-  if (man) push(P, 'tail', ...[[104, 112, 7], [116, 98, 6.5], [120, 82, 6], [116, 66, 5.5], [106, 56, 5]].map(([x, y, r], i) => seg(x, y, r, i % 2 ? C.body : C.dark)), blob('M96,50 Q86,54 90,64 L100,58 Z', '#2a2a30', { ink: '#0a0a0e' }));
   const legC = fen ? 3 : 7;
   push(P, 'legB', tube('M88,124 L94,146', legC, C.body, ink), paw(96, 148), tube('M98,122 L106,146', legC, shade(C.body, -0.12), ink), paw(108, 148));
   push(P, 'body', blob(fen ? ellipse(80, 118, 20, 14) : 'M50,118 Q52,96 80,96 Q108,98 108,118 Q106,134 80,134 Q54,134 50,118 Z', C.body, { ink, hl: [0.3, 0.2] }));
   if (leo) push(P, 'body', ...[[70, 108], [84, 104], [94, 116], [76, 122], [62, 120]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="3.6" ry="2.8" fill="${C.dark}"/>`));
-  if (man) push(P, 'body', `<path d="M66,100 q4,12 0,26 M82,98 q4,14 0,30 M96,104 q3,10 0,20" fill="none" stroke="${C.dark}" stroke-width="3"/>`);
   push(P, 'legF', tube(`M${fen ? 68 : 62},124 L${fen ? 62 : 56},146`, legC, C.body, ink), paw(fen ? 58 : 52, 148), tube(`M${fen ? 74 : 72},126 L${fen ? 72 : 68},146`, legC, shade(C.body, -0.08), ink), paw(fen ? 68 : 64, 148));
   if (fen) {
     push(P, 'head', blob('M42,104 Q40,86 56,84 Q70,86 70,102 Q68,114 56,116 Q44,114 42,104 Z', C.body, { ink }), blob('M38,108 Q32,106 30,102 Q38,100 44,104 Z', C.body, { ink, w: 1.2 }),
@@ -2106,11 +2131,9 @@ function desertSvg(kind: CritterKind, part?: CritterPart): string {
     return assemble(kind, P, part);
   }
   push(P, 'head', blob('M30,104 Q28,84 48,80 Q66,80 68,98 Q66,116 48,118 Q32,116 30,104 Z', C.body, { ink }), blob('M28,108 Q20,108 18,102 Q24,96 34,100 Z', shade(C.body, 0.1), { ink, w: 1.3 }),
-    `<path d="M36,92 l8,3 M50,94 l8,-3" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="40" cy="98" rx="3.4" ry="3" fill="${man ? '#f8d040' : '#f8e870'}" stroke="${ink}"/><ellipse cx="54" cy="97" rx="3" ry="2.8" fill="${man ? '#f8d040' : '#f8e870'}" stroke="${ink}"/>`,
+    `<path d="M36,92 l8,3 M50,94 l8,-3" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/><ellipse cx="40" cy="98" rx="3.4" ry="3" fill="#f8e870" stroke="${ink}"/><ellipse cx="54" cy="97" rx="3" ry="2.8" fill="#f8e870" stroke="${ink}"/>`,
     `<path d="M20,108 l4,4 l4,-4 l4,4" fill="#fff" stroke="${ink}" stroke-width="1.1"/>`);
   if (leo) push(P, 'body', blob(spiky(54, 92, 26, 24, 9, 0.55, Math.PI * 0.6, Math.PI * 2.0), '#f8b020', { ink: '#8a3a08', w: 1.3 }), blob(spiky(56, 90, 18, 16, 7, 0.45, Math.PI * 0.7, Math.PI * 1.9), '#f8e050', { ink: '#8a3a08', w: 1, rim: false }));
-  if (man) push(P, 'body', blob(spiky(56, 94, 24, 22, 8, 0.4, Math.PI * 0.6, Math.PI * 2.0), C.dark, { ink, w: 1.3 }));
-  if (man) push(P, 'horn', blob('M40,82 Q34,66 44,60 Q46,72 50,80 Z', '#2a2a30', { ink: '#0a0a0e', w: 1.2 }));
   return assemble(kind, P, part);
 }
 
