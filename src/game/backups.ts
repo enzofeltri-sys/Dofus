@@ -136,11 +136,11 @@ export function pendingReset(): boolean {
   if (!s) return false;
   try {
     if (s.getItem(RESET_KEY) === RESET_ID) return false;
-    if (rawSave()) {
-      makeBackup('avant-reset');
-      s.removeItem(SAVE_KEY);
-    }
     s.setItem(RESET_KEY, RESET_ID);
+    // un tout nouveau joueur n'a rien à réinitialiser (pas de message)
+    if (!rawSave()) return false;
+    makeBackup('avant-reset');
+    s.removeItem(SAVE_KEY);
     return true;
   } catch {
     return false;

@@ -145,7 +145,7 @@ export function poseChafer(r: Rig, a: ChaferAnim, scale: number) {
  * se penche en arrière pour préparer un sort et pique du nez en le lançant. Mort : elles s'affaissent et s'effacent.
  */
 /** Famille de dessin : tofu (ailes, sauts), plante (tige, feuilles), mouton (toison, cornes), chat (queue, feu follet). */
-export type CritterFamily = 'tofu' | 'plant' | 'sheep' | 'cat' | 'jelly' | 'flame' | 'shroom';
+export type CritterFamily = 'tofu' | 'plant' | 'sheep' | 'cat' | 'jelly' | 'flame' | 'shroom' | 'whole';
 
 export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
   const tofu = family === 'tofu';
@@ -162,7 +162,7 @@ export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
   }
   const w = a.moving ? Math.sin(a.walkPh) : 0;
   const breath = Math.sin(a.t * 2.4 + a.seed);
-  const hop = a.moving ? Math.abs(Math.sin(a.walkPh)) * (tofu ? 9 : 3) : 0;
+  const hop = a.moving ? Math.abs(Math.sin(a.walkPh)) * (tofu ? 9 : family === 'whole' ? 5 : 3) : 0;
   let lean = 0, head = 0;
   if (a.windup !== null) {
     lean = -0.18 * ease.out(a.windup);
@@ -193,6 +193,10 @@ export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
     const wob = a.moving ? Math.sin(a.walkPh * 2) * 2.5 : breath * 1.2;
     r.pose('body', { dy: wob, rot: head * 0.25 });
     r.pose('face', { dy: wob, rot: head * 0.25 });
+  } else if (family === 'whole') {
+    // monstre redessiné sur gabarit, en un seul morceau : il se dandine en marchant, respire, se penche pour frapper
+    r.pose('body', { dy: breath * 0.8, rot: (a.moving ? Math.sin(a.walkPh) * 0.06 : breath * 0.015) + head * 0.15 });
+    r.pose('face', { dy: breath * 0.8, rot: (a.moving ? Math.sin(a.walkPh) * 0.06 : breath * 0.015) + head * 0.15 });
   } else if (family === 'flame') {
     // feu : flotte au-dessus du sol en vacillant
     const fl = Math.sin(a.t * 7 + a.seed) * 0.05;
@@ -225,7 +229,7 @@ export function poseCritter(r: Rig, a: ChaferAnim, family: CritterFamily) {
   r.body.rotation = r.fwd(lean * 0.4 - 0.25 * a.hurt);
   const sp = ease.out(clamp01(a.spawn));
   // squash & stretch du saut (tofu)
-  r.body.scale.y = (0.4 + 0.6 * sp) * ((tofu || family === 'jelly') && a.moving ? 1 + Math.sin(a.walkPh * 2) * 0.06 : 1);
+  r.body.scale.y = (0.4 + 0.6 * sp) * ((tofu || family === 'jelly' || family === 'whole') && a.moving ? 1 + Math.sin(a.walkPh * 2) * 0.04 : 1);
   r.root.alpha = a.baseAlpha * sp * (a.hidden ? 0.16 : 1);
   r.flash(a.hurt);
 }

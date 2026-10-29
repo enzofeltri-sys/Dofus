@@ -1,5 +1,6 @@
 import { svg } from './kit';
 import { shade } from '../svg';
+import { TRACED_KINDS, tracedSvg } from './traced';
 
 /**
  * Monstres des Champs d'Incarnam « version Archero » (versions « chimériques » de Dofus 3 : pâles, éthérées, lumineuses).
@@ -70,7 +71,7 @@ export const WOBOTS: CritterKind[] = ['wobot', 'waWobot', 'wobotKiafin', 'tiwobo
 /** Saharach : quadrupèdes (corps de mouton) ; Boulépique et Ouroboulos, vers (rig des gelées). */
 export const DESERTS: CritterKind[] = ['scordionBleu', 'fennex', 'boulepique', 'leolhyene', 'ouroboulos', 'mantiscore'];
 export const partsOf = (k: CritterKind): readonly CritterPart[] =>
-  (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' || ['scordionBleu', 'fennex', 'leolhyene'].includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
+  TRACED_KINDS.includes(k) ? JELLY_PARTS : (k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? TOFU_PARTS : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' || ['scordionBleu', 'fennex', 'leolhyene'].includes(k) ? SHEEP_PARTS : CATS.includes(k) ? CAT_PARTS
     : JELLIES.includes(k) || FLAMES.includes(k) || GHOSTS.includes(k) || BLOPS.includes(k) || k === 'kwoan' || k === 'elementerre' || k === 'tonneauPirate' || k === 'tiwobot' || k === 'boulepique' || k === 'ouroboulos' ? JELLY_PARTS : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? SHROOM_PARTS : PLANT_PARTS);
 const BIRD_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { tail: [94, 112], legB: [78, 134], body: [70, 140], legF: [62, 134], head: [58, 104], horn: [58, 80] };
 const SPIDER_PIVOTS: Partial<Record<CritterPart, [number, number]>> = { legB: [86, 116], legF: [56, 118], body: [70, 140], head: [70, 100] };
@@ -137,6 +138,8 @@ export const CRITTER_PIVOTS = {
   rib: SHEEP_PIVOTS, kwoan: { back: [70, 150], body: [70, 110], face: [70, 110] },
   boostache: { back: [70, 150], body: [70, 104], face: [70, 104] }, boostachePrepubere: { back: [70, 150], body: [70, 104], face: [70, 104] },
   gargrouille: { back: [70, 150], body: [70, 146], face: [70, 146] }, ashimagari: { back: [70, 150], body: [70, 96], face: [70, 96] },
+  // monstres redessinés sur gabarit : un seul morceau, pivot aux pieds
+  ...Object.fromEntries(TRACED_KINDS.map((k) => [k, { back: [70, 150], body: [70, 150], face: [70, 150] }])),
 } as Record<CritterKind, Partial<Record<CritterPart, [number, number]>>>;
 
 type Parts = Partial<Record<CritterPart, string[]>>;
@@ -2164,6 +2167,8 @@ export const CRITTER_SVG = {
   ...(Object.fromEntries(PIRATES.map((k) => [k, (p?: CritterPart) => pirateSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(WOBOTS.map((k) => [k, (p?: CritterPart) => wobotSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(DESERTS.map((k) => [k, (p?: CritterPart) => desertSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
+  // redessinés sur gabarit (remplacent les dessins à la main de ces monstres)
+  ...(Object.fromEntries(TRACED_KINDS.map((k) => [k, (p?: CritterPart) => tracedSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(SCARAS.map((k) => [k, (p?: CritterPart) => scaraSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   ...(Object.fromEntries(TOFUS.map((k) => [k, (p?: CritterPart) => amaknaTofuSvg(k, p)])) as Record<string, (p?: CritterPart) => string>),
   palichon: (p) => sheepSvg('palichon', p), orageux: (p) => sheepSvg('orageux', p), nuageux: (p) => sheepSvg('nuageux', p), bouftor: (p) => sheepSvg('bouftor', p),

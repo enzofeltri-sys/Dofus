@@ -8,6 +8,7 @@ import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
+import { TRACED_KINDS } from './art/traced';
 import { BEASTS, CATS, CRITTER_FOOT, DOAS, PICHONS, SCARAS, TOFUS, FLAMES, GHOSTS, JELLIES, KWAKS, CRITTER_PIVOTS, CRITTER_SVG, partsOf, PIOUS, SHEEP, SPIDERS, wispSvg, type CritterKind } from './art/champs-chibi';
 import { Rig } from './render/rig';
 import { blossomTree, carvedStone, goldenFlowers, stele } from './art/champsProps';
@@ -169,7 +170,7 @@ async function main() {
   };
   const isCritter = (k: MonsterArt): k is CritterKind => (CRITTERS as string[]).includes(k);
   const familyOf = (k: CritterKind): CritterFamily =>
-    k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? 'jelly'
+    TRACED_KINDS.includes(k) ? 'whole' : k === 'tofu' || k === 'tofuMalade' || PICHONS.includes(k) || TOFUS.includes(k) || KWAKS.includes(k) ? 'tofu' : SHEEP.includes(k) || PIOUS.includes(k) || BEASTS.includes(k) || SCARAS.includes(k) || k === 'rib' ? 'sheep' : CATS.includes(k) ? 'cat' : JELLIES.includes(k) || GHOSTS.includes(k) || k === 'kwoan' ? 'jelly'
       : FLAMES.includes(k) ? 'flame' : k === 'aminite' || SPIDERS.includes(k) || DOAS.includes(k) ? 'shroom' : 'plant';
   const propTex = new Map<PropKind, { tex: Texture; art: PropArt }>();
   await Promise.all(

@@ -58,6 +58,11 @@ describe('Paramètres : copies de sauvegarde et réinitialisation (demande d’E
     expect(listBackups()[0]).toMatchObject({ kind: 'avant-reset', level: 50 });
   });
 
+  it('un tout nouveau joueur ne voit pas de réinitialisation', () => {
+    expect(pendingReset()).toBe(false);
+    expect(pendingReset()).toBe(false);
+  });
+
   it('la réinitialisation demandée par Enzo n’a lieu qu’une fois', () => {
     mem[SAVE_KEY] = save(60);
     expect(pendingReset()).toBe(true);
