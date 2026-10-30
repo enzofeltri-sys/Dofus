@@ -1,6 +1,6 @@
 import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from 'pixi.js';
 import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, type ChaferKind } from './art/chafer';
-import { chaferChibiSvg as chaferSvg, kardoribChibiSvg as kardoribSvg, kardorimChibiSvg as kardorimSvg } from './art/monsters-chibi';
+import { chaferChibiSvg as chaferSvg } from './art/monsters-chibi';
 import { MONSTERS, type MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
 import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
@@ -140,20 +140,16 @@ async function main() {
   // ---------- Textures ----------
   let save = loadSave();
   hud.setHeroLook(save.appearance);
-  const [sacriTex, gateTex, champsGateTex, ...chaferFlat] = await Promise.all([
+  const [sacriTex, gateTex, champsGateTex] = await Promise.all([
     Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
     svgTexture(gateBarsSvg(), RES),
     svgTexture(champsGateSvg(), RES),
-    ...(['debutant', 'furtif', 'piquier', 'sergent', 'eclaireur'] as ChaferKind[]).map((k) => Promise.all(CHAFER_PARTS.map((p) => svgTexture(chaferSvg(k, p), CR)))),
-    Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardorimSvg(p), CR * 1.55))),
-    Promise.all(CHAFER_PARTS.map((p) => svgTexture(kardoribSvg(p), CR))),
   ]);
   const CRITTERS = Object.keys(CRITTER_SVG) as CritterKind[];
   // résolution de la texture selon la plus grande taille d'affichage du monstre (élites agrandies)
   const artScale = (k: MonsterArt) => Math.max(1, ...Object.values(MONSTERS).filter((d) => d.art === k).map((d) => d.scale ?? 1));
-  const chaferTex = {
-    debutant: chaferFlat[0], furtif: chaferFlat[1], piquier: chaferFlat[2], sergent: chaferFlat[3], eclaireur: chaferFlat[4], kardorim: chaferFlat[5], kardorib: chaferFlat[6],
-  } as Record<MonsterArt, Texture[]>;
+  /** Dessins prêts, par monstre (préparés à l'entrée de chaque carte ; tous redessinés sur gabarit, décision d'Enzo du 29/10). */
+  const chaferTex = {} as Record<MonsterArt, Texture[]>;
   /** Dessins des monstres d'une carte, préparés à l'entrée (pas tous au démarrage : il y en a beaucoup). */
   const loadArea = async (A: AreaDef) => {
     const ids = new Set([...A.pool, A.elite?.id, ...(A.eliteChoice ?? []), A.boss?.id, ...(A.bossChoice ?? []), ...(A.archis ?? []), ...(A.wanderers ?? []).flatMap((w) => [...w.pool, ...(w.archis ?? [])])].filter(Boolean) as string[]);

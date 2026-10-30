@@ -1,4 +1,5 @@
 import { CRITTER_SVG, type CritterKind } from '../art/champs-chibi';
+import { TRACED_KINDS, tracedSvg } from '../art/traced';
 import { chaferChibiSvg, kardoribChibiSvg, kardorimChibiSvg } from '../art/monsters-chibi';
 import type { ChaferKind } from '../art/chafer';
 import { allBeasts, BEAST_KINDS, beastKind, beastSheet, placesOf, tierReward, tierState, type BeastKind, type Bestiary } from '../game/bestiary';
@@ -8,7 +9,9 @@ import { itemIconImg } from './item-icons';
 
 /** Dessin d'un monstre en image (data URI : les identifiants internes des SVG ne se mélangent pas). */
 function beastSvg(d: MonsterDef): string {
-  const a = d.art;
+  const a = d.art as string;
+  // tous les monstres sont redessinés sur gabarit (décision d'Enzo du 29/10) ; les autres gardent leur dessin
+  if (TRACED_KINDS.includes(a)) return tracedSvg(a);
   if (a === 'kardorim') return kardorimChibiSvg();
   if (a === 'kardorib') return kardoribChibiSvg();
   if (['debutant', 'furtif', 'piquier', 'sergent', 'eclaireur', 'fantassin', 'primitif', 'ronin', 'vampire', 'maitreVampire', 'bwork', 'bworkMage', 'bworkArcher', 'bworkette'].includes(a)) return chaferChibiSvg(a as ChaferKind);

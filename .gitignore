@@ -4,3 +4,4 @@ dist
 shots
 dist-single
 dist-split
+__pycache__/

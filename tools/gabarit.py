@@ -3,9 +3,9 @@ Chaque illustration DofusDB est retournée (le monstre regarde à gauche), posé
 réduite à une vingtaine de couleurs, puis chaque zone devient une forme lisse et simplifiée : ~20 Ko par monstre au lieu
 de 110-210 Ko pour un calque brut. Les formes sont ensuite réparties en morceaux animables dans src/art/traced.ts.
 
-Usage : <python avec vtracer> tools/gabarit.py <dossier des images DofusDB g<gfx>.png>
-Liste des monstres : TRACED ci-dessous (id du dessin, gfxId DofusDB, hauteur dans le cadre, couleurs).
-Sortie : src/art/traced.gen.ts."""
+Usage : <python avec vtracer> tools/gabarit.py <dossier des images DofusDB g<gfx>.png> [liste.json {dessin: gfxId}]
+Liste des monstres : TRACED ci-dessous (id du dessin, gfxId DofusDB, hauteur dans le cadre, couleurs), complétée par la liste
+JSON (hauteur 130, 20 couleurs). Sortie : src/art/traced.gen.ts."""
 import json, math, os, re, sys, tempfile
 import vtracer
 from PIL import Image, ImageFilter
@@ -41,9 +41,11 @@ def f1(v):
     return f'{v:.1f}'.rstrip('0').rstrip('.')
 
 
-def gabarit(src, height, ncol, tol=0.7, speckle=K * K):
+def gabarit(src, height, ncol, tol=0.7, speckle=K * K, flip=True):
     """Formes [couleur, chemin, cx, cy] du fond vers le dessus, en coordonnées du cadre."""
-    im = Image.open(src).convert('RGBA').transpose(Image.FLIP_LEFT_RIGHT)
+    im = Image.open(src).convert('RGBA')
+    if flip:
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
     alpha = im.getchannel('A').point(lambda v: 255 if v >= 200 else 0)  # l'ombre au sol disparaît
     x0, y0, x1, y1 = alpha.getbbox()
     im, alpha = im.crop((x0, y0, x1, y1)), alpha.crop((x0, y0, x1, y1))
@@ -97,9 +99,13 @@ def gabarit(src, height, ncol, tol=0.7, speckle=K * K):
 if __name__ == '__main__':
     refs = sys.argv[1]
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    todo = list(TRACED)
+    if len(sys.argv) > 2:
+        known = {t[0] for t in todo}
+        todo += [(k, g, 130, 20) for k, g in json.load(open(sys.argv[2])).items() if k not in known]
     out = {}
-    for kind, gfx, height, ncol in TRACED:
-        out[kind] = gabarit(os.path.join(refs, f'g{gfx}.png'), height, ncol)
+    for kind, gfx, height, ncol in todo:
+        out[kind] = gabarit(os.path.join(refs, f'g{gfx}.png'), height, ncol, 0.8)
         print(kind, len(out[kind]), 'formes', sum(len(x[1]) for x in out[kind]) // 1024, 'Ko')
     lines = ['// Généré par tools/gabarit.py (gabarits des illustrations DofusDB, calque permis par Enzo) : ne pas modifier à la main.',
              '/** Formes de chaque monstre redessiné sur gabarit : [couleur, chemin, centre x, centre y], du fond vers le dessus (cadre 140 × 160). */',
