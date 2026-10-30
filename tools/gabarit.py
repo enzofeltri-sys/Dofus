@@ -58,6 +58,11 @@ def gabarit(src, height, ncol, tol=0.7, speckle=K * K, flip=True):
     mask = alpha.resize((w, h), Image.LANCZOS).filter(ImageFilter.GaussianBlur(K * 0.6)).point(lambda v: 255 if v >= 128 else 0)
     q = rgb.quantize(colors=ncol, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB').filter(ImageFilter.ModeFilter(K * 2 + 1)).convert('RGBA')
     q.putalpha(mask)
+    return trace_shapes(q, ox, oy, tol, speckle)
+
+
+def trace_shapes(q, ox, oy, tol=0.7, speckle=K * K):
+    """Formes d'une image déjà réduite en couleurs (RGBA, à K × la taille du cadre, posée en ox, oy)."""
     tmp = tempfile.mkdtemp()
     q.save(os.path.join(tmp, 'q.png'))
     vtracer.convert_image_to_svg_py(os.path.join(tmp, 'q.png'), os.path.join(tmp, 'q.svg'), colormode='color', hierarchical='stacked', mode='polygon',

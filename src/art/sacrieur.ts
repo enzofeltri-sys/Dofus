@@ -1,22 +1,25 @@
 import { ellipse, line, shape, svg, vgrad } from './kit';
-import { CHIBI_FOOT, CHIBI_HAND, CHIBI_PIVOTS, sacriChibi, type ChibiPart, type SacriColors } from './sacrieur-chibi';
+import { CHIBI_FOOT, type SacriColors } from './sacrieur-chibi';
+import { sacriTracedSvg, TRACED_SACRI_HAND, TRACED_SACRI_PARTS, TRACED_SACRI_PIVOTS, type TracedSacriPart } from './sacrieur-traced';
 
 /**
- * Le Sacrieur du jeu : version Archero (chibi), choisie par Enzo (proposition A).
- * Reprend les codes du Sacrieur de Dofus ; couleurs réglables (peau, cheveux, 4 couleurs de vêtements).
- * Regarde vers la DROITE.
+ * Le Sacrieur du jeu : redessiné sur gabarit du rendu officiel Dofus 3, comme les monstres (avant : version Archero).
+ * Couleurs réglables (peau, cheveux, 4 couleurs de vêtements). Regarde vers la DROITE.
  */
+/** Morceaux articulés, du fond vers l'avant. */
+export const SACRI_PARTS = TRACED_SACRI_PARTS;
+export type SacriPart = TracedSacriPart;
 export const SACRIEUR_W = 140;
 export const SACRIEUR_H = 170;
 export const SACRIEUR_FOOT: [number, number] = CHIBI_FOOT;
-export const SACRIEUR_PIVOTS = CHIBI_PIVOTS;
+export const SACRIEUR_PIVOTS = TRACED_SACRI_PIVOTS;
 /** Poing qui tient l'arme. */
-export const SACRIEUR_HAND: [number, number] = CHIBI_HAND;
+export const SACRIEUR_HAND: [number, number] = TRACED_SACRI_HAND;
 export const SACRIEUR_FACES_LEFT = false;
 /** Cadrage du visage pour le médaillon (viewBox). */
 export const SACRIEUR_FACE_BOX = '26 8 96 96';
 
-export const sacrieurSvg = (part?: ChibiPart, colors?: SacriColors) => sacriChibi(part, colors);
+export const sacrieurSvg = (part?: SacriPart, colors?: SacriColors) => sacriTracedSvg(part, colors);
 
 /** Épée grossière du Sacrieur (verticale, pointe en haut). Poignée en SWORD_GRIP. */
 export const SWORD_W = 40;

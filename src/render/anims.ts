@@ -51,6 +51,7 @@ export function poseHero(r: Rig, a: HeroAnim, sword: { rotation: number }) {
   }
   r.pose('armF', { rot: armF });
   r.pose('torso', { rot: lean * 0.5, dy: -bob * 0.3 + breath * 0.4 });
+  r.pose('cape', { rot: lean * 0.5 + (a.moving ? 0.08 : 0), dy: -bob * 0.3 + breath * 0.4 });
   r.pose('head', { rot: lean * 0.4 + breath * 0.01, dy: -bob * 0.4 + breath * 0.6 });
   sword.rotation = r.fwd(-swordRel);
 

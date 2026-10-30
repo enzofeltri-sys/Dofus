@@ -3,8 +3,7 @@ import { CHAFER_FOOT, CHAFER_PARTS, CHAFER_PIVOTS, type ChaferKind } from './art
 import { chaferChibiSvg as chaferSvg } from './art/monsters-chibi';
 import { MONSTERS, type MonsterArt } from './game/data/monsters';
 import { bones, boneBowl, brazier, BRAZIER_FIRE, candles, CANDLE_FLAMES, column, rubble, sarcophagus, type PropArt } from './art/props';
-import { SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
-import { SACRI_PARTS } from './art/sacrieur-variants/official-cartoon';
+import { SACRI_PARTS, SACRIEUR_FOOT, SACRIEUR_HAND, SACRIEUR_PIVOTS, sacrieurSvg } from './art/sacrieur';
 import type { PropKind } from './game/rooms';
 import { attackOffset, flatDist, FOUNTAIN_MAX, FOUNTAIN_REACH, GATE, HAZARD, PERSP, SPAWN_TIME, STEP, TOTAL_ROOMS, WAVES_TIME, World, type Monster, type WorldEvent } from './game/world';
 import { poseChafer, poseCritter, poseHero, type ChaferAnim, type CritterFamily, type HeroAnim } from './render/anims';
@@ -63,6 +62,8 @@ const DEMO = new URLSearchParams(location.search).has('demo');
 const SHOW_CAMP = !DEMO && !new URLSearchParams(location.search).has('salle');
 const START_ROOM = Math.max(0, Math.min(TOTAL_ROOMS - 1, (Number(new URLSearchParams(location.search).get('salle')) || 1) - 1));
 const CHAR_SCALE = 0.8;
+/** Sacrieur sur gabarit (proportions Dofus, plus fines que l'ancien chibi) : affiché un peu plus grand que les monstres. */
+const HERO_SCALE = CHAR_SCALE * 1.25;
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** Aura bleu azur des archimonstres : halo plein, bien visible même sur un sol clair. */
@@ -141,7 +142,7 @@ async function main() {
   let save = loadSave();
   hud.setHeroLook(save.appearance);
   const [sacriTex, gateTex, champsGateTex] = await Promise.all([
-    Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR))),
+    Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), RES * HERO_SCALE))),
     svgTexture(gateBarsSvg(), RES),
     svgTexture(champsGateSvg(), RES),
   ]);
@@ -550,7 +551,7 @@ async function main() {
 
   const heroRig = new Rig(
     SACRI_PARTS.map((p, i) => ({ name: p, tex: sacriTex[i], pivot: SACRIEUR_PIVOTS[p] })),
-    SACRIEUR_FOOT, CHAR_SCALE, false,
+    SACRIEUR_FOOT, HERO_SCALE, false,
   );
   // arme tenue en main : l'icône officielle de l'arme équipée (rien à mains nues)
   const sword = new Container();
@@ -576,7 +577,7 @@ async function main() {
     const key = JSON.stringify(save.appearance);
     if (key === lookKey) return;
     lookKey = key;
-    const tex = await Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), CR)));
+    const tex = await Promise.all(SACRI_PARTS.map((p) => svgTexture(sacrieurSvg(p, save.appearance), RES * HERO_SCALE)));
     SACRI_PARTS.forEach((p, i) => heroRig.setTexture(p, tex[i]));
   }
   const heroC = new Container();
@@ -602,7 +603,7 @@ async function main() {
   heroHpBox.addChild(heroHp, heroHpText, souffText);
   floatLayer.addChild(heroHpBox);
   actors.addChild(heroC);
-  const HP_Y = -180 * CHAR_SCALE;
+  const HP_Y = -168 * HERO_SCALE;
   function drawHeroHp(hp: number, max: number, shield: number, souffrance: number, alive: boolean, eroded = 0, souffPct = 0) {
     heroHpBox.visible = alive;
     if (!alive) return;
