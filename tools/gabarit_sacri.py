@@ -182,6 +182,32 @@ def main():
             q.save(os.path.join(os.environ['DEBUG'], f'q_{p}.png'))
         parts[p] = [[nearest(f), *rest] for f, *rest in trace_shapes(q, ox, oy, TOL)]
         print(p, len(parts[p]), 'formes', sum(len(x[1]) for x in parts[p]) // 1024, 'Ko')
+    # Tête sans couronne (sous un chapeau ; une seule coupe, choix d'Enzo du 30/10) : les pointes et l'aigrette du haut
+    # disparaissent, le bandeau et les mèches pointues de l'arrière deviennent des cheveux (même nuance, couleur Cheveux).
+    yy, xx = np.mgrid[0:1024, 0:1024]
+    head = L == 'head'
+    crown = head & np.isin(slot_px, ['c1', 'c3', 'c4']) | head & (slot_px == 'rouge') & (yy < 288)
+    # crâne arrondi : hors du cercle du crâne (au-dessus des yeux) et au-dessus de l'aigrette, plus rien
+    gone = head & ((yy < 175) | (xx > 495) & (yy < 262) & (np.hypot(xx - 548, yy - 268) > 78))
+    hair_base = np.array([int(SLOTS['hair'][i:i + 2], 16) for i in (1, 3, 5)], float)
+    bare = np.asarray(celimg.transpose(Image.FLIP_LEFT_RIGHT)).copy()
+    for t in LEVELS:
+        m = crown & (tq == t)
+        if not m.any():
+            continue
+        own = (slot_px == 'hair') & (tq == t)
+        c = np.clip(np.round(a[own].mean(0) if own.sum() >= 30 else t * hair_base), 0, 255).astype(int)
+        bare[m] = c
+        palette.setdefault('#%02x%02x%02x' % tuple(c), 'hair')
+    pcols = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in palette])
+    pnames = list(palette)
+    bare_rgb = Image.fromarray(bare).filter(ImageFilter.ModeFilter(3)).transpose(Image.FLIP_LEFT_RIGHT).resize((W, W), Image.NEAREST).filter(ImageFilter.ModeFilter(3))
+    mask = Image.fromarray(((head & ~gone) * 255).astype(np.uint8)).transpose(Image.FLIP_LEFT_RIGHT).resize((W, W), Image.LANCZOS) \
+        .filter(ImageFilter.GaussianBlur(K * 0.6)).point(lambda v: 255 if v >= 128 else 0)
+    q = bare_rgb.convert('RGBA')
+    q.putalpha(mask)
+    parts['headBare'] = [[nearest(f), *rest] for f, *rest in trace_shapes(q, ox, oy, TOL)]
+    print('headBare', len(parts['headBare']), 'formes', sum(len(x[1]) for x in parts['headBare']) // 1024, 'Ko')
     used = {f for sh in parts.values() for f, *_ in sh}
     slots = {c: palette[c] for c in sorted(used)}
     for k in sorted(slots):
