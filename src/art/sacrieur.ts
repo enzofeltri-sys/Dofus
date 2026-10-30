@@ -17,7 +17,7 @@ export const SACRIEUR_PIVOTS = TRACED_SACRI_PIVOTS;
 export const SACRIEUR_HAND: [number, number] = TRACED_SACRI_HAND;
 export const SACRIEUR_FACES_LEFT = false;
 /** Cadrage du visage pour le médaillon (viewBox). */
-export const SACRIEUR_FACE_BOX = '26 8 96 96';
+export const SACRIEUR_FACE_BOX = '47 16 46 46';
 
 export const sacrieurSvg = (part?: SacriPart, colors?: SacriColors) => sacriTracedSvg(part, colors);
 

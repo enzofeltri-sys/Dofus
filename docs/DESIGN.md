@@ -56,7 +56,7 @@ Objectif : **retrouver l'esprit et la DA de Dofus**, sans pixel art.
 ---
 
 ### 3.x Personnage (validé par Enzo, octobre 2026)
-- **Sacrieur « version Archero »** : un personnage chibi à nous (grosse tête ronde, petit corps trapu, gros poings, modelé brillant) qui reprend les codes du Sacrieur de Dofus (bandana-casque à pièce cousue, oreilles pointues, yeux blancs, peintures de guerre, cœur, bandages, pagne déchiqueté, pantalon effiloché, pieds nus à lanières).
+- **Sacrieur sur gabarit** (validé par Enzo le 30/10, remplace la « version Archero ») : redessiné comme les monstres sur le rendu officiel Dofus 3 (couronne à pointes, bandeau olive, cape, pantalon bordeaux, gants rouges ; `tools/gabarit_sacri.py`). 7 morceaux animés (cape, jambes, bras, torse, tête), affiché 25 % plus grand que les monstres, 33 Ko. Chaque couleur suit un emplacement de l'écran Apparence ; peintures rouges et yeux fixes.
 - **Couleurs réglables** comme dans Dofus 3 : peau, cheveux, vêtements 1 à 4 (écran Apparence au camp, aléatoire, retour aux couleurs du jeu).
 - Monstres de la Crypte dans le même style, fidèles à Dofus 3 sur tout le reste (validé par Enzo) : Chafers squelettes voûtés au crâne allongé et mâchoire ouverte, bottes sombres cerclées d'or ; Débutant crâne nu et cimeterre sombre ; Furtif identique en fantôme turquoise ; Piquier casque vert-jaune, grand bouclier rectangulaire et lance droite ; Sergent casque rouge à tête de mort et plumet, épaulière, cape ; Kardorim visage visible sous le casque à cornes d'or, contour lumineux vert ; Kardorib chien squelette à cornes de bélier.
 
